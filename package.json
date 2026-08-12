@@ -1,0 +1,14 @@
+{
+  "name": "unified-knowledge-base-monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "packages/create-ukb-brain"
+  ],
+  "scripts": {
+    "web:dev": "npm --workspace apps/web run dev",
+    "web:build": "npm --workspace apps/web run build",
+    "web:preview": "npm --workspace apps/web run preview",
+    "create-brain": "node packages/create-ukb-brain/bin/create-ukb-brain.mjs"
+  }
+}

@@ -1,0 +1,24 @@
+id: finance.metric.device_revenue
+type: Metric
+name: Device Revenue
+domain: finance
+owner: Finance BI
+status: approved
+sensitivity: internal
+definition: Revenue generated from device sales, excluding service revenue.
+formula: SUM(device_sales_amount) excluding returns and service revenue.
+grain: monthly
+source_systems:
+  - synthetic_bigquery.finance.device_sales
+appears_in:
+  - finance.report.cfo_kpi_dashboard
+related_metrics:
+  - finance.metric.device_units
+  - finance.metric.upgrade_rate
+  - finance.metric.promo_credit
+caveats:
+  - Month-end finance adjustments may not be complete before WD4.
+  - Promotional credits can affect recognized revenue.
+source_refs:
+  - source_id: synthetic_source_device_revenue_definition
+    confidence: 0.94

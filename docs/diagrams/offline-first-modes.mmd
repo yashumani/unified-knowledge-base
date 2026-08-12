@@ -1,0 +1,11 @@
+flowchart LR
+  A[offline_no_model<br/>YAML + Markdown<br/>heuristics + review] --> B[local_ai<br/>local extraction<br/>local embeddings]
+  B --> C[hosted_ai<br/>approved provider<br/>advanced reasoning]
+  C --> D[hybrid<br/>local default<br/>hosted by policy]
+
+  A --> E[Context packs still work]
+  B --> E
+  C --> E
+  D --> E
+
+  E --> F[Governance invariant<br/>AI output remains candidate until approved]

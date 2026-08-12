@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Unified Knowledge Base — Animated Diagrams</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #162033;
+      --panel-2: #1e293b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --cyan: #22d3ee;
+      --purple: #8b5cf6;
+      --green: #34d399;
+      --amber: #f59e0b;
+      --red: #f87171;
+      --line: #334155;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at 20% 0%, rgba(99, 102, 241, 0.22), transparent 30%), var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.35;
+    }
+    header {
+      padding: 56px min(7vw, 92px) 28px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+    }
+    .kicker { color: var(--cyan); letter-spacing: .14em; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+    h1 { margin: 10px 0 12px; font-size: clamp(36px, 6vw, 72px); letter-spacing: -0.045em; line-height: .96; }
+    .lede { max-width: 850px; color: #cbd5e1; font-size: clamp(17px, 2vw, 22px); }
+    main { padding: 32px min(7vw, 92px) 72px; display: grid; gap: 34px; }
+    section.scene {
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: rgba(15, 23, 42, 0.78);
+      border-radius: 24px;
+      min-height: 560px;
+      padding: 28px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 30px 80px rgba(0,0,0,.26);
+    }
+    .scene h2 { margin: 0; font-size: clamp(25px, 3vw, 38px); letter-spacing: -.03em; }
+    .scene p { color: var(--muted); margin: 8px 0 0; max-width: 760px; }
+    .stage { position: relative; height: 400px; margin-top: 30px; }
+    .node {
+      position: absolute;
+      width: 170px;
+      min-height: 74px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(30,41,59,.96), rgba(15,23,42,.96));
+      border: 1px solid var(--line);
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 12px;
+      font-weight: 800;
+      box-shadow: 0 12px 35px rgba(0,0,0,.24);
+    }
+    .node small { display: block; font-weight: 600; color: var(--muted); margin-top: 4px; }
+    .purple { border-color: var(--purple); }
+    .cyan { border-color: var(--cyan); }
+    .green { border-color: var(--green); }
+    .amber { border-color: var(--amber); }
+    .red { border-color: var(--red); }
+    .line {
+      position: absolute;
+      height: 3px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      opacity: .85;
+      transform-origin: left center;
+    }
+    .packet {
+      position: absolute;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 24px var(--cyan);
+      z-index: 5;
+    }
+    .compile .n1 { left: 2%; top: 38%; }
+    .compile .n2 { left: 20%; top: 38%; }
+    .compile .n3 { left: 38%; top: 38%; }
+    .compile .n4 { left: 56%; top: 38%; }
+    .compile .n5 { left: 74%; top: 38%; }
+    .compile .line { top: 49%; left: 14%; width: 68%; }
+    .compile .packet { top: calc(49% - 6px); left: 3%; animation: compileMove 6s ease-in-out infinite; }
+    @keyframes compileMove {
+      0% { left: 4%; background: var(--purple); box-shadow: 0 0 24px var(--purple); }
+      22% { left: 24%; background: var(--purple); box-shadow: 0 0 24px var(--purple); }
+      46% { left: 43%; background: var(--amber); box-shadow: 0 0 24px var(--amber); }
+      70% { left: 61%; background: var(--green); box-shadow: 0 0 24px var(--green); }
+      100% { left: 80%; background: var(--cyan); box-shadow: 0 0 24px var(--cyan); }
+    }
+    .registry {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      width: 210px; height: 130px; border: 1px solid var(--cyan); border-radius: 22px;
+      display: grid; place-items: center; text-align: center; font-weight: 900;
+      background: rgba(30,41,59,.9); box-shadow: 0 0 40px rgba(34,211,238,.15);
+    }
+    .plugin .node { width: 142px; min-height: 58px; font-size: 14px; }
+    .plugin .p1 { left: 8%; top: 8%; }
+    .plugin .p2 { left: 39%; top: 2%; }
+    .plugin .p3 { right: 8%; top: 8%; }
+    .plugin .p4 { right: 3%; top: 42%; }
+    .plugin .p5 { right: 12%; bottom: 6%; }
+    .plugin .p6 { left: 39%; bottom: 2%; }
+    .plugin .p7 { left: 8%; bottom: 6%; }
+    .plugin .p8 { left: 3%; top: 42%; }
+    .ring {
+      position: absolute; inset: 42px 90px; border: 2px dashed rgba(34,211,238,.36); border-radius: 50%;
+      animation: rotate 18s linear infinite;
+    }
+    .ring.two { inset: 80px 190px; border-color: rgba(139,92,246,.36); animation-duration: 12s; animation-direction: reverse; }
+    @keyframes rotate { to { transform: rotate(360deg); } }
+    .modes .node { width: 210px; }
+    .modes .m1 { left: 3%; top: 18%; }
+    .modes .m2 { left: 28%; top: 18%; }
+    .modes .m3 { left: 53%; top: 18%; }
+    .modes .m4 { left: 76%; top: 18%; }
+    .modes .guardrail {
+      position: absolute; left: 12%; right: 12%; bottom: 22%; padding: 18px 22px;
+      border-radius: 16px; border: 1px solid var(--green); background: rgba(20,83,45,.18); color: #d1fae5;
+      font-weight: 800; text-align: center;
+    }
+    .modes .packet { top: 42%; left: 5%; animation: modesMove 7s ease-in-out infinite; }
+    @keyframes modesMove {
+      0% { left: 8%; background: var(--purple); box-shadow: 0 0 24px var(--purple); }
+      33% { left: 34%; background: var(--green); box-shadow: 0 0 24px var(--green); }
+      66% { left: 59%; background: var(--amber); box-shadow: 0 0 24px var(--amber); }
+      100% { left: 82%; background: var(--cyan); box-shadow: 0 0 24px var(--cyan); }
+    }
+    .hub .registry { width: 250px; height: 150px; }
+    .hub .node { width: 185px; min-height: 86px; }
+    .hub .a1 { left: 9%; top: 12%; }
+    .hub .a2 { right: 9%; top: 12%; }
+    .hub .a3 { left: 9%; bottom: 9%; }
+    .hub .a4 { right: 9%; bottom: 9%; }
+    .pulse {
+      position: absolute; left: 50%; top: 50%; width: 260px; height: 260px; border-radius: 50%; border: 1px solid rgba(34,211,238,.28);
+      transform: translate(-50%, -50%); animation: pulse 2.8s ease-out infinite;
+    }
+    .pulse.two { animation-delay: .9s; }
+    .pulse.three { animation-delay: 1.8s; }
+    @keyframes pulse {
+      0% { width: 210px; height: 210px; opacity: .75; }
+      100% { width: 560px; height: 560px; opacity: 0; }
+    }
+    footer { color: var(--muted); padding: 0 min(7vw, 92px) 42px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="kicker">Unified Knowledge Base</div>
+    <h1>Animated diagrams for the governed AI Brain</h1>
+    <div class="lede">Use these offline browser animations to explain the compiler loop, plugin architecture, offline-first AI strategy, and API/MCP/SDK adapter model.</div>
+  </header>
+
+  <main>
+    <section class="scene compile">
+      <h2>1. Brain compiler loop</h2>
+      <p>Raw context becomes evidence, candidates, human-reviewed knowledge, and then context packs.</p>
+      <div class="stage">
+        <div class="line"></div><div class="packet"></div>
+        <div class="node n1 purple">Evidence<small>source preserved</small></div>
+        <div class="node n2 purple">Parse<small>sections, SQL, tables</small></div>
+        <div class="node n3 amber">Candidate<small>AI-classified</small></div>
+        <div class="node n4 green">Review<small>human approval</small></div>
+        <div class="node n5 cyan">Context Pack<small>served to apps</small></div>
+      </div>
+    </section>
+
+    <section class="scene plugin">
+      <h2>2. Plugin extension mesh</h2>
+      <p>Plugins add capabilities without changing the core runtime or bypassing governance.</p>
+      <div class="stage">
+        <div class="ring"></div><div class="ring two"></div>
+        <div class="registry">Plugin Registry<br><small>contracts + manifests</small></div>
+        <div class="node p1 purple">Connector</div>
+        <div class="node p2 purple">Parser</div>
+        <div class="node p3 amber">Extractor</div>
+        <div class="node p4 green">Validator</div>
+        <div class="node p5 cyan">Retriever</div>
+        <div class="node p6 green">Policy</div>
+        <div class="node p7 cyan">Exporter</div>
+        <div class="node p8 amber">Decorator</div>
+      </div>
+    </section>
+
+    <section class="scene modes">
+      <h2>3. Offline-first AI modes</h2>
+      <p>The deterministic path works first. Local and hosted AI are optional accelerators.</p>
+      <div class="stage">
+        <div class="packet"></div>
+        <div class="node m1 purple">offline_no_model<small>YAML, Markdown, rules</small></div>
+        <div class="node m2 green">local_ai<small>local extraction + embeddings</small></div>
+        <div class="node m3 amber">hosted_ai<small>approved provider only</small></div>
+        <div class="node m4 cyan">hybrid<small>policy-routed AI</small></div>
+        <div class="guardrail">Governance invariant: AI output remains candidate knowledge until a human reviewer approves it.</div>
+      </div>
+    </section>
+
+    <section class="scene hub">
+      <h2>4. One brain, many adapters</h2>
+      <p>REST, MCP, SDK, and npm starter wrap the same runtime services.</p>
+      <div class="stage">
+        <div class="pulse"></div><div class="pulse two"></div><div class="pulse three"></div>
+        <div class="registry">Core Brain Runtime<br><small>store • retrieval • governance</small></div>
+        <div class="node a1 amber">REST API<small>platform + review UI</small></div>
+        <div class="node a2 green">MCP Server<small>LLM agents + clients</small></div>
+        <div class="node a3 purple">Python SDK<small>BI + notebooks</small></div>
+        <div class="node a4 cyan">npm starter<small>create a brain package</small></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Offline-safe demo asset. Synthetic examples only. Do not add private enterprise data to this public scaffold.
+  </footer>
+</body>
+</html>
