@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { API_BASE, brainClient } from "./api/brainClient";
 import { demoContextPack, demoGraph, demoObjects, demoReviewItems } from "./data/demoBrain";
 import { ObsidianGraphView } from "./components/ObsidianGraphView";
@@ -180,13 +180,13 @@ function Metric({ label, value }: { label: string; value: number }) {
 }
 
 function SubmitContext({ onSubmit }: { onSubmit: (payload: IngestionPayload) => Promise<void> }) {
-  const [title, setTitle] = useState("Sample Order Value Definition");
-  const [domain, setDomain] = useState("finance");
+  const [title, setTitle] = useState("Incident Resolution Time Definition");
+  const [domain, setDomain] = useState("support");
   const [sourceType, setSourceType] = useState<SourceType>("document");
-  const [content, setContent] = useState("Sample Order Value is value of sample orders, excluding test orders. It appears in the example sales dashboard and is owned by Demo Analytics.");
+  const [content, setContent] = useState("Incident Resolution Time is the average elapsed time from incident creation to resolved status for product support cases, excluding duplicate incidents and customer-wait periods. It appears in the SLA Review Dashboard and is owned by Support Operations. Recently resolved incidents may need 24 hours for quality review tags to settle.");
   const [submitting, setSubmitting] = useState(false);
 
-  async function submit(event: React.FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault();
     setSubmitting(true);
     try {
@@ -258,15 +258,15 @@ function ReviewQueue({ items, onApprove, onReject }: { items: ReviewItem[]; onAp
 }
 
 function ContextPackExplorer({ onAsk, contextPack }: { onAsk: (request: ContextPackRequest) => Promise<void>; contextPack: ContextPack | null }) {
-  const [question, setQuestion] = useState("Why is sample order value down?");
+  const [question, setQuestion] = useState("Why did incident resolution time increase?");
   const [mode, setMode] = useState<ContextPackRequest["mode"]>("executive_insight");
   const [asking, setAsking] = useState(false);
 
-  async function submit(event: React.FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault();
     setAsking(true);
     try {
-      await onAsk({ question, user_id: "ui.consumer", domains: ["finance"], mode });
+      await onAsk({ question, user_id: "ui.consumer", domains: ["support"], mode });
     } finally {
       setAsking(false);
     }
