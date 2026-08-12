@@ -7,13 +7,13 @@ The starter kit lets someone create a domain-specific AI Brain without forking t
 A user should be able to start with a command like:
 
 ```bash
-npm create ukb-brain@latest my-finance-brain -- --template default --offline
+npm create ukb-brain@latest my-support-brain -- --template default --offline
 ```
 
 or, before the package is published:
 
 ```bash
-node packages/create-ukb-brain/bin/create-ukb-brain.mjs my-finance-brain --offline
+node packages/create-ukb-brain/bin/create-ukb-brain.mjs my-support-brain --offline
 ```
 
 This creates a project folder with:
@@ -27,6 +27,16 @@ README.md
 ```
 
 The generated project is not a separate platform. It is a **brain package** that can be loaded by the Unified Knowledge Base runtime.
+
+## Public example policy
+
+Generated examples must be synthetic and neutral. Do not use employer-specific dashboards, telecom workflows, finance-planning workflows, proprietary metric definitions, customer data, or internal screenshots in public examples.
+
+The default template uses this generic domain:
+
+```text
+support
+```
 
 ## Mental model
 
@@ -50,7 +60,7 @@ brain.config.yaml
   id, name, domains, runtime mode, plugin list, governance rules
 
 domains/
-  finance, product, sales, operations, legal, custom domain folders
+  support, product, sales, operations, legal, custom domain folders
 
 plugins/
   optional custom connectors, parsers, validators, exporters
@@ -92,28 +102,13 @@ hybrid
   Uses local AI by default and hosted AI only for approved tasks.
 ```
 
-## Why this matters
-
-The AI Brain is enterprise infrastructure. It should not depend on a single vendor, cloud connection, UI, or model provider.
-
-The safest design is:
-
-```text
-human-editable brain package
-  + plugin contracts
-  + offline deterministic path
-  + optional local AI
-  + optional hosted AI
-  + governed publishing
-```
-
 ## Starter command contract
 
 The npm starter package should eventually support:
 
 ```bash
 npm create ukb-brain@latest my-brain
-npm create ukb-brain@latest my-finance-brain -- --template finance
+npm create ukb-brain@latest my-support-brain -- --template support
 npm create ukb-brain@latest my-ops-brain -- --offline
 npm create ukb-brain@latest my-brain -- --with-example-data
 ```
@@ -123,7 +118,7 @@ Generated files should contain synthetic examples only.
 ## Recommended next iteration
 
 1. Publish `create-ukb-brain` only after the local package is stable.
-2. Add first-class templates: `default`, `finance-bi`, `product-analytics`, `ops-runbook`.
+2. Add first-class templates: `default`, `support-ops`, `product-analytics`, `ops-runbook`.
 3. Add `ukb brain validate <path>` to validate generated brain packages.
 4. Add `ukb brain load <path>` to load a brain package into the runtime.
 5. Add plugin discovery from local paths and installed Python packages.
