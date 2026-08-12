@@ -2,10 +2,10 @@ brain:
   id: local-offline-brain
   name: Local Offline Brain
   version: 0.1.0
-  description: Example of an offline-first brain package.
+  description: Example of an offline-first brain package using neutral synthetic support examples.
 
 domains:
-  - finance
+  - support
   - operations
 
 runtime:
