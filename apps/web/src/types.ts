@@ -104,7 +104,7 @@ export interface GraphNode {
   status?: string | null;
   sensitivity?: string | null;
   confidence?: number | null;
-  metadata: Record<string, unknown>;
+  metadata: unknown;
 }
 
 export interface GraphEdge {
@@ -113,7 +113,7 @@ export interface GraphEdge {
   target: string;
   type: string;
   confidence: number;
-  metadata: Record<string, unknown>;
+  metadata: unknown;
 }
 
 export interface BrainGraph {
