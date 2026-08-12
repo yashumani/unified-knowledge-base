@@ -1,6 +1,6 @@
 # Demo Slide Outline
 
-Deck: `docs/demo/ukb-ai-brain-demo.pptx`
+Deck: `docs/demo/demo-slides.html`
 
 ## Slide 1 — A governed AI Brain for enterprise context
 
