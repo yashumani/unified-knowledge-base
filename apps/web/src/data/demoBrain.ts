@@ -4,24 +4,24 @@ const now = new Date().toISOString();
 
 export const demoSources: SourceEvidence[] = [
   {
-    source_id: "source_demo_device_revenue",
+    source_id: "source_demo_incident_resolution",
     source_type: "document",
-    title: "Device Revenue Definition",
-    content_excerpt: "Device Revenue is revenue generated from device sales, excluding service revenue. It appears in the CFO KPI dashboard and is owned by Finance BI.",
-    source_uri: "local://synthetic/device-revenue.md",
+    title: "Incident Resolution Time Definition",
+    content_excerpt: "Incident Resolution Time is the average elapsed time from incident creation to resolved status for product support cases, excluding duplicate incidents and customer-wait periods. It appears in the SLA Review Dashboard and is owned by Support Operations.",
+    source_uri: "local://synthetic/incident-resolution-time.md",
     submitted_by: "demo.user",
-    domain: "finance",
+    domain: "support",
     sensitivity: "internal",
     created_at: now
   },
   {
-    source_id: "source_demo_month_end",
+    source_id: "source_demo_sla_review_window",
     source_type: "manual",
-    title: "Month-End Close Caveat",
-    content_excerpt: "Month-end finance adjustments may not be complete before WD4. Executive narratives should call this out when data is preliminary.",
-    source_uri: "local://synthetic/month-end-close.md",
+    title: "SLA Review Window Caveat",
+    content_excerpt: "Recently resolved incidents may need 24 hours for quality review tags to settle. Reopened incidents can change final resolution-time calculations.",
+    source_uri: "local://synthetic/sla-review-window.md",
     submitted_by: "demo.user",
-    domain: "finance",
+    domain: "support",
     sensitivity: "internal",
     created_at: now
   }
@@ -29,37 +29,37 @@ export const demoSources: SourceEvidence[] = [
 
 export const demoObjects: KnowledgeObject[] = [
   {
-    id: "finance.metric.device_revenue",
+    id: "support.metric.incident_resolution_time",
     type: "Metric",
-    title: "Device Revenue",
-    summary: "Revenue generated from device sales, excluding service revenue.",
-    domain: "finance",
-    owner: "Finance BI",
+    title: "Incident Resolution Time",
+    summary: "Average elapsed time from incident creation to resolved status for product support cases.",
+    domain: "support",
+    owner: "Support Operations",
     status: "published",
     sensitivity: "internal",
-    source_ids: ["source_demo_device_revenue"],
+    source_ids: ["source_demo_incident_resolution"],
     relationships: [
-      { type: "appears_in", target_id: "finance.report.cfo_kpi_dashboard", confidence: 0.86 },
-      { type: "governed_by", target_id: "finance.rule.month_end_close", confidence: 0.79 }
+      { type: "appears_in", target_id: "support.report.sla_review_dashboard", confidence: 0.86 },
+      { type: "governed_by", target_id: "support.rule.sla_review_window", confidence: 0.79 }
     ],
     attributes: {
-      caveats: ["Month-end finance adjustments may not be complete before WD4."],
-      related_metrics: ["device_units", "upgrade_rate", "promo_credit"]
+      caveats: ["Recently resolved incidents may need 24 hours for quality review tags to settle."],
+      related_metrics: ["first_response_time", "reopen_rate", "ticket_backlog"]
     },
     confidence: 0.91,
     created_at: now,
     updated_at: now
   },
   {
-    id: "finance.report.cfo_kpi_dashboard",
+    id: "support.report.sla_review_dashboard",
     type: "Report",
-    title: "CFO KPI Dashboard",
-    summary: "Executive dashboard used for monthly KPI reporting and variance review.",
-    domain: "finance",
-    owner: "Executive Reporting",
+    title: "SLA Review Dashboard",
+    summary: "Generic operations dashboard used for support health and service-level review.",
+    domain: "support",
+    owner: "Support Operations",
     status: "published",
     sensitivity: "internal",
-    source_ids: ["source_demo_device_revenue"],
+    source_ids: ["source_demo_incident_resolution"],
     relationships: [],
     attributes: { refresh_frequency: "daily" },
     confidence: 0.82,
@@ -67,17 +67,17 @@ export const demoObjects: KnowledgeObject[] = [
     updated_at: now
   },
   {
-    id: "finance.rule.month_end_close",
+    id: "support.rule.sla_review_window",
     type: "BusinessRule",
-    title: "Month-End Close Caveat",
-    summary: "Treat finance metrics as preliminary until WD4 adjustments are complete.",
-    domain: "finance",
-    owner: "Finance Governance",
+    title: "SLA Review Window",
+    summary: "Treat newly resolved incidents as preliminary until quality review tags settle.",
+    domain: "support",
+    owner: "Support Governance",
     status: "published",
     sensitivity: "internal",
-    source_ids: ["source_demo_month_end"],
+    source_ids: ["source_demo_sla_review_window"],
     relationships: [],
-    attributes: { review_cadence: "monthly" },
+    attributes: { review_cadence: "weekly" },
     confidence: 0.88,
     created_at: now,
     updated_at: now
@@ -86,19 +86,19 @@ export const demoObjects: KnowledgeObject[] = [
 
 export const demoReviewItems: ReviewItem[] = [
   {
-    id: "review_demo_upgrade_rate",
-    source_id: "source_demo_device_revenue",
+    id: "review_demo_reopen_rate",
+    source_id: "source_demo_incident_resolution",
     candidate_object: {
-      id: "finance.metric.upgrade_rate",
+      id: "support.metric.reopen_rate",
       type: "Metric",
-      title: "Upgrade Rate",
-      summary: "Candidate metric for customer upgrade activity that may explain device revenue movement.",
-      domain: "finance",
-      owner: "Finance BI",
+      title: "Reopen Rate",
+      summary: "Candidate metric for the share of resolved incidents reopened after initial resolution.",
+      domain: "support",
+      owner: "Support Operations",
       status: "human_review_required",
       sensitivity: "internal",
-      source_ids: ["source_demo_device_revenue"],
-      relationships: [{ type: "related_to", target_id: "finance.metric.device_revenue", confidence: 0.74 }],
+      source_ids: ["source_demo_incident_resolution"],
+      relationships: [{ type: "related_to", target_id: "support.metric.incident_resolution_time", confidence: 0.74 }],
       attributes: { compiler: "demo" },
       confidence: 0.72,
       created_at: now,
@@ -157,31 +157,31 @@ export const demoGraph: BrainGraph = {
     }))
   ],
   edges: [
-    { id: "source_demo_device_revenue::evidence_for::finance.metric.device_revenue", source: "source_demo_device_revenue", target: "finance.metric.device_revenue", type: "evidence_for", confidence: 0.91, metadata: {} },
-    { id: "source_demo_month_end::evidence_for::finance.rule.month_end_close", source: "source_demo_month_end", target: "finance.rule.month_end_close", type: "evidence_for", confidence: 0.88, metadata: {} },
-    { id: "finance.metric.device_revenue::appears_in::finance.report.cfo_kpi_dashboard", source: "finance.metric.device_revenue", target: "finance.report.cfo_kpi_dashboard", type: "appears_in", confidence: 0.86, metadata: {} },
-    { id: "finance.metric.device_revenue::governed_by::finance.rule.month_end_close", source: "finance.metric.device_revenue", target: "finance.rule.month_end_close", type: "governed_by", confidence: 0.79, metadata: {} },
-    { id: "source_demo_device_revenue::submitted_as::review_demo_upgrade_rate", source: "source_demo_device_revenue", target: "review_demo_upgrade_rate", type: "submitted_as", confidence: 0.5, metadata: {} },
-    { id: "review_demo_upgrade_rate::reviews::finance.metric.upgrade_rate", source: "review_demo_upgrade_rate", target: "finance.metric.upgrade_rate", type: "reviews", confidence: 0.72, metadata: {} },
-    { id: "finance.metric.upgrade_rate::related_to::finance.metric.device_revenue", source: "finance.metric.upgrade_rate", target: "finance.metric.device_revenue", type: "related_to", confidence: 0.74, metadata: {} }
+    { id: "source_demo_incident_resolution::evidence_for::support.metric.incident_resolution_time", source: "source_demo_incident_resolution", target: "support.metric.incident_resolution_time", type: "evidence_for", confidence: 0.91, metadata: {} },
+    { id: "source_demo_sla_review_window::evidence_for::support.rule.sla_review_window", source: "source_demo_sla_review_window", target: "support.rule.sla_review_window", type: "evidence_for", confidence: 0.88, metadata: {} },
+    { id: "support.metric.incident_resolution_time::appears_in::support.report.sla_review_dashboard", source: "support.metric.incident_resolution_time", target: "support.report.sla_review_dashboard", type: "appears_in", confidence: 0.86, metadata: {} },
+    { id: "support.metric.incident_resolution_time::governed_by::support.rule.sla_review_window", source: "support.metric.incident_resolution_time", target: "support.rule.sla_review_window", type: "governed_by", confidence: 0.79, metadata: {} },
+    { id: "source_demo_incident_resolution::submitted_as::review_demo_reopen_rate", source: "source_demo_incident_resolution", target: "review_demo_reopen_rate", type: "submitted_as", confidence: 0.5, metadata: {} },
+    { id: "review_demo_reopen_rate::reviews::support.metric.reopen_rate", source: "review_demo_reopen_rate", target: "support.metric.reopen_rate", type: "reviews", confidence: 0.72, metadata: {} },
+    { id: "support.metric.reopen_rate::related_to::support.metric.incident_resolution_time", source: "support.metric.reopen_rate", target: "support.metric.incident_resolution_time", type: "related_to", confidence: 0.74, metadata: {} }
   ]
 };
 
 export const demoContextPack: ContextPack = {
-  context_pack_id: "ctx_demo_device_revenue",
-  question: "Why is device revenue down?",
+  context_pack_id: "ctx_demo_incident_resolution",
+  question: "Why did incident resolution time increase?",
   user_id: "demo.user",
   mode: "executive_insight",
   access_decision: "allowed",
   confidence: 0.86,
-  answer_guidance: "Use the approved Device Revenue definition, mention WD4 caveat, and check driver metrics before finalizing an executive narrative.",
+  answer_guidance: "Use the approved Incident Resolution Time definition, mention the SLA review-window caveat, and check related support drivers before finalizing an operational narrative.",
   knowledge_objects: demoObjects,
   evidence: demoSources,
-  caveats: ["Month-end finance adjustments may not be complete before WD4."],
-  related_objects: ["finance.report.cfo_kpi_dashboard", "finance.rule.month_end_close"],
+  caveats: ["Recently resolved incidents may need 24 hours for quality review tags to settle."],
+  related_objects: ["support.report.sla_review_dashboard", "support.rule.sla_review_window"],
   recommended_followups: [
-    "Check related driver metrics: device units, upgrade rate, promotional credits, and returns.",
-    "Confirm whether the current period is preliminary or final."
+    "Check related driver metrics: first response time, reopen rate, ticket backlog, and incident severity mix.",
+    "Confirm whether the current reporting window has completed quality review tagging."
   ],
   generated_at: now
 };
