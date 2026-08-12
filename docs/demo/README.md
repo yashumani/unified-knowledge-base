@@ -6,14 +6,15 @@ This directory contains presentation and walkthrough materials for the Unified K
 
 | File | Purpose |
 |---|---|
-| `ukb-ai-brain-demo.pptx` | PowerPoint-style demo deck generated for presenter use. |
 | `demo-slides.html` | Offline browser-based slide deck for repository use. |
 | `slides-outline.md` | Slide-by-slide guide with speaker notes. |
 | `animated-diagrams.html` | Self-contained browser animations for architecture walkthroughs. |
 
+A PowerPoint presenter export can be generated separately when needed. The committed repository keeps demo material text-first so changes can be reviewed cleanly in Git.
+
 ## Recommended demo order
 
-1. Open `ukb-ai-brain-demo.pptx` or `demo-slides.html` and present slides 1–4.
+1. Open `demo-slides.html` and present slides 1–4.
 2. Open `animated-diagrams.html` to animate the compiler loop.
 3. Return to slides 5–8 for plugins, offline-first AI, adapters, and governance.
 4. Run the live commands from `docs/DEMO_GUIDE.md`.

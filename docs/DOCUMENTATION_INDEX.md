@@ -19,11 +19,12 @@ This repository is being shaped as a reusable platform for building governed AI 
 |---|---|
 | `docs/DEMO_GUIDE.md` | Live demo script, commands, and fallback flow. |
 | `docs/ARCHITECTURE_STORYBOARD.md` | Narrative map for explaining the platform in a meeting. |
-| `docs/demo/ukb-ai-brain-demo.pptx` | Demo slide deck generated for presenter use. |
 | `docs/demo/demo-slides.html` | Offline browser-based slide deck for repository use. |
 | `docs/demo/slides-outline.md` | Slide-by-slide speaker guide. |
 | `docs/demo/animated-diagrams.html` | Offline animated diagrams for browser-based walkthroughs. |
 | `docs/demo/README.md` | How to use the demo assets. |
+
+A PowerPoint presenter export can be generated outside the repository when needed. The committed, reviewable slide deck is the offline HTML deck so the repository remains text-first and Git-friendly.
 
 ## Diagrams
 

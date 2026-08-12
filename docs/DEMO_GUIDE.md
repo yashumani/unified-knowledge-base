@@ -223,12 +223,11 @@ This file has no external dependencies and can be used in an offline meeting.
 
 Use:
 
-1. `docs/demo/ukb-ai-brain-demo.pptx`
-2. `docs/demo/demo-slides.html`
-3. `docs/demo/animated-diagrams.html`
-4. `docs/demo/slides-outline.md`
+1. `docs/demo/demo-slides.html`
+2. `docs/demo/animated-diagrams.html`
+3. `docs/demo/slides-outline.md`
 
-Narrate the same flow without running commands.
+Narrate the same flow without running commands. A PowerPoint presenter export can be generated separately when needed, but the committed repository deck is the offline HTML file.
 
 ## Demo success criteria
 
