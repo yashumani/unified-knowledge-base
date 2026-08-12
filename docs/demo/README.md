@@ -26,4 +26,6 @@ The animated HTML file has no CDN, npm, or external image dependency. It can be 
 
 ## Safe demo boundary
 
-Use synthetic examples only. Do not include workplace documents, private dashboards, internal metric definitions, credentials, customer data, or proprietary screenshots in the demo deck or animation files.
+Use synthetic examples only. Do not include workplace documents, private dashboards, internal metric definitions, carrier or telecom workflows, finance-planning examples, credentials, customer data, or proprietary screenshots in the demo deck or animation files.
+
+The approved public scenario is the neutral support-operations example documented in `docs/EXAMPLE_DOMAIN.md`.
