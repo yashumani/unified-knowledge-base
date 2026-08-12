@@ -149,6 +149,32 @@ class ContextPack(BaseModel):
     generated_at: datetime = Field(default_factory=utc_now)
 
 
+class GraphNode(BaseModel):
+    id: str
+    label: str
+    type: str
+    domain: str | None = None
+    status: str | None = None
+    sensitivity: str | None = None
+    confidence: float | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class GraphEdge(BaseModel):
+    id: str
+    source: str
+    target: str
+    type: str
+    confidence: float = 0.5
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class BrainGraph(BaseModel):
+    nodes: list[GraphNode] = Field(default_factory=list)
+    edges: list[GraphEdge] = Field(default_factory=list)
+    generated_at: datetime = Field(default_factory=utc_now)
+
+
 class AuditEvent(BaseModel):
     id: str = Field(default_factory=lambda: new_id("audit"))
     event_type: str
