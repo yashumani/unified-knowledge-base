@@ -12,11 +12,11 @@ def test_graph_includes_source_review_and_published_object():
     graph_service = BrainGraphService(store)
 
     submission = IngestionSubmission(
-        title="Device Revenue Definition",
+        title="Incident Resolution Time Definition",
         source_type="document",
         submitted_by="tester",
-        domain="finance",
-        content="Device Revenue is a metric owned by Finance BI.",
+        domain="support",
+        content="Incident Resolution Time is a metric owned by Support Operations.",
     )
 
     source, review_item = compiler.compile_submission(submission)
