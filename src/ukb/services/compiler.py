@@ -21,14 +21,18 @@ class BrainCompiler:
 
     metric_patterns = [
         re.compile(r"\bmetric\b", re.IGNORECASE),
-        re.compile(r"\brevenue\b", re.IGNORECASE),
-        re.compile(r"\bchurn\b", re.IGNORECASE),
         re.compile(r"\bkpi\b", re.IGNORECASE),
+        re.compile(r"\bincident\b", re.IGNORECASE),
+        re.compile(r"\bresolution\b", re.IGNORECASE),
+        re.compile(r"\bresponse time\b", re.IGNORECASE),
+        re.compile(r"\breopen rate\b", re.IGNORECASE),
+        re.compile(r"\bbacklog\b", re.IGNORECASE),
     ]
 
     report_patterns = [
         re.compile(r"\bdashboard\b", re.IGNORECASE),
         re.compile(r"\breport\b", re.IGNORECASE),
+        re.compile(r"\breview\b", re.IGNORECASE),
     ]
 
     rule_patterns = [
@@ -36,6 +40,7 @@ class BrainCompiler:
         re.compile(r"\bpolicy\b", re.IGNORECASE),
         re.compile(r"\bmust\b", re.IGNORECASE),
         re.compile(r"\bexclude\b", re.IGNORECASE),
+        re.compile(r"\bcaveat\b", re.IGNORECASE),
     ]
 
     def compile_submission(self, submission: IngestionSubmission) -> tuple[SourceEvidence, ReviewItem]:
@@ -93,7 +98,7 @@ class BrainCompiler:
     def _confidence(self, content: str) -> float:
         score = 0.45
         lowered = content.lower()
-        for keyword in ["definition", "owned by", "source", "dashboard", "metric", "rule", "exclude"]:
+        for keyword in ["definition", "owned by", "source", "dashboard", "metric", "rule", "exclude", "incident"]:
             if keyword in lowered:
                 score += 0.07
         return min(score, 0.92)
