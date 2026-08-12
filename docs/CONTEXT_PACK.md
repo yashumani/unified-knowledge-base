@@ -11,7 +11,7 @@ It is not the final answer. It is the governed context that allows an AI app to 
 ```json
 {
   "context_pack_id": "ctx_...",
-  "question": "Why is device revenue down?",
+  "question": "Why did incident resolution time increase?",
   "mode": "executive_insight",
   "access_decision": "allowed",
   "confidence": 0.82,
@@ -69,37 +69,39 @@ governance_review
 debug
 ```
 
-## Example
+## Neutral example
+
+This example is synthetic and workplace-safe.
 
 ```json
 {
   "context_pack_id": "ctx_demo_001",
-  "question": "Why is device revenue down vs forecast?",
+  "question": "Why did incident resolution time increase?",
   "mode": "executive_insight",
   "access_decision": "allowed",
   "confidence": 0.86,
-  "answer_guidance": "Explain variance using approved metric definition and known month-end caveats.",
+  "answer_guidance": "Explain the movement using the approved Incident Resolution Time definition and SLA review-window caveat.",
   "knowledge_objects": [
     {
-      "id": "finance.metric.device_revenue",
+      "id": "support.metric.incident_resolution_time",
       "type": "Metric",
-      "title": "Device Revenue",
-      "summary": "Revenue from device sales, excluding service revenue.",
+      "title": "Incident Resolution Time",
+      "summary": "Average elapsed time from incident creation to resolved status for product support cases.",
       "status": "published"
     }
   ],
   "evidence": [
     {
-      "source_id": "source_demo_metric_definition",
-      "quote": "Device Revenue is revenue generated from device sales, excluding service revenue.",
+      "source_id": "source_demo_incident_resolution",
+      "quote": "Incident Resolution Time is the average elapsed time from incident creation to resolved status for product support cases.",
       "confidence": 0.94
     }
   ],
   "caveats": [
-    "Month-end finance adjustments may not be complete before WD4."
+    "Recently resolved incidents may need 24 hours for quality review tags to settle."
   ],
   "recommended_followups": [
-    "Check related drivers: device units, upgrade rate, promotional credits, returns."
+    "Check related drivers: first response time, reopen rate, ticket backlog, and incident severity mix."
   ]
 }
 ```
