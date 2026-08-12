@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Unified Knowledge Base — Demo Slides</title>
+  <style>
+    :root { --bg:#0b1020; --panel:#162033; --panel2:#1e293b; --text:#f8fafc; --muted:#94a3b8; --cyan:#22d3ee; --purple:#8b5cf6; --green:#34d399; --amber:#f59e0b; --red:#f87171; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; overflow:hidden; }
+    .deck { height:100vh; overflow-y:auto; scroll-snap-type:y mandatory; }
+    .slide { height:100vh; scroll-snap-align:start; padding:6vh 7vw; position:relative; display:flex; flex-direction:column; justify-content:center; border-top:10px solid #6366f1; border-bottom:10px solid var(--cyan); }
+    .kicker { color:var(--cyan); text-transform:uppercase; letter-spacing:.16em; font-weight:900; font-size:clamp(12px,1.2vw,16px); margin-bottom:2vh; }
+    h1 { font-size:clamp(40px,6.4vw,92px); line-height:.95; margin:0 0 2.5vh; letter-spacing:-.055em; max-width:1050px; }
+    h2 { font-size:clamp(34px,4.5vw,70px); line-height:1; margin:0 0 2vh; letter-spacing:-.05em; max-width:1100px; }
+    p { font-size:clamp(19px,2.1vw,30px); color:#cbd5e1; max-width:1000px; margin:0 0 2vh; }
+    .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin-top:4vh; }
+    .grid.two { grid-template-columns:repeat(2,1fr); }
+    .grid.four { grid-template-columns:repeat(4,1fr); }
+    .card { background:rgba(30,41,59,.86); border:1px solid rgba(148,163,184,.24); border-radius:22px; padding:26px; min-height:150px; font-size:clamp(17px,1.6vw,22px); color:#e2e8f0; }
+    .card strong { color:#fff; display:block; font-size:1.16em; margin-bottom:.35em; }
+    .purple{border-color:var(--purple)} .cyan{border-color:var(--cyan)} .green{border-color:var(--green)} .amber{border-color:var(--amber)} .red{border-color:var(--red)}
+    .flow { display:flex; align-items:center; gap:16px; margin-top:5vh; flex-wrap:wrap; }
+    .step { flex:1; min-width:170px; background:rgba(30,41,59,.9); border:1px solid var(--cyan); border-radius:18px; padding:20px; text-align:center; font-weight:900; font-size:clamp(16px,1.4vw,22px); min-height:110px; display:grid; place-items:center; }
+    .arrow { color:var(--cyan); font-size:34px; font-weight:900; }
+    .note { position:absolute; left:7vw; bottom:4vh; color:var(--muted); font-size:15px; }
+    .num { position:absolute; right:7vw; bottom:4vh; color:var(--muted); font-size:16px; }
+    code { color:#bfdbfe; background:rgba(15,23,42,.88); border:1px solid rgba(148,163,184,.18); border-radius:8px; padding:.13em .35em; }
+    pre { font-size:clamp(16px,1.6vw,25px); background:rgba(15,23,42,.92); border:1px solid rgba(148,163,184,.20); border-radius:20px; padding:24px; color:#dbeafe; white-space:pre-wrap; }
+    .small { font-size:clamp(15px,1.4vw,20px); color:var(--muted); }
+  </style>
+</head>
+<body>
+<div class="deck">
+  <section class="slide"><div class="kicker">Unified Knowledge Base</div><h1>A governed AI Brain for enterprise context</h1><p>Compile documents, metrics, dashboards, SQL, and business rules into reusable context packs for AI applications.</p><div class="grid three"><div class="card purple"><strong>Compile</strong>Convert messy context into evidence and candidate knowledge.</div><div class="card green"><strong>Govern</strong>Require human review before official publication.</div><div class="card cyan"><strong>Serve</strong>Expose approved knowledge through API, SDK, and MCP.</div></div><div class="note">Use arrow keys, trackpad, or Page Down to move through the deck.</div><div class="num">01</div></section>
+
+  <section class="slide"><div class="kicker">Problem</div><h2>A query result is not intelligence</h2><p>AI apps need meaning, rules, ownership, and evidence around the number.</p><div class="flow"><div class="step">Warehouse returns<br>148.2M</div><div class="arrow">→</div><div class="step red">LLM receives<br>just a number</div><div class="arrow">→</div><div class="step red">Weak answer:<br>plausible, not governed</div></div><div class="grid two"><div class="card amber"><strong>Missing context</strong>Definition, lineage, caveats, owner, access policy, freshness, related drivers.</div><div class="card red"><strong>Enterprise risk</strong>Wrong metric, stale source, conflicting rule, restricted evidence, unsupported explanation.</div></div><div class="num">02</div></section>
+
+  <section class="slide"><div class="kicker">Solution model</div><h2>Separate the platform from each brain</h2><p>The runtime stays stable. Each team brings a brain package and plugins.</p><div class="flow"><div class="step purple">Generated brain<br><span class="small">domains / plugins / evals</span></div><div class="arrow">→</div><div class="step cyan">UKB Runtime<br><span class="small">API / MCP / governance</span></div><div class="arrow">→</div><div class="step green">AI Apps<br><span class="small">BI copilots / agents</span></div></div><div class="num">03</div></section>
+
+  <section class="slide"><div class="kicker">Compiler loop</div><h2>Raw context becomes approved knowledge</h2><div class="flow"><div class="step purple">Evidence</div><div class="arrow">→</div><div class="step purple">Parsed artifacts</div><div class="arrow">→</div><div class="step amber">Candidate objects</div><div class="arrow">→</div><div class="step green">Human review</div><div class="arrow">→</div><div class="step cyan">Context pack</div></div><p class="small">AI classification is useful, but official knowledge begins only after approval.</p><div class="num">04</div></section>
+
+  <section class="slide"><div class="kicker">Plugin architecture</div><h2>Every team can extend the brain safely</h2><div class="grid four"><div class="card purple"><strong>Connector</strong>local files, Git, BI, wiki, SQL</div><div class="card amber"><strong>Extractor</strong>metrics, rules, reports, owners</div><div class="card green"><strong>Validator</strong>required fields, conflicts, sensitivity</div><div class="card cyan"><strong>Retriever</strong>keyword, vector, graph, semantic layer</div></div><p>Plugin output goes to candidate knowledge and human review. Plugins do not publish official truth directly.</p><div class="num">05</div></section>
+
+  <section class="slide"><div class="kicker">Offline-first AI</div><h2>AI accelerates the brain, but does not define it</h2><div class="grid four"><div class="card purple"><strong>offline_no_model</strong>YAML, Markdown, rules, keyword retrieval.</div><div class="card green"><strong>local_ai</strong>Local extraction, embeddings, summarization.</div><div class="card amber"><strong>hosted_ai</strong>Approved provider for richer reasoning.</div><div class="card cyan"><strong>hybrid</strong>Local default, hosted by policy.</div></div><p class="small">The runtime should continue validating, reviewing, and serving approved context even when AI is unavailable.</p><div class="num">06</div></section>
+
+  <section class="slide"><div class="kicker">Consumption adapters</div><h2>One brain, many ways to use it</h2><div class="grid four"><div class="card amber"><strong>REST API</strong>platform UI, ingestion, governance</div><div class="card green"><strong>MCP Server</strong>LLM clients and agents</div><div class="card purple"><strong>Python SDK</strong>notebooks and BI pipelines</div><div class="card cyan"><strong>npm starter</strong>generate a brain package</div></div><p>All adapters call the same runtime services and must preserve the governance boundary.</p><div class="num">07</div></section>
+
+  <section class="slide"><div class="kicker">Governance workflow</div><h2>Trust comes from reviewable state</h2><div class="flow"><div class="step purple">submitted</div><div class="arrow">→</div><div class="step amber">AI classified</div><div class="arrow">→</div><div class="step amber">review required</div><div class="arrow">→</div><div class="step green">approved</div><div class="arrow">→</div><div class="step cyan">published</div></div><div class="grid two"><div class="card green"><strong>Reviewer actions</strong>Approve, reject, request changes, merge duplicate, assign owner, change sensitivity.</div><div class="card cyan"><strong>Audit trail</strong>Every submission, review action, publication, and context-pack request is recorded.</div></div><div class="num">08</div></section>
+
+  <section class="slide"><div class="kicker">Demo flow</div><h2>Create, review, and consume a brain object</h2><pre>node packages/create-ukb-brain/bin/create-ukb-brain.mjs demo-finance-brain --offline
+uvicorn ukb.api.main:app --reload
+curl /ingestion/submissions
+curl /review/queue
+curl /review/items/{id}/approve
+curl /brain/context-pack</pre><p>Open <code>animated-diagrams.html</code> to narrate the compiler loop and plugin model.</p><div class="num">09</div></section>
+
+  <section class="slide"><div class="kicker">Next build waves</div><h2>Turn the scaffold into a usable platform</h2><div class="grid four"><div class="card purple"><strong>Persistence</strong>Postgres, audit log, evidence storage.</div><div class="card green"><strong>Review UI</strong>queue, object editor, source viewer.</div><div class="card cyan"><strong>Retrieval</strong>keyword + vector + graph with policy filtering.</div><div class="card amber"><strong>GitLab deploy</strong>Docker, CI/CD, internal MCP, local AI sidecar.</div></div><p>The product bet: reusable brain packages let every team build a domain brain without forking the platform.</p><div class="num">10</div></section>
+</div>
+</body>
+</html>

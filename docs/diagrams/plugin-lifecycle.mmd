@@ -1,0 +1,19 @@
+flowchart TD
+  P[Plugin Registry] --> C[Source Connector]
+  P --> R[Parser]
+  P --> E[Extractor]
+  P --> V[Validator]
+  P --> S[Retriever]
+  P --> L[Policy Plugin]
+  P --> X[Exporter]
+
+  C --> EV[Evidence]
+  R --> ART[Parsed Artifact]
+  E --> KO[Candidate Knowledge Object]
+  V --> Q[Review Queue]
+  L --> Q
+  Q -->|Human approves| PUB[Published Brain Object]
+  Q -->|Reject / changes requested| KO
+  PUB --> CP[Context Pack]
+  S --> CP
+  X --> OUT[Export / Bundle / MCP Resource]
