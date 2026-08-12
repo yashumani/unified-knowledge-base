@@ -1,0 +1,17 @@
+id: support.report.sla_review_dashboard
+type: Report
+name: SLA Review Dashboard
+domain: support
+owner: Support Operations
+status: approved
+sensitivity: internal
+metrics:
+  - support.metric.incident_resolution_time
+  - support.metric.first_response_time
+  - support.metric.reopen_rate
+source_systems:
+  - synthetic_support.reporting
+refresh_frequency: daily
+audience:
+  - support_leads
+  - operations_reviewers
