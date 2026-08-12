@@ -1,0 +1,13 @@
+id: support.rule.sla_review_window
+type: BusinessRule
+name: SLA Review Window
+domain: support
+rule_text: Treat newly resolved support incidents as preliminary until quality review tags and reopen checks have settled.
+owner: Support Governance
+status: approved
+sensitivity: internal
+applies_to:
+  - support.metric.incident_resolution_time
+caveats:
+  - Recently resolved incidents may need 24 hours for quality review tags to settle.
+  - Reopened incidents can change the final resolution-time calculation.
