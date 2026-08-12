@@ -1,0 +1,24 @@
+id: support.metric.incident_resolution_time
+type: Metric
+name: Incident Resolution Time
+domain: support
+owner: Support Operations
+status: approved
+sensitivity: internal
+definition: Average elapsed time from incident creation to resolved status for product support cases.
+formula: AVG(resolved_at - created_at) excluding duplicate incidents and customer-wait periods.
+grain: weekly
+source_systems:
+  - synthetic_support.incidents
+appears_in:
+  - support.report.sla_review_dashboard
+related_metrics:
+  - support.metric.first_response_time
+  - support.metric.reopen_rate
+  - support.metric.ticket_backlog
+caveats:
+  - Recently resolved incidents may need 24 hours for quality review tags to settle.
+  - Reopened incidents can change the final resolution-time calculation.
+source_refs:
+  - source_id: synthetic_source_incident_resolution_definition
+    confidence: 0.94
