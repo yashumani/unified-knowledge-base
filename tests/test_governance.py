@@ -10,11 +10,11 @@ def test_governance_approval_publishes_object():
     governance = GovernanceService(store)
 
     submission = IngestionSubmission(
-        title="Churn Rate Definition",
+        title="Reopen Rate Definition",
         source_type="document",
         submitted_by="tester",
-        domain="finance",
-        content="Churn Rate is a KPI metric owned by Finance Analytics.",
+        domain="support",
+        content="Reopen Rate is a KPI metric owned by Support Operations.",
     )
 
     source, review_item = compiler.compile_submission(submission)
