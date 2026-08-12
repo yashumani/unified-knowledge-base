@@ -1,3 +1,4 @@
+# Static React UI deployment for Unified Knowledge Base.
 name: Deploy React UI to GitHub Pages
 
 on:
