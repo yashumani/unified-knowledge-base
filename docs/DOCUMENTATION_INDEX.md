@@ -1,6 +1,6 @@
 # Documentation Index
 
-This repository is being shaped as a reusable platform for building governed AI Brains. The documentation is organized around four jobs: understand the architecture, run the demo, extend the platform, and prepare for enterprise deployment.
+This repository is being shaped as a reusable platform for building governed AI Brains. The documentation is organized around five jobs: understand the architecture, run the demo, keep examples workplace-safe, extend the platform, and prepare for enterprise deployment.
 
 ## Start here
 
@@ -12,6 +12,13 @@ This repository is being shaped as a reusable platform for building governed AI 
 | `docs/PLUGIN_ARCHITECTURE.md` | How connectors, parsers, extractors, validators, retrievers, policy plugins, and exporters fit together. |
 | `docs/OFFLINE_FIRST_AI.md` | How the platform works with no hosted AI, local AI, hosted AI, or hybrid AI. |
 | `docs/API_VS_MCP.md` | Why the REST API is the platform backend and MCP is the LLM/agent adapter. |
+
+## Workplace-safe examples
+
+| Document | Purpose |
+|---|---|
+| `docs/WORKPLACE_SAFE_EXAMPLES.md` | Public-repo policy for synthetic examples and forbidden workplace-derived context. |
+| `docs/EXAMPLE_DOMAIN.md` | Approved neutral support-operations demo domain. |
 
 ## Demo materials
 
@@ -50,6 +57,7 @@ A PowerPoint presenter export can be generated outside the repository when neede
 | `docs/ROADMAP.md` | Phased roadmap. |
 | `docs/CONTEXT_PACK.md` | Context pack contract. |
 | `docs/GITLAB_DEPLOYMENT.md` | GitLab/Linux/Docker deployment model. |
+| `docs/GITHUB_PAGES_DEPLOYMENT.md` | Static React UI deployment on GitHub Pages. |
 
 ## Documentation principle
 
