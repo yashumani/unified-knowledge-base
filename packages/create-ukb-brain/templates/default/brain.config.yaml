@@ -2,10 +2,10 @@ brain:
   id: "{{BRAIN_SLUG}}"
   name: "{{BRAIN_NAME}}"
   version: "0.1.0"
-  description: "Generated AI Brain project."
+  description: "Generated AI Brain project using neutral synthetic examples."
 
 domains:
-  - finance
+  - support
 
 runtime:
   mode: offline_first
