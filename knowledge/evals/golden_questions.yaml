@@ -1,0 +1,16 @@
+golden_questions:
+  - id: q_device_revenue_definition
+    question: What is Device Revenue?
+    expected_objects:
+      - finance.metric.device_revenue
+    expected_terms:
+      - device sales
+      - excluding service revenue
+
+  - id: q_device_revenue_caveat
+    question: What caveats should I mention before explaining Device Revenue?
+    expected_objects:
+      - finance.metric.device_revenue
+    expected_terms:
+      - WD4
+      - promotional credits

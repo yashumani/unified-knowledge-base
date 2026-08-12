@@ -1,0 +1,78 @@
+version: 0.1.0
+name: unified_knowledge_base_ontology
+description: Core ontology for the governed AI Brain.
+
+object_types:
+  Metric:
+    required_fields:
+      - id
+      - name
+      - definition
+      - domain
+      - owner
+      - status
+    optional_fields:
+      - formula
+      - grain
+      - source_systems
+      - caveats
+      - related_metrics
+      - sensitivity
+      - allowed_roles
+
+  Report:
+    required_fields:
+      - id
+      - name
+      - domain
+      - owner
+      - status
+    optional_fields:
+      - metrics
+      - source_systems
+      - refresh_frequency
+      - audience
+
+  BusinessRule:
+    required_fields:
+      - id
+      - name
+      - domain
+      - rule_text
+      - owner
+      - status
+
+  Dataset:
+    required_fields:
+      - id
+      - name
+      - system
+      - owner
+      - status
+
+relationship_types:
+  appears_in:
+    from: Metric
+    to: Report
+  calculated_from:
+    from: Metric
+    to: Dataset
+  governed_by:
+    from: Metric
+    to: BusinessRule
+  related_to:
+    from: Metric
+    to: Metric
+  owned_by:
+    from: "*"
+    to: Owner
+
+review_states:
+  - draft
+  - submitted
+  - ai_classified
+  - human_review_required
+  - approved
+  - rejected
+  - published
+  - deprecated
