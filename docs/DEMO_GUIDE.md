@@ -4,12 +4,26 @@
 
 Show that Unified Knowledge Base is not a generic chatbot. It is a governed AI Brain runtime that converts submitted context into candidate knowledge, requires human review, and then serves approved context to API, SDK, or MCP consumers.
 
+## Workplace-safe example policy
+
+Use synthetic data only. Do not use employer documents, proprietary metric definitions, internal screenshots, customer data, credentials, private dashboard exports, telecom examples, or finance-planning examples that could resemble workplace reporting.
+
+This demo uses one neutral scenario:
+
+```text
+Domain: support
+Metric: Incident Resolution Time
+Report: SLA Review Dashboard
+Rule: SLA Review Window
+Owner: Support Operations
+```
+
 ## Audience
 
 Use this demo for:
 
 - engineering leads evaluating the architecture
-- data and BI teams evaluating metric-intelligence use cases
+- data teams evaluating governed metric-context use cases
 - governance reviewers evaluating approval and audit controls
 - AI app developers evaluating API/MCP consumption
 - enterprise stakeholders evaluating offline-first constraints
@@ -29,8 +43,6 @@ Create a brain package
 ```
 
 ## What to prepare
-
-Use synthetic data only. Do not use employer documents, proprietary metric definitions, internal screenshots, customer data, credentials, or private dashboard exports in this public scaffold.
 
 Install local dependencies:
 
@@ -65,15 +77,15 @@ node packages/create-ukb-brain/bin/create-ukb-brain.mjs --help
 Before the npm package is published, run the local initializer:
 
 ```bash
-node packages/create-ukb-brain/bin/create-ukb-brain.mjs demo-finance-brain --offline
+node packages/create-ukb-brain/bin/create-ukb-brain.mjs demo-support-brain --offline
 ```
 
 Expected result:
 
 ```text
-Created Demo Finance Brain at .../demo-finance-brain
+Created Demo Support Brain at .../demo-support-brain
 Next steps:
-  cd demo-finance-brain
+  cd demo-support-brain
   review brain.config.yaml
   add synthetic or approved context only
 ```
@@ -81,7 +93,7 @@ Next steps:
 Show the generated structure:
 
 ```bash
-find demo-finance-brain -maxdepth 3 -type f | sort
+find demo-support-brain -maxdepth 3 -type f | sort
 ```
 
 Point out:
@@ -89,7 +101,7 @@ Point out:
 ```text
 brain.config.yaml
 plugins/context_source.py
-domains/finance/metrics/metric_template.yaml
+domains/support/metrics/metric_template.yaml
 ```
 
 ### 2. Run the API
@@ -104,7 +116,7 @@ Open:
 http://localhost:8000/docs
 ```
 
-The API is the platform backend for ingestion, review, object browsing, audit, and context packs.
+The API is the platform backend for ingestion, review, object browsing, audit, graph projection, and context packs.
 
 ### 3. Submit context
 
@@ -112,53 +124,30 @@ The API is the platform backend for ingestion, review, object browsing, audit, a
 curl -X POST http://localhost:8000/ingestion/submissions \
   -H "Content-Type: application/json" \
   -d '{
-    "title": "Device Revenue Definition",
+    "title": "Incident Resolution Time Definition",
     "source_type": "document",
     "submitted_by": "demo.user",
-    "domain": "finance",
-    "content": "Device Revenue is a metric for revenue generated from device sales, excluding service revenue. It appears in the CFO KPI dashboard and is owned by Finance BI. Month-end finance adjustments may not be complete before WD4."
+    "domain": "support",
+    "content": "Incident Resolution Time is the average elapsed time from incident creation to resolved status for product support cases, excluding duplicate incidents and customer-wait periods. It appears in the SLA Review Dashboard and is owned by Support Operations. Recently resolved incidents may need 24 hours for quality review tags to settle."
   }'
 ```
 
-Explain what happened:
-
-```text
-The compiler preserved source evidence.
-It classified the submission.
-It created a candidate object.
-It placed the object in the human review queue.
-```
-
-### 4. Show the review queue
+### 4. Review queue
 
 ```bash
 curl http://localhost:8000/review/queue
 ```
 
-Point out the governance state:
+The candidate should be classified as a metric-like knowledge object and require human review.
 
-```text
-human_review_required
-```
+### 5. Approve the candidate
 
-The candidate is useful, but it is not yet official brain knowledge.
-
-### 5. Approve the item
-
-Copy the `id` from the review item and run:
+Replace `{review_item_id}` with the ID from the queue.
 
 ```bash
 curl -X POST http://localhost:8000/review/items/{review_item_id}/approve \
   -H "Content-Type: application/json" \
   -d '{"reviewed_by": "domain.reviewer", "comment": "Approved for synthetic demo."}'
-```
-
-Explain:
-
-```text
-The review decision publishes the candidate object.
-The audit log records the approval event.
-The object is now available to context-pack consumers.
 ```
 
 ### 6. Request a context pack
@@ -167,89 +156,42 @@ The object is now available to context-pack consumers.
 curl -X POST http://localhost:8000/brain/context-pack \
   -H "Content-Type: application/json" \
   -d '{
-    "question": "What should I know before explaining Device Revenue?",
+    "question": "Why did incident resolution time increase?",
     "user_id": "demo.user",
-    "domains": ["finance"],
-    "mode": "metric_definition"
+    "domains": ["support"],
+    "mode": "executive_insight"
   }'
 ```
 
-Point out:
+Expected point to explain:
 
 ```text
-answer_guidance
-knowledge_objects
-evidence
-confidence
-caveats
-recommended_followups
+The response should include approved knowledge, source evidence, confidence, caveats, and recommended follow-ups. It should not invent unsupported operational causes.
 ```
 
-The output is not the final answer. It is the governed context a chatbot, agent, BI copilot, or report generator can use.
-
-### 7. Run the MCP adapter
+### 7. Run the React UI
 
 ```bash
-python -m ukb.mcp.server
+npm install
+npm run web:dev
 ```
 
-Explain:
+Open:
 
 ```text
-MCP is the agent interface.
-It exposes brain tools and resources to LLM clients.
-It calls the same runtime services as the API.
-It does not bypass governance.
+http://localhost:5173
 ```
 
-## Animated diagram walkthrough
+The React console includes context submission, review queue, context-pack explorer, and an Obsidian-style graph view over the AI Brain objects.
 
-Open this file in a browser:
+## Fallback demo
+
+If the API is not running, the React UI falls back to synthetic local demo data using the same neutral support scenario.
+
+## Demo close
+
+The product claim is not "chat with documents." The product claim is:
 
 ```text
-docs/demo/animated-diagrams.html
+Convert scattered context into governed, reviewable, reusable brain objects that AI applications can safely consume.
 ```
-
-Use the four animated scenes:
-
-1. Brain compiler loop
-2. Plugin extension mesh
-3. Offline-first AI modes
-4. Adapter hub: REST, MCP, SDK, npm starter
-
-This file has no external dependencies and can be used in an offline meeting.
-
-## Fallback demo when code cannot run
-
-Use:
-
-1. `docs/demo/demo-slides.html`
-2. `docs/demo/animated-diagrams.html`
-3. `docs/demo/slides-outline.md`
-
-Narrate the same flow without running commands. A PowerPoint presenter export can be generated separately when needed, but the committed repository deck is the offline HTML file.
-
-## Demo success criteria
-
-A successful demo proves:
-
-- a new brain package can be generated from a template
-- submitted context becomes a review item
-- human approval publishes the brain object
-- context packs include evidence and caveats
-- REST and MCP are adapters over the same governance runtime
-- offline-first operation remains valid even without hosted AI
-
-## Current limitations to state clearly
-
-The scaffold is not production-ready yet. It currently uses:
-
-- in-memory development storage
-- heuristic classification
-- basic keyword retrieval
-- no production auth
-- no persistent audit database
-- no review UI yet
-- no real vector or graph retrieval yet
-
-The next engineering step is durable storage plus a reviewer interface.
