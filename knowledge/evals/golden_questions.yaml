@@ -1,16 +1,17 @@
 golden_questions:
-  - id: q_device_revenue_definition
-    question: What is Device Revenue?
+  - id: q_incident_resolution_time_definition
+    question: What is Incident Resolution Time?
     expected_objects:
-      - finance.metric.device_revenue
+      - support.metric.incident_resolution_time
     expected_terms:
-      - device sales
-      - excluding service revenue
+      - incident creation
+      - resolved status
+      - product support cases
 
-  - id: q_device_revenue_caveat
-    question: What caveats should I mention before explaining Device Revenue?
+  - id: q_incident_resolution_time_caveat
+    question: What caveats should I mention before explaining Incident Resolution Time?
     expected_objects:
-      - finance.metric.device_revenue
+      - support.metric.incident_resolution_time
     expected_terms:
-      - WD4
-      - promotional credits
+      - quality review tags
+      - reopened incidents
