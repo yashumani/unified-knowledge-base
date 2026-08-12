@@ -2,7 +2,7 @@
 
 This public scaffold must use only neutral, synthetic examples.
 
-Do not use examples that look like they came from a current or former employer, client, internal project, customer segment, business unit, dashboard, planning workflow, or proprietary operating process.
+Do not use examples that look like they came from a current or former employer, client, internal project, customer segment, business unit, dashboard, planning workflow, product line, operating ritual, or proprietary process.
 
 ## Approved demo domain
 
@@ -20,11 +20,12 @@ Related metrics: First Response Time, Reopen Rate, Ticket Backlog
 ## Avoid in public examples
 
 - employer names
-- telecom examples
-- carrier/product-plan examples
-- finance planning examples that resemble workplace reporting
+- client names
+- industry-specific employer workflows
+- product-line examples that resemble real work
 - proprietary metric names
 - internal dashboard names
+- planning or reporting processes that resemble real work
 - real customer, employee, vendor, or operational data
 - screenshots of private systems
 
