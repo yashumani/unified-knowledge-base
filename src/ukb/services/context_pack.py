@@ -72,9 +72,12 @@ class ContextPackService:
         caveats: list[str] = []
         for obj in objects:
             raw = obj.attributes.get("raw_excerpt", "")
-            if "wd4" in raw.lower():
-                caveats.append("Month-end finance adjustments may not be complete before WD4.")
-            if "excluding" in raw.lower() or "exclude" in raw.lower():
+            lowered = raw.lower()
+            if "quality review" in lowered or "reopened" in lowered:
+                caveats.append(
+                    "Recently resolved incidents may need time for quality review tags and reopen checks to settle."
+                )
+            if "excluding" in lowered or "exclude" in lowered:
                 caveats.append("Confirm inclusion/exclusion rules before comparing the metric.")
         return sorted(set(caveats))
 
@@ -92,7 +95,7 @@ class ContextPackService:
             return [
                 "Check related driver metrics before finalizing the narrative.",
                 "Validate whether the source data is final or still preliminary.",
-                "Ask the metric owner to confirm caveats for executive reporting.",
+                "Ask the metric owner to confirm caveats before sharing the explanation.",
             ]
 
         return ["Review the source evidence and object owner before using this in production."]
