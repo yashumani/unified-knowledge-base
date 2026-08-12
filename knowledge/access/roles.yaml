@@ -1,0 +1,34 @@
+roles:
+  submitter:
+    description: Can submit new context and view own submissions.
+    permissions:
+      - context.submit
+      - review.view_own
+
+  domain_reviewer:
+    description: Can review candidate knowledge for assigned domains.
+    permissions:
+      - review.view_queue
+      - review.approve
+      - review.reject
+      - review.request_changes
+
+  governance_admin:
+    description: Can manage ontology, policies, publication, and deprecation.
+    permissions:
+      - ontology.manage
+      - policy.manage
+      - knowledge.publish
+      - knowledge.deprecate
+      - audit.view
+
+  consumer:
+    description: Can request approved context packs.
+    permissions:
+      - context_pack.request
+
+sensitivity_levels:
+  - public
+  - internal
+  - confidential
+  - restricted

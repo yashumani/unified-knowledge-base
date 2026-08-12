@@ -1,0 +1,24 @@
+id: finance.metric.sample_order_value
+type: Metric
+name: Sample Order Value
+domain: finance
+owner: Demo Analytics
+status: approved
+sensitivity: internal
+definition: Revenue generated from device sales, excluding service revenue.
+formula: SUM(sample_order_amount) excluding returns and test orders.
+grain: monthly
+source_systems:
+  - synthetic_demo.orders.example_rows
+appears_in:
+  - finance.report.example_sales_dashboard
+related_metrics:
+  - finance.metric.device_units
+  - finance.metric.upgrade_rate
+  - finance.metric.promo_credit
+caveats:
+  - Demo data checks may not be complete before the sample cutoff.
+  - Promotional credits can affect recognized revenue.
+source_refs:
+  - source_id: synthetic_source_sample_order_value_definition
+    confidence: 0.94

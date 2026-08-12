@@ -1,0 +1,16 @@
+golden_questions:
+  - id: q_sample_order_value_definition
+    question: What is Sample Order Value?
+    expected_objects:
+      - finance.metric.sample_order_value
+    expected_terms:
+      - device sales
+      - excluding service revenue
+
+  - id: q_sample_order_value_caveat
+    question: What caveats should I mention before explaining Sample Order Value?
+    expected_objects:
+      - finance.metric.sample_order_value
+    expected_terms:
+      - DEMO_CUTOFF
+      - promotional credits

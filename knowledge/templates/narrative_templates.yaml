@@ -1,0 +1,17 @@
+templates:
+  executive_metric_variance:
+    mode: executive_insight
+    description: Executive narrative for KPI movement.
+    template: |
+      {metric_name} is {direction} {variance_value} versus {comparison_period}.
+      The movement appears related to {primary_driver}.
+      Caveat: {caveat}.
+      Recommended follow-up: {follow_up}.
+
+  metric_definition:
+    mode: metric_definition
+    description: Explain the approved definition and lineage of a metric.
+    template: |
+      {metric_name} is defined as {definition}.
+      It is owned by {owner} and sourced from {source_systems}.
+      Known caveats: {caveats}.

@@ -1,0 +1,21 @@
+services:
+  api:
+    build: .
+    container_name: unified-knowledge-base-api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./.ukb:/app/.ukb
+
+  # Future production services:
+  # postgres:
+  #   image: postgres:16
+  #   environment:
+  #     POSTGRES_DB: ukb
+  #     POSTGRES_USER: ukb
+  #     POSTGRES_PASSWORD: change-me
+  #
+  # redis:
+  #   image: redis:7
