@@ -7,7 +7,9 @@
 - [x] Add MCP adapter skeleton
 - [x] Add governance workflow
 - [x] Add context pack contract
-- [x] Add synthetic knowledge examples
+- [x] Add synthetic support-operations knowledge examples
+- [x] Add React console and Obsidian-style graph view
+- [x] Add workplace-safe example policy
 
 ## Phase 1: Local MVP
 
@@ -20,13 +22,12 @@
 - [ ] Add role-based filtering
 - [ ] Add CLI commands for compile/validate/publish
 
-## Phase 2: BI Brain MVP
+## Phase 2: Support Operations Brain MVP
 
 - [ ] Add metric definition extraction
 - [ ] Add dashboard/report catalog objects
-- [ ] Add SQL file parser
-- [ ] Add BigQuery metadata connector
-- [ ] Add context pack mode for KPI movement explanation
+- [ ] Add SQL/file parser examples using synthetic data only
+- [ ] Add context pack mode for operational metric movement explanation
 - [ ] Add narrative template engine
 - [ ] Add golden-question evaluation suite
 
