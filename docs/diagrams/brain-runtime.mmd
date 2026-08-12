@@ -1,0 +1,10 @@
+flowchart LR
+  A[Enterprise Sources<br/>docs, SQL, BI, wikis, files] --> B[Brain Compiler<br/>parse, classify, extract]
+  B --> C[Review Queue<br/>human validation]
+  C -->|approve| D[Governed Brain Store<br/>approved objects + evidence]
+  D --> E[Context Pack Runtime]
+  E --> F[REST API]
+  E --> G[MCP Server]
+  E --> H[Python SDK]
+  E --> I[BI / Chat / Agent Apps]
+  C -->|reject / request changes| B
