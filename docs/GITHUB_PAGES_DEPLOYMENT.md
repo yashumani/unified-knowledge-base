@@ -62,7 +62,7 @@ The frontend is designed to work in two modes:
 
 ```text
 Demo mode
-  Uses bundled synthetic data when no backend URL is configured.
+  Uses bundled synthetic support-operations data when no backend URL is configured.
 
 Backend-connected mode
   Calls the API when VITE_UKB_API_BASE_URL is set at build time.
@@ -94,4 +94,6 @@ This keeps the graph deployable as a static GitHub Pages site and allows it to r
 
 ## Safety note
 
-Keep public GitHub Pages data synthetic. Do not build real enterprise documents, metrics, dashboards, or credentials into the static bundle.
+Keep public GitHub Pages data synthetic. Do not build real enterprise documents, metrics, dashboards, credentials, employer-specific examples, carrier or telecom workflows, finance-planning examples, customer data, or proprietary screenshots into the static bundle.
+
+The approved public demo domain is documented in `docs/EXAMPLE_DOMAIN.md`.
