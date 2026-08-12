@@ -1,0 +1,27 @@
+brain:
+  id: local-offline-brain
+  name: Local Offline Brain
+  version: 0.1.0
+  description: Example of an offline-first brain package.
+
+domains:
+  - finance
+  - operations
+
+runtime:
+  mode: offline_first
+  ai:
+    local:
+      enabled: false
+      provider: noop
+    hosted:
+      enabled: false
+
+governance:
+  require_human_review: true
+  default_sensitivity: internal
+
+plugins:
+  - name: local.context_source
+    path: ./plugins/context_source.py
+    enabled: true
