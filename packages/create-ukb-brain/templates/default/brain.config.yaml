@@ -1,0 +1,35 @@
+brain:
+  id: "{{BRAIN_SLUG}}"
+  name: "{{BRAIN_NAME}}"
+  version: "0.1.0"
+  description: "Generated AI Brain project."
+
+domains:
+  - finance
+
+runtime:
+  mode: offline_first
+  ai:
+    local:
+      enabled: {{OFFLINE_MODE}}
+      provider: ollama
+      endpoint: http://localhost:11434
+      chat_model: llama3.1
+      embedding_model: embeddinggemma
+    hosted:
+      enabled: false
+
+governance:
+  require_human_review: true
+  default_sensitivity: internal
+  allow_draft_context_packs: false
+
+plugins:
+  - name: local.context_source
+    path: ./plugins/context_source.py
+    enabled: true
+    config:
+      allowed_source_types:
+        - manual
+        - markdown
+        - document
