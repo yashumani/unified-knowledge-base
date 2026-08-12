@@ -12,13 +12,14 @@ def test_approved_submission_appears_in_context_pack():
     context_service = ContextPackService(store)
 
     submission = IngestionSubmission(
-        title="Device Revenue Definition",
+        title="Incident Resolution Time Definition",
         source_type="document",
         submitted_by="tester",
-        domain="finance",
+        domain="support",
         content=(
-            "Device Revenue is a metric for revenue generated from device sales, "
-            "excluding service revenue. It is owned by Finance BI."
+            "Incident Resolution Time is a metric for the average elapsed time from "
+            "incident creation to resolved status for product support cases. It is "
+            "owned by Support Operations."
         ),
     )
 
@@ -30,9 +31,9 @@ def test_approved_submission_appears_in_context_pack():
 
     pack = context_service.build(
         ContextPackRequest(
-            question="What is Device Revenue?",
+            question="What is Incident Resolution Time?",
             user_id="tester",
-            domains=["finance"],
+            domains=["support"],
             mode="metric_definition",
         )
     )
