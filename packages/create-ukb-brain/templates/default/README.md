@@ -6,6 +6,8 @@ This is a generated Unified Knowledge Base brain project.
 
 Use this folder to define your domain-specific AI Brain without forking the core platform.
 
+The default generated domain is a neutral support-operations example. Replace it with your own approved synthetic or private-domain context only after moving the project into an approved private environment.
+
 ## Structure
 
 ```text
@@ -17,7 +19,7 @@ evals/                  Golden questions and expected objects
 
 ## Safety note
 
-Do not add confidential company data, customer data, credentials, or proprietary documents unless this project is inside an approved private environment.
+Do not add confidential company data, customer data, credentials, proprietary documents, employer-specific dashboards, telecom workflows, finance-planning workflows, or internal screenshots unless this project is inside an approved private environment with the right access controls.
 
 ## Recommended workflow
 
