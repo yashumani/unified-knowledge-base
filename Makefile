@@ -1,4 +1,4 @@
-.PHONY: install install-dev run test lint docker-up mcp
+.PHONY: install install-dev run test lint docker-up mcp web-install web-dev web-build web-preview
 
 install:
 	pip install -e .
@@ -20,3 +20,15 @@ docker-up:
 
 mcp:
 	python -m ukb.mcp.server
+
+web-install:
+	npm install
+
+web-dev:
+	npm run web:dev
+
+web-build:
+	npm run web:build
+
+web-preview:
+	npm run web:preview

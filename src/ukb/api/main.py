@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 from ukb.config import get_settings
 from ukb.models import (
     AuditEvent,
+    BrainGraph,
     ContextPack,
     ContextPackRequest,
     IngestionSubmission,
@@ -15,6 +17,7 @@ from ukb.models import (
 from ukb.services.compiler import BrainCompiler
 from ukb.services.context_pack import ContextPackService
 from ukb.services.governance import GovernanceService
+from ukb.services.graph import BrainGraphService
 from ukb.store import store
 
 settings = get_settings()
@@ -25,9 +28,18 @@ app = FastAPI(
     description="Governed AI Brain starter platform with ingestion, review, and context-pack endpoints.",
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 compiler = BrainCompiler()
 governance = GovernanceService(store)
 context_pack_service = ContextPackService(store)
+graph_service = BrainGraphService(store)
 
 
 @app.get("/health")
@@ -91,6 +103,11 @@ def get_brain_object(object_id: str) -> KnowledgeObject:
         return store.knowledge_objects[object_id]
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=f"Knowledge object not found: {object_id}") from exc
+
+
+@app.get("/brain/graph", response_model=BrainGraph)
+def get_brain_graph(include_review_items: bool = True) -> BrainGraph:
+    return graph_service.build(include_review_items=include_review_items)
 
 
 @app.post("/brain/context-pack", response_model=ContextPack)

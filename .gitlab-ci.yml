@@ -18,6 +18,13 @@ test:
     - pytest
     - ruff check src tests
 
+web-build:
+  stage: test
+  image: node:22-slim
+  script:
+    - npm install
+    - npm run web:build
+
 build-image:
   stage: build
   image: docker:27

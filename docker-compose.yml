@@ -9,6 +9,18 @@ services:
     volumes:
       - ./.ukb:/app/.ukb
 
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: unified-knowledge-base-web
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_UKB_API_BASE_URL=http://localhost:8000
+    depends_on:
+      - api
+
   # Future production services:
   # postgres:
   #   image: postgres:16

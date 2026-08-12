@@ -6,7 +6,9 @@ __pycache__/
 .ruff_cache/
 .env
 .ukb/
+node_modules/
 dist/
 build/
 *.egg-info/
+*.tsbuildinfo
 .DS_Store
