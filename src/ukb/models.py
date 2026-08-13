@@ -54,7 +54,36 @@ class KnowledgeObjectType(str, Enum):
     process = "Process"
     decision = "Decision"
     narrative_template = "NarrativeTemplate"
+    glossary_term = "GlossaryTerm"
     unknown = "Unknown"
+
+
+class AIProviderName(str, Enum):
+    noop = "noop"
+    ollama = "ollama"
+    openai = "openai"
+    custom = "custom"
+
+
+class AIEnrichmentMode(str, Enum):
+    offline_no_model = "offline_no_model"
+    local_ai = "local_ai"
+    hosted_ai = "hosted_ai"
+    hybrid = "hybrid"
+
+
+class AITaskStatus(str, Enum):
+    skipped = "skipped"
+    completed = "completed"
+    failed = "failed"
+
+
+class ValidationSeverity(str, Enum):
+    info = "info"
+    low = "low"
+    medium = "medium"
+    high = "high"
+    critical = "critical"
 
 
 class IngestionSubmission(BaseModel):
@@ -103,10 +132,70 @@ class KnowledgeObject(BaseModel):
     updated_at: datetime = Field(default_factory=utc_now)
 
 
+class SourceClassification(BaseModel):
+    source_kind: str = "unknown"
+    domain: str = "general"
+    summary: str
+    topics: list[str] = Field(default_factory=list)
+    suggested_tags: list[str] = Field(default_factory=list)
+    confidence: float = 0.5
+
+
+class SuggestedRelationship(BaseModel):
+    source_label: str
+    relationship_type: str
+    target_label: str
+    confidence: float = 0.5
+    rationale: str | None = None
+
+
+class ValidationFinding(BaseModel):
+    severity: ValidationSeverity = ValidationSeverity.info
+    finding_type: str
+    message: str
+    source_span: str | None = None
+    recommended_action: str | None = None
+
+
+class AIReviewBrief(BaseModel):
+    summary: str
+    recommended_action: Literal["approve", "request_changes", "reject", "needs_review"] = (
+        "needs_review"
+    )
+    reviewer_questions: list[str] = Field(default_factory=list)
+    risk_flags: list[str] = Field(default_factory=list)
+
+
+class AIEnrichmentResult(BaseModel):
+    id: str = Field(default_factory=lambda: new_id("ai"))
+    provider: AIProviderName = AIProviderName.noop
+    model: str = "deterministic"
+    status: AITaskStatus = AITaskStatus.completed
+    source_classification: SourceClassification
+    extracted_objects: list[KnowledgeObject] = Field(default_factory=list)
+    suggested_relationships: list[SuggestedRelationship] = Field(default_factory=list)
+    validation_findings: list[ValidationFinding] = Field(default_factory=list)
+    review_brief: AIReviewBrief
+    confidence: float = 0.5
+    error_message: str | None = None
+    created_at: datetime = Field(default_factory=utc_now)
+
+
+class AIProviderStatus(BaseModel):
+    provider: AIProviderName
+    mode: AIEnrichmentMode
+    enabled: bool
+    model: str
+    embedding_model: str | None = None
+    base_url: str | None = None
+    hosted_allowed_for_restricted: bool = False
+
+
 class ReviewItem(BaseModel):
     id: str = Field(default_factory=lambda: new_id("review"))
     source_id: str
     candidate_object: KnowledgeObject
+    ai_enrichment: AIEnrichmentResult | None = None
     status: ReviewStatus = ReviewStatus.human_review_required
     reviewer: str | None = None
     review_comment: str | None = None
@@ -146,6 +235,8 @@ class ContextPack(BaseModel):
     caveats: list[str] = Field(default_factory=list)
     related_objects: list[str] = Field(default_factory=list)
     recommended_followups: list[str] = Field(default_factory=list)
+    ai_guidance: str | None = None
+    missing_context: list[str] = Field(default_factory=list)
     generated_at: datetime = Field(default_factory=utc_now)
 
 
