@@ -2,6 +2,8 @@ export type SourceType = "document" | "markdown" | "spreadsheet" | "sql" | "dash
 export type Sensitivity = "public" | "internal" | "confidential" | "restricted";
 export type ReviewStatus = "draft" | "submitted" | "ai_classified" | "human_review_required" | "approved" | "rejected" | "changes_requested" | "published" | "deprecated";
 export type ValidationSeverity = "info" | "low" | "medium" | "high" | "critical";
+export type AIProviderName = "noop" | "ollama" | "openai" | "custom";
+export type AIEnrichmentMode = "offline_no_model" | "local_ai" | "hosted_ai" | "hybrid";
 
 export interface IngestionPayload {
   title: string;
@@ -83,7 +85,7 @@ export interface AIReviewBrief {
 
 export interface AIEnrichmentResult {
   id: string;
-  provider: "noop" | "ollama" | "openai" | "custom";
+  provider: AIProviderName;
   model: string;
   status: "skipped" | "completed" | "failed";
   source_classification: SourceClassification;
@@ -97,13 +99,39 @@ export interface AIEnrichmentResult {
 }
 
 export interface AIProviderStatus {
-  provider: "noop" | "ollama" | "openai" | "custom";
-  mode: "offline_no_model" | "local_ai" | "hosted_ai" | "hybrid";
+  provider: AIProviderName;
+  mode: AIEnrichmentMode;
   enabled: boolean;
   model: string;
   embedding_model?: string | null;
   base_url?: string | null;
   hosted_allowed_for_restricted: boolean;
+  local_only: boolean;
+  capabilities: string[];
+}
+
+export interface AIProviderHealth {
+  provider: AIProviderName;
+  reachable: boolean;
+  message: string;
+  base_url?: string | null;
+  model: string;
+  embedding_model?: string | null;
+  checked_at: string;
+  details: Record<string, unknown>;
+}
+
+export interface EmbeddingRequest {
+  texts: string[];
+  model?: string | null;
+}
+
+export interface EmbeddingResponse {
+  provider: AIProviderName;
+  model: string;
+  dimensions: number;
+  embeddings: number[][];
+  fallback_used: boolean;
 }
 
 export interface ReviewItem {

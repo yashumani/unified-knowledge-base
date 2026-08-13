@@ -2,14 +2,14 @@
 
 ## Purpose
 
-The LLM feature is an **AI Enrichment Layer** for the governed AI Brain runtime.
+The LLM feature is an **AI Enrichment Layer** for the Unified Knowledge Base runtime.
 
-It helps the platform classify, extract, validate, and summarize context, but it does not approve or publish official knowledge.
+For this use case, the active LLM path is **local Ollama**. Hosted providers are not part of the default workflow.
 
 ```text
 source context
   -> deterministic compiler
-  -> AI enrichment layer
+  -> local Ollama enrichment
   -> candidate + review brief + validation findings
   -> human review
   -> approved brain object
@@ -26,7 +26,29 @@ Published brain object = official context
 
 The LLM must never bypass governance, access control, or human review.
 
-## What the LLM should do
+## Local Ollama boundary
+
+Unified Knowledge Base should call Ollama from the backend only.
+
+```text
+React UI  -> FastAPI backend -> Ollama local/internal API
+```
+
+Do not call Ollama directly from the browser. The backend owns:
+
+```text
+provider configuration
+prompt construction
+source sensitivity checks
+fallback behavior
+review-item enrichment
+context-pack enrichment
+embedding calls
+health/model-readiness checks
+audit metadata
+```
+
+## What Ollama should do
 
 ### Source classification
 
@@ -51,22 +73,24 @@ summary
 confidence
 ```
 
-### Candidate extraction
+### Candidate enrichment
 
-Produce candidate knowledge objects, such as:
+Ollama enriches the baseline deterministic candidate with reviewer-facing metadata.
+
+It can suggest:
 
 ```text
-Metric
-Report
-BusinessRule
-Dataset
-Process
-Decision
-NarrativeTemplate
-GlossaryTerm
+better source summary
+candidate object type
+candidate topics
+relationship hints
+review brief
+reviewer questions
+validation findings
+missing context warnings
 ```
 
-The candidate remains unapproved until a reviewer acts.
+It does not publish the candidate.
 
 ### Relationship suggestion
 
@@ -120,7 +144,26 @@ follow-up questions
 retrieval hints
 ```
 
-The LLM must not invent facts that are absent from approved objects or source evidence.
+Ollama must not invent facts that are absent from approved objects or source evidence.
+
+### Local embeddings
+
+The backend now exposes an embeddings API that uses Ollama's configured embedding model when available.
+
+```text
+POST /ai/embeddings
+```
+
+This is currently a scaffold for the next retrieval layer. It enables:
+
+```text
+semantic duplicate detection
+future vector retrieval
+source similarity checks
+context-pack candidate expansion
+```
+
+If Ollama is unavailable, the API falls back to deterministic hash vectors so the contract remains testable offline. These fallback vectors are not semantic embeddings.
 
 ## What the LLM must not do
 
@@ -132,54 +175,41 @@ see restricted data before policy filtering
 invent evidence
 silently resolve conflicting definitions
 override human reviewers
-store API keys in the frontend
+store secrets in the frontend
 call hosted APIs from the browser
 ```
 
 ## Provider modes
 
+### local_ai
+
+Default mode for this repository.
+
+```text
+Provider: ollama
+Network: local/internal only
+Default base URL: http://localhost:11434
+Default model: llama3.1
+Default embedding model: embeddinggemma
+Use cases: extraction, review briefs, context-pack guidance, embeddings
+```
+
 ### offline_no_model
 
-Default mode.
+Fallback mode for locked-down environments, CI, or machines without Ollama.
 
 ```text
 Provider: noop
 Network: none
 Secrets: none
-Behavior: deterministic enrichment and validation only
-```
-
-### local_ai
-
-For internal/local model use.
-
-```text
-Provider: ollama
-Network: local/internal
-Default base URL: http://localhost:11434
-Use cases: extraction, review briefs, context-pack guidance, embeddings later
+Behavior: deterministic enrichment, validation, and hash embeddings only
 ```
 
 ### hosted_ai
 
-For approved hosted providers.
+Not part of the default UKB local path.
 
-```text
-Provider: openai
-Network: hosted API
-Secrets: server-side environment variables only
-Use cases: higher-quality extraction, summaries, review questions
-```
-
-### hybrid
-
-Future policy-aware mode.
-
-```text
-local AI by default
-hosted AI only for approved sources/tasks
-restricted sources stay local or deterministic unless explicitly allowed
-```
+The hosted adapter remains a future/private extension point, but public demos and local development should use Ollama or the deterministic fallback.
 
 ## Current implementation
 
@@ -198,15 +228,18 @@ ValidationFinding
 AIReviewBrief
 AIEnrichmentResult
 AIProviderStatus
+AIProviderHealth
+EmbeddingRequest
+EmbeddingResponse
 ```
 
-`ReviewItem` now has:
+`ReviewItem` has:
 
 ```text
 ai_enrichment: AIEnrichmentResult | None
 ```
 
-`ContextPack` now has:
+`ContextPack` has:
 
 ```text
 ai_guidance: str | None
@@ -222,6 +255,12 @@ src/ukb/ai/providers/ollama.py
 src/ukb/ai/providers/openai_provider.py
 ```
 
+The active local provider is:
+
+```text
+src/ukb/ai/providers/ollama.py
+```
+
 ### Service facade
 
 ```text
@@ -234,6 +273,8 @@ The service owns:
 provider routing
 server-side settings
 safe fallback
+local provider health checks
+embedding calls
 hosted-provider sensitivity blocking
 context-pack enrichment
 ```
@@ -242,6 +283,8 @@ context-pack enrichment
 
 ```text
 GET  /ai/providers
+GET  /ai/health
+POST /ai/embeddings
 POST /review/items/{review_item_id}/enrich
 GET  /review/items/{review_item_id}/ai-enrichment
 ```
@@ -252,7 +295,7 @@ Existing endpoints are also enriched:
 POST /ingestion/submissions
   saves source evidence
   creates baseline candidate
-  attaches AI enrichment to review item
+  attaches local Ollama enrichment to review item
 
 POST /brain/context-pack
   builds normal context pack
@@ -261,38 +304,34 @@ POST /brain/context-pack
 
 ## Configuration
 
-Default offline-safe settings:
+Default local Ollama settings:
 
 ```bash
 UKB_AI_ENRICHMENT_ENABLED=true
+UKB_AI_MODE=local_ai
+UKB_AI_PROVIDER=ollama
+UKB_AI_BASE_URL=http://localhost:11434
+UKB_AI_CHAT_MODEL=llama3.1
+UKB_AI_EMBEDDING_MODEL=embeddinggemma
+```
+
+Docker Compose overrides the API container's base URL to:
+
+```bash
+UKB_AI_BASE_URL=http://ollama:11434
+```
+
+Deterministic fallback:
+
+```bash
 UKB_AI_MODE=offline_no_model
 UKB_AI_PROVIDER=noop
 UKB_AI_CHAT_MODEL=deterministic
 ```
 
-Local Ollama example:
-
-```bash
-UKB_AI_PROVIDER=ollama
-UKB_AI_MODE=local_ai
-UKB_AI_BASE_URL=http://localhost:11434
-UKB_AI_CHAT_MODEL=qwen3
-UKB_AI_EMBEDDING_MODEL=embeddinggemma
-```
-
-Hosted OpenAI example:
-
-```bash
-UKB_AI_PROVIDER=openai
-UKB_AI_MODE=hosted_ai
-UKB_OPENAI_MODEL=gpt-4o-mini
-UKB_OPENAI_API_KEY=server-side-secret
-UKB_ALLOW_HOSTED_AI_FOR_RESTRICTED=false
-```
-
 ## UI behavior
 
-The React console now shows:
+The React console shows:
 
 ```text
 AI provider mode and model
@@ -307,23 +346,17 @@ AI enrichment nodes in graph projection
 
 ## Security model
 
-### Keys stay server-side
+### Local-only default
 
-The React app never receives hosted provider API keys. Hosted API configuration is read from backend environment variables only.
+The default UKB path sends enrichment and embedding requests only to the configured local/internal Ollama endpoint.
 
-### Restricted-source blocking
+### No browser-side LLM calls
 
-Hosted AI is blocked for `confidential` or `restricted` sources unless:
-
-```bash
-UKB_ALLOW_HOSTED_AI_FOR_RESTRICTED=true
-```
-
-Default is false.
+The React app never receives model credentials and never calls Ollama directly.
 
 ### Safe fallback
 
-If an AI provider fails:
+If Ollama fails or returns invalid JSON:
 
 ```text
 fallback to NoopProvider
@@ -334,28 +367,32 @@ never silently approve knowledge
 
 ## Acceptance criteria
 
-The LLM feature is working when:
+The local Ollama feature is working when:
 
 ```text
-1. User submits support context through the UI or API.
-2. Backend saves source evidence.
-3. Baseline compiler creates a candidate.
-4. AI enrichment attaches classification, review brief, findings, and suggested relationships.
-5. Reviewer sees AI guidance but still approves/rejects manually.
-6. Approved object appears in the brain store.
-7. Context pack includes approved evidence plus AI guidance/missing-context warnings.
-8. Graph projection shows AI enrichment as review-supporting metadata.
+1. Ollama is running locally or as a Docker Compose service.
+2. The default chat and embedding models are pulled.
+3. GET /ai/health confirms local model readiness.
+4. POST /ai/embeddings returns Ollama embeddings or explicit fallback vectors.
+5. User submits support context through the UI or API.
+6. Backend saves source evidence.
+7. Baseline compiler creates a candidate.
+8. Ollama enrichment attaches classification, review brief, findings, and suggested relationships.
+9. Reviewer sees AI guidance but still approves/rejects manually.
+10. Approved object appears in the brain store.
+11. Context pack includes approved evidence plus AI guidance/missing-context warnings.
+12. Graph projection shows AI enrichment as review-supporting metadata.
 ```
 
 ## Future work
 
 ```text
 persistent AI task table
-structured-output schemas per provider
-embedding generation and semantic duplicate detection
-policy-aware hosted/local routing
+structured-output schemas per local model
+semantic duplicate detection using stored embeddings
 reviewer-editable extracted fields
 AI-generated documentation from approved objects
 LLM evaluation suite with golden questions
 streaming task status for long document enrichment
+local model selection profiles by hardware size
 ```

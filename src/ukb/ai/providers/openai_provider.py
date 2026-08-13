@@ -7,14 +7,23 @@ from typing import Any
 
 from ukb.ai.providers.base import AIProviderError
 from ukb.ai.providers.noop import NoopProvider
-from ukb.models import AIEnrichmentResult, AIProviderName, ContextPack, KnowledgeObject, SourceEvidence
+from ukb.models import (
+    AIEnrichmentResult,
+    AIProviderHealth,
+    AIProviderName,
+    ContextPack,
+    EmbeddingResponse,
+    KnowledgeObject,
+    SourceEvidence,
+)
 
 
 class OpenAIProvider:
     """Hosted OpenAI adapter using server-side environment configuration.
 
-    This adapter intentionally avoids adding an SDK dependency to the scaffold.
-    API keys must stay on the backend and must never be exposed to the React app.
+    This adapter remains an extension point. The Unified Knowledge Base local
+    use case should prefer Ollama. API keys must stay on the backend and must
+    never be exposed to the React app.
     """
 
     name = AIProviderName.openai.value
@@ -32,6 +41,25 @@ class OpenAIProvider:
         self.model = model
         self.timeout_seconds = timeout_seconds
         self._fallback = NoopProvider()
+
+    def health_check(self) -> AIProviderHealth:
+        if not self.api_key:
+            return AIProviderHealth(
+                provider=AIProviderName.openai,
+                reachable=False,
+                message="Hosted provider is not configured with a backend API key.",
+                base_url=self.base_url,
+                model=self.model,
+                embedding_model=None,
+            )
+        return AIProviderHealth(
+            provider=AIProviderName.openai,
+            reachable=True,
+            message="Hosted provider is configured. Prefer local Ollama for this UKB use case.",
+            base_url=self.base_url,
+            model=self.model,
+            embedding_model=None,
+        )
 
     def enrich_source(
         self,
@@ -82,6 +110,10 @@ class OpenAIProvider:
             if followup not in context_pack.recommended_followups:
                 context_pack.recommended_followups.append(followup)
         return context_pack
+
+    def embed_texts(self, *, texts: list[str], model: str | None = None) -> EmbeddingResponse:
+        # Hosted embeddings are intentionally not implemented for the local UKB use case.
+        return self._fallback.embed_texts(texts=texts, model=model)
 
     def _chat_json(self, prompt: str) -> dict[str, Any]:
         body = json.dumps(

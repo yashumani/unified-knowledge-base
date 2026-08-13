@@ -19,6 +19,7 @@ Messy enterprise context
       -> ingest
       -> parse
       -> classify
+      -> local Ollama enrichment
       -> normalize
       -> human review
       -> publish
@@ -53,6 +54,29 @@ The AI Brain should not store only generated answers. It should store reusable, 
 
 Answers are generated from context. Context is the durable product.
 
+## Local LLM principle
+
+Unified Knowledge Base uses **local Ollama** for this LLM enrichment use case.
+
+```text
+React UI -> FastAPI backend -> local/internal Ollama -> reviewable enrichment
+```
+
+Ollama can help classify, summarize, enrich, validate, and generate reviewer questions, but it cannot approve or publish official knowledge.
+
+```text
+LLM output = suggestion
+Human review = approval
+Published brain object = official context
+```
+
+See:
+
+```text
+docs/OLLAMA_LOCAL_LLM.md
+docs/LLM_FEATURE_ARCHITECTURE.md
+```
+
 ## Neutral demo domain
 
 The public demo uses a generic support-operations scenario:
@@ -79,9 +103,10 @@ This example is synthetic and intentionally not based on any employer, carrier, 
                                         │ REST
 ┌────────────────────┐      ┌───────────▼───────────┐      ┌─────────────────────┐
 │ Enterprise Sources  │ ---> │ Brain Compiler         │ ---> │ Governed Brain Store │
-│ docs, data, SQL     │      │ classify + normalize   │      │ objects + evidence   │
+│ docs, data, SQL     │      │ classify + enrich      │      │ objects + evidence   │
 └────────────────────┘      └───────────┬───────────┘      └─────────┬───────────┘
                                         │                            │
+                              local Ollama enrichment                │
                                         │ human review                │
                                         ▼                            ▼
                                 ┌────────────────┐          ┌────────────────────┐
@@ -104,17 +129,27 @@ Use both, but for different jobs.
 
 Do not build the MCP server as the only backend. MCP should be an adapter, not the whole platform.
 
-## Quick start
+## Quick start with local Ollama
 
-### 1. Install Python dependencies
+### 1. Pull local models
+
+Install Ollama, then pull the default models:
 
 ```bash
+ollama pull llama3.1
+ollama pull embeddinggemma
+```
+
+### 2. Install Python dependencies
+
+```bash
+cp .env.example .env
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev,mcp]"
 ```
 
-### 2. Run the API
+### 3. Run the API
 
 ```bash
 uvicorn ukb.api.main:app --reload --host 0.0.0.0 --port 8000
@@ -126,7 +161,32 @@ Open:
 http://localhost:8000/docs
 ```
 
-### 3. Submit sample context
+Check the local LLM provider:
+
+```bash
+curl http://localhost:8000/ai/providers
+```
+
+Expected provider:
+
+```text
+ollama
+```
+
+### 4. Run the React UI
+
+```bash
+npm install
+npm run web:dev
+```
+
+Open:
+
+```text
+http://localhost:5173
+```
+
+### 5. Submit sample context
 
 ```bash
 curl -X POST http://localhost:8000/ingestion/submissions \
@@ -140,13 +200,15 @@ curl -X POST http://localhost:8000/ingestion/submissions \
   }'
 ```
 
-### 4. Review queue
+The review item should include an `ai_enrichment` payload. If Ollama is unavailable, UKB falls back to deterministic enrichment and the review workflow still works.
+
+### 6. Review queue
 
 ```bash
 curl http://localhost:8000/review/queue
 ```
 
-### 5. Approve a review item
+### 7. Approve a review item
 
 Replace `{review_item_id}` with the ID from the queue.
 
@@ -156,7 +218,7 @@ curl -X POST http://localhost:8000/review/items/{review_item_id}/approve \
   -d '{"reviewed_by": "domain.reviewer", "comment": "Approved for synthetic demo."}'
 ```
 
-### 6. Request a context pack
+### 8. Request a context pack
 
 ```bash
 curl -X POST http://localhost:8000/brain/context-pack \
@@ -169,26 +231,28 @@ curl -X POST http://localhost:8000/brain/context-pack \
   }'
 ```
 
-## React UI
-
-```bash
-npm install
-npm run web:dev
-```
-
-Open:
-
-```text
-http://localhost:5173
-```
-
-The React UI includes a context submission form, review queue, context-pack explorer, published object browser, and an Obsidian-style graph view.
-
-## Run with Docker
+## Docker Compose with Ollama
 
 ```bash
 docker compose up --build
 ```
+
+Pull models into the running Ollama container:
+
+```bash
+docker exec unified-knowledge-base-ollama ollama pull llama3.1
+docker exec unified-knowledge-base-ollama ollama pull embeddinggemma
+```
+
+Services:
+
+```text
+api     -> http://localhost:8000
+web     -> http://localhost:5173
+ollama  -> http://localhost:11434
+```
+
+Inside Docker Compose, the API reaches Ollama at `http://ollama:11434`.
 
 ## Run the MCP server
 
@@ -200,6 +264,7 @@ python -m ukb.mcp.server
 
 ```text
 src/ukb/
+  ai/                  local Ollama enrichment providers and service facade
   api/                 FastAPI application
   mcp/                 MCP adapter
   services/            compiler, governance, retrieval, graph, context-pack logic
@@ -221,6 +286,8 @@ docs/
   GOVERNANCE_WORKFLOW.md
   CONTEXT_PACK.md
   GITHUB_PAGES_DEPLOYMENT.md
+  LLM_FEATURE_ARCHITECTURE.md
+  OLLAMA_LOCAL_LLM.md
   REACT_UI.md
   WORKPLACE_SAFE_EXAMPLES.md
 ```
@@ -231,9 +298,9 @@ This is a scaffold, not a production system yet. The next real build steps are:
 
 1. Replace in-memory store with Postgres.
 2. Add object storage for source evidence.
-3. Add vector/hybrid search.
+3. Add vector/hybrid search using local embeddings.
 4. Add graph relationships.
 5. Add real auth and ACL filtering.
 6. Add persistent review UI flows.
-7. Add GitLab deployment variables and environment-specific secrets.
+7. Harden local Ollama deployment for private GitLab/Linux environments.
 8. Add source connectors one by one.

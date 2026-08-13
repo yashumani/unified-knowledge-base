@@ -1,6 +1,6 @@
 # Documentation Index
 
-This repository is being shaped as a reusable platform for building governed AI Brains. The documentation is organized around six jobs: understand the architecture, run the demo, configure AI enrichment, keep examples workplace-safe, extend the platform, and prepare for enterprise deployment.
+This repository is being shaped as a reusable platform for building governed AI Brains. The documentation is organized around six jobs: understand the architecture, run the demo, configure local Ollama enrichment, keep examples workplace-safe, extend the platform, and prepare for enterprise deployment.
 
 ## Start here
 
@@ -17,6 +17,7 @@ This repository is being shaped as a reusable platform for building governed AI 
 
 | Document | Purpose |
 |---|---|
+| `docs/OLLAMA_LOCAL_LLM.md` | Local Ollama setup, Docker Compose instructions, model pulls, provider config, and testing commands for UKB. |
 | `docs/LLM_FEATURE_ARCHITECTURE.md` | Architecture, provider modes, API endpoints, UI behavior, and governance boundaries for LLM-powered enrichment. |
 
 ## Workplace-safe examples
