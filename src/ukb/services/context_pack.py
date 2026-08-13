@@ -2,13 +2,20 @@ from __future__ import annotations
 
 from ukb.models import ContextPack, ContextPackRequest, SourceEvidence
 from ukb.services.retrieval import RetrievalService
-from ukb.store import BrainStore
+from ukb.store import BrainStore, store as global_store
 
 
 class ContextPackService:
     def __init__(self, store: BrainStore, *, retrieval: RetrievalService | None = None):
         self.store = store
-        self.retrieval = retrieval or RetrievalService(store)
+        if retrieval is not None:
+            self.retrieval = retrieval
+        elif store is global_store:
+            from ukb.services.runtime import retrieval_service
+
+            self.retrieval = retrieval_service
+        else:
+            self.retrieval = RetrievalService(store)
 
     def build(self, request: ContextPackRequest) -> ContextPack:
         objects = self.retrieval.search(
