@@ -41,7 +41,7 @@ jobs:
           python -m pip install -e ".[dev,mcp,search]"
 
       - name: Validate Zvec import
-        run: python -c "import zvec; print(zvec.__version__)"
+        run: python -c "import zvec; print(getattr(zvec, '__version__', 'installed'))"
 
       - name: Validate initial database migration
         run: |
