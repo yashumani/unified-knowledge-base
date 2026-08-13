@@ -3,9 +3,33 @@ import { API_BASE, brainClient } from "./api/brainClient";
 import { demoContextPack, demoGraph, demoObjects, demoReviewItems } from "./data/demoBrain";
 import { ObsidianGraphView } from "./components/ObsidianGraphView";
 import { buildGraphFromState } from "./utils/graph";
-import type { BrainGraph, ContextPack, ContextPackRequest, IngestionPayload, KnowledgeObject, ReviewItem, SourceType } from "./types";
+import type {
+  BrainGraph,
+  ContextPack,
+  ContextPackRequest,
+  IngestionPayload,
+  KnowledgeObject,
+  ReviewItem,
+  SourceType
+} from "./types";
 
 const reviewer = "ui.reviewer";
+
+const workflowSteps = [
+  { label: "Submit", detail: "Capture source context" },
+  { label: "Classify", detail: "Create candidate knowledge" },
+  { label: "Review", detail: "Human approval gate" },
+  { label: "Publish", detail: "Approved brain object" },
+  { label: "Compose", detail: "Context pack for AI apps" }
+];
+
+const navItems = [
+  { label: "Map", href: "#brain-map" },
+  { label: "Submit", href: "#context-ingestion" },
+  { label: "Review", href: "#review-queue" },
+  { label: "Context Pack", href: "#context-pack" },
+  { label: "Published", href: "#published-objects" }
+];
 
 export default function App() {
   const [environment, setEnvironment] = useState("unknown");
@@ -17,12 +41,15 @@ export default function App() {
   const [graph, setGraph] = useState<BrainGraph>(demoGraph);
   const [contextPack, setContextPack] = useState<ContextPack | null>(null);
 
-  const stats = useMemo(() => ({
-    published: objects.length,
-    review: reviewItems.length,
-    graphNodes: graph.nodes.length,
-    graphEdges: graph.edges.length
-  }), [graph.edges.length, graph.nodes.length, objects.length, reviewItems.length]);
+  const stats = useMemo(
+    () => ({
+      published: objects.length,
+      review: reviewItems.length,
+      graphNodes: graph.nodes.length,
+      graphEdges: graph.edges.length
+    }),
+    [graph.edges.length, graph.nodes.length, objects.length, reviewItems.length]
+  );
 
   async function refresh() {
     setLoading(true);
@@ -75,16 +102,19 @@ export default function App() {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
-      const nextReviews = [{
-        id,
-        source_id: candidate.source_ids[0],
-        candidate_object: candidate,
-        status: "human_review_required" as const,
-        reviewer: null,
-        review_comment: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }, ...reviewItems];
+      const nextReviews = [
+        {
+          id,
+          source_id: candidate.source_ids[0],
+          candidate_object: candidate,
+          status: "human_review_required" as const,
+          reviewer: null,
+          review_comment: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        ...reviewItems
+      ];
       setReviewItems(nextReviews);
       setGraph(buildGraphFromState(objects, nextReviews));
       return;
@@ -125,65 +155,133 @@ export default function App() {
 
   async function askBrain(request: ContextPackRequest) {
     if (demoMode) {
-      setContextPack({ ...demoContextPack, question: request.question, user_id: request.user_id, mode: request.mode, generated_at: new Date().toISOString() });
+      setContextPack({
+        ...demoContextPack,
+        question: request.question,
+        user_id: request.user_id,
+        mode: request.mode,
+        generated_at: new Date().toISOString()
+      });
       return;
     }
     setContextPack(await brainClient.buildContextPack(request));
   }
 
   return (
-    <div className="app-shell">
-      <header className="hero">
-        <div>
-          <p className="eyebrow">Unified Knowledge Base</p>
-          <h1>Governed AI Brain Console</h1>
-          <p className="hero-copy">Submit context, review AI-classified candidates, publish approved knowledge, and explore the brain as an Obsidian-style graph.</p>
-        </div>
-        <div className="status-card">
-          <span className={demoMode ? "pulse warning" : "pulse"} />
+    <div className="site-shell">
+      <aside className="side-nav" aria-label="Console navigation">
+        <div className="brand-lockup">
+          <span className="brand-mark">UKB</span>
           <div>
-            <strong>{demoMode ? "Offline demo" : "Connected"}</strong>
-            <span>{demoMode ? "Using synthetic local state" : `${API_BASE} · ${environment}`}</span>
+            <strong>AI Brain</strong>
+            <span>Governed context OS</span>
           </div>
-          <button type="button" onClick={refresh} disabled={loading}>{loading ? "Refreshing..." : "Refresh"}</button>
         </div>
-      </header>
+        <nav>
+          {navItems.map((item) => (
+            <a href={item.href} key={item.href}>{item.label}</a>
+          ))}
+        </nav>
+        <div className="nav-callout">
+          <span>Demo domain</span>
+          <strong>Support Ops</strong>
+          <p>Uses only synthetic, workplace-safe examples.</p>
+        </div>
+      </aside>
 
-      {error && <div className="notice">{error}</div>}
+      <main className="app-shell">
+        {demoMode && (
+          <div className="mode-banner" role="status">
+            <strong>Demo Mode</strong>
+            <span>No backend connected. Actions are simulated and reset on refresh.</span>
+          </div>
+        )}
 
-      <section className="stats-grid">
-        <Metric label="Published objects" value={stats.published} />
-        <Metric label="Review queue" value={stats.review} />
-        <Metric label="Graph nodes" value={stats.graphNodes} />
-        <Metric label="Graph edges" value={stats.graphEdges} />
-      </section>
+        <header className="hero framer-hero">
+          <div className="hero-content">
+            <p className="eyebrow">Framer-inspired enterprise SaaS console</p>
+            <h1>Governed AI Brain command center</h1>
+            <p className="hero-copy">
+              A dashboard-led workspace for submitting context, validating candidates, publishing approved brain objects,
+              and exploring the knowledge graph behind every context pack.
+            </p>
+            <div className="hero-actions">
+              <button type="button" onClick={() => document.getElementById("context-ingestion")?.scrollIntoView({ behavior: "smooth" })}>
+                Start workflow
+              </button>
+              <a className="secondary-link" href="#brain-map">Explore graph</a>
+            </div>
+          </div>
 
-      <ObsidianGraphView graph={graph} />
+          <div className="hero-dashboard-card" aria-label="Brain runtime status">
+            <div className="status-card elevated">
+              <span className={demoMode ? "pulse warning" : "pulse"} />
+              <div>
+                <strong>{demoMode ? "Demo Mode" : "Connected Backend"}</strong>
+                <span>{demoMode ? "Simulated local state" : `${API_BASE} · ${environment}`}</span>
+              </div>
+              <button type="button" onClick={refresh} disabled={loading}>{loading ? "Refreshing..." : "Refresh"}</button>
+            </div>
+            <div className="workflow-timeline">
+              {workflowSteps.map((step, index) => (
+                <div className="timeline-step" key={step.label}>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <div>
+                    <strong>{step.label}</strong>
+                    <small>{step.detail}</small>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </header>
 
-      <main className="workbench">
-        <SubmitContext onSubmit={submitContext} />
-        <ReviewQueue items={reviewItems} onApprove={approveReview} onReject={rejectReview} />
-        <ContextPackExplorer onAsk={askBrain} contextPack={contextPack} />
-        <PublishedObjects objects={objects} />
+        {error && <div className="notice">{error}</div>}
+
+        <section className="stats-grid" aria-label="Brain state summary">
+          <Metric label="Published objects" value={stats.published} detail="approved runtime context" />
+          <Metric label="Review queue" value={stats.review} detail="awaiting validation" />
+          <Metric label="Graph nodes" value={stats.graphNodes} detail="sources + objects" />
+          <Metric label="Graph edges" value={stats.graphEdges} detail="typed relationships" />
+        </section>
+
+        <section id="brain-map" className="section-shell">
+          <div className="section-heading">
+            <p className="eyebrow">Visual knowledge runtime</p>
+            <h2>Inspect the brain before trusting the answer</h2>
+            <p>Use the map to trace source evidence, review state, published knowledge, and graph relationships.</p>
+          </div>
+          <ObsidianGraphView graph={graph} />
+        </section>
+
+        <main className="workbench">
+          <SubmitContext onSubmit={submitContext} demoMode={demoMode} />
+          <ReviewQueue items={reviewItems} onApprove={approveReview} onReject={rejectReview} demoMode={demoMode} />
+          <ContextPackExplorer onAsk={askBrain} contextPack={contextPack} demoMode={demoMode} />
+          <PublishedObjects objects={objects} />
+        </main>
       </main>
     </div>
   );
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
+function Metric({ label, value, detail }: { label: string; value: number; detail: string }) {
   return (
     <div className="metric-card">
       <span>{label}</span>
       <strong>{value}</strong>
+      <small>{detail}</small>
     </div>
   );
 }
 
-function SubmitContext({ onSubmit }: { onSubmit: (payload: IngestionPayload) => Promise<void> }) {
+function SubmitContext({ onSubmit, demoMode }: { onSubmit: (payload: IngestionPayload) => Promise<void>; demoMode: boolean }) {
   const [title, setTitle] = useState("Incident Resolution Time Definition");
   const [domain, setDomain] = useState("support");
   const [sourceType, setSourceType] = useState<SourceType>("document");
-  const [content, setContent] = useState("Incident Resolution Time is the average elapsed time from incident creation to resolved status for product support cases, excluding duplicate incidents and customer-wait periods. It appears in the SLA Review Dashboard and is owned by Support Operations. Recently resolved incidents may need 24 hours for quality review tags to settle.");
+  const [content, setContent] = useState(
+    "Incident Resolution Time is the average elapsed time from incident creation to resolved status for product support cases, excluding duplicate incidents and customer-wait periods. It appears in the SLA Review Dashboard and is owned by Support Operations. Recently resolved incidents may need 24 hours for quality review tags to settle."
+  );
   const [submitting, setSubmitting] = useState(false);
 
   async function submit(event: FormEvent) {
@@ -207,9 +305,15 @@ function SubmitContext({ onSubmit }: { onSubmit: (payload: IngestionPayload) => 
   }
 
   return (
-    <section className="panel">
-      <p className="eyebrow">Context ingestion</p>
-      <h2>Submit context</h2>
+    <section className="panel panel-accent" id="context-ingestion">
+      <div className="panel-header">
+        <div>
+          <p className="eyebrow">Context ingestion</p>
+          <h2>Submit context</h2>
+        </div>
+        <span className="chip">Source → Candidate</span>
+      </div>
+      <p className="panel-copy">Paste synthetic source context and let the compiler create a candidate for human review.</p>
       <form onSubmit={submit} className="stack">
         <label>Title<input value={title} onChange={(event) => setTitle(event.target.value)} required /></label>
         <div className="form-row">
@@ -225,39 +329,102 @@ function SubmitContext({ onSubmit }: { onSubmit: (payload: IngestionPayload) => 
           </label>
         </div>
         <label>Context<textarea value={content} onChange={(event) => setContent(event.target.value)} rows={8} required /></label>
-        <button type="submit" disabled={submitting || !title || !content}>{submitting ? "Submitting..." : "Submit for review"}</button>
+        <button type="submit" disabled={submitting || !title || !content}>
+          {submitting ? "Submitting..." : demoMode ? "Simulate submission" : "Submit for review"}
+        </button>
       </form>
     </section>
   );
 }
 
-function ReviewQueue({ items, onApprove, onReject }: { items: ReviewItem[]; onApprove: (id: string) => Promise<void>; onReject: (id: string) => Promise<void> }) {
+function ReviewQueue({
+  items,
+  onApprove,
+  onReject,
+  demoMode
+}: {
+  items: ReviewItem[];
+  onApprove: (id: string) => Promise<void>;
+  onReject: (id: string) => Promise<void>;
+  demoMode: boolean;
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>(items[0]?.id ?? null);
+
+  useEffect(() => {
+    if (!items.length) {
+      setSelectedId(null);
+      return;
+    }
+    if (!selectedId || !items.some((item) => item.id === selectedId)) {
+      setSelectedId(items[0].id);
+    }
+  }, [items, selectedId]);
+
+  const selectedItem = selectedId ? items.find((item) => item.id === selectedId) : undefined;
+
   return (
-    <section className="panel">
-      <p className="eyebrow">Human validation</p>
-      <h2>Review queue</h2>
-      <div className="scroll-list">
-        {items.length === 0 && <div className="empty-state">No candidate knowledge is waiting for review.</div>}
-        {items.map((item) => (
-          <article className="review-item" key={item.id}>
-            <div>
+    <section className="panel review-panel" id="review-queue">
+      <div className="panel-header">
+        <div>
+          <p className="eyebrow">Human validation</p>
+          <h2>Review queue</h2>
+        </div>
+        <span className="chip warning-chip">{items.length} pending</span>
+      </div>
+      <div className="review-layout">
+        <div className="scroll-list">
+          {items.length === 0 && <div className="empty-state">No candidate knowledge is waiting for review.</div>}
+          {items.map((item) => (
+            <button
+              type="button"
+              className={selectedId === item.id ? "review-item selected-review" : "review-item"}
+              key={item.id}
+              onClick={() => setSelectedId(item.id)}
+            >
               <span className="badge">{item.candidate_object.type}</span>
-              <h3>{item.candidate_object.title}</h3>
-              <p>{item.candidate_object.summary}</p>
+              <strong>{item.candidate_object.title}</strong>
               <small>{item.status} · {Math.round(item.candidate_object.confidence * 100)}% confidence</small>
-            </div>
-            <div className="actions">
-              <button type="button" onClick={() => onApprove(item.id)}>Approve</button>
-              <button type="button" className="secondary" onClick={() => onReject(item.id)}>Reject</button>
-            </div>
-          </article>
-        ))}
+            </button>
+          ))}
+        </div>
+        <aside className="candidate-inspector">
+          {selectedItem ? (
+            <>
+              <span className="badge">Candidate</span>
+              <h3>{selectedItem.candidate_object.title}</h3>
+              <p>{selectedItem.candidate_object.summary}</p>
+              <dl>
+                <div><dt>Status</dt><dd>{selectedItem.status}</dd></div>
+                <div><dt>Domain</dt><dd>{selectedItem.candidate_object.domain}</dd></div>
+                <div><dt>Owner</dt><dd>{selectedItem.candidate_object.owner ?? "Not assigned"}</dd></div>
+              </dl>
+              <div className="actions">
+                <button type="button" onClick={() => onApprove(selectedItem.id)}>
+                  {demoMode ? "Simulate approval" : "Approve and publish"}
+                </button>
+                <button type="button" className="secondary" onClick={() => onReject(selectedItem.id)}>
+                  {demoMode ? "Simulate rejection" : "Reject"}
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="empty-state">Select a candidate to inspect before approving.</div>
+          )}
+        </aside>
       </div>
     </section>
   );
 }
 
-function ContextPackExplorer({ onAsk, contextPack }: { onAsk: (request: ContextPackRequest) => Promise<void>; contextPack: ContextPack | null }) {
+function ContextPackExplorer({
+  onAsk,
+  contextPack,
+  demoMode
+}: {
+  onAsk: (request: ContextPackRequest) => Promise<void>;
+  contextPack: ContextPack | null;
+  demoMode: boolean;
+}) {
   const [question, setQuestion] = useState("Why did incident resolution time increase?");
   const [mode, setMode] = useState<ContextPackRequest["mode"]>("executive_insight");
   const [asking, setAsking] = useState(false);
@@ -273,31 +440,49 @@ function ContextPackExplorer({ onAsk, contextPack }: { onAsk: (request: ContextP
   }
 
   return (
-    <section className="panel wide-panel">
-      <p className="eyebrow">Context runtime</p>
-      <h2>Context pack explorer</h2>
+    <section className="panel wide-panel" id="context-pack">
+      <div className="panel-header">
+        <div>
+          <p className="eyebrow">Context runtime</p>
+          <h2>Generate context pack</h2>
+        </div>
+        <span className="chip">Approved knowledge only</span>
+      </div>
       <form onSubmit={submit} className="context-form">
-        <input value={question} onChange={(event) => setQuestion(event.target.value)} />
-        <select value={mode} onChange={(event) => setMode(event.target.value as ContextPackRequest["mode"])}>
+        <input value={question} onChange={(event) => setQuestion(event.target.value)} aria-label="Context-pack question" />
+        <select value={mode} onChange={(event) => setMode(event.target.value as ContextPackRequest["mode"])} aria-label="Context-pack mode">
           <option value="default">Default</option>
           <option value="executive_insight">Executive insight</option>
           <option value="metric_definition">Metric definition</option>
           <option value="lineage">Lineage</option>
           <option value="governance_review">Governance review</option>
         </select>
-        <button type="submit" disabled={asking}>{asking ? "Building..." : "Build pack"}</button>
+        <button type="submit" disabled={asking}>{asking ? "Generating..." : demoMode ? "Simulate pack" : "Generate pack"}</button>
       </form>
       {contextPack && (
         <div className="context-pack">
           <div className="pack-header">
             <strong>{contextPack.access_decision.toUpperCase()}</strong>
             <span>{Math.round(contextPack.confidence * 100)}% confidence</span>
+            <span>{contextPack.mode}</span>
           </div>
           <p>{contextPack.answer_guidance}</p>
-          <h4>Evidence</h4>
-          <ul>{contextPack.evidence.map((source) => <li key={source.source_id}>{source.title}: {source.content_excerpt}</li>)}</ul>
-          <h4>Recommended follow-ups</h4>
-          <ul>{contextPack.recommended_followups.map((item) => <li key={item}>{item}</li>)}</ul>
+          <div className="pack-grid">
+            <div>
+              <h4>Evidence</h4>
+              <ul>{contextPack.evidence.map((source) => <li key={source.source_id}>{source.title}: {source.content_excerpt}</li>)}</ul>
+            </div>
+            <div>
+              <h4>Follow-ups</h4>
+              <ul>{contextPack.recommended_followups.map((item) => <li key={item}>{item}</li>)}</ul>
+            </div>
+          </div>
+          {contextPack.caveats.length > 0 && (
+            <div className="caveat-box">
+              <strong>Caveats</strong>
+              <span>{contextPack.caveats.join(" · ")}</span>
+            </div>
+          )}
         </div>
       )}
     </section>
@@ -306,9 +491,14 @@ function ContextPackExplorer({ onAsk, contextPack }: { onAsk: (request: ContextP
 
 function PublishedObjects({ objects }: { objects: KnowledgeObject[] }) {
   return (
-    <section className="panel wide-panel">
-      <p className="eyebrow">Published AI Brain</p>
-      <h2>Approved knowledge objects</h2>
+    <section className="panel wide-panel" id="published-objects">
+      <div className="panel-header">
+        <div>
+          <p className="eyebrow">Published AI Brain</p>
+          <h2>Approved knowledge</h2>
+        </div>
+        <span className="chip success-chip">{objects.length} published</span>
+      </div>
       <div className="object-grid">
         {objects.length === 0 && <div className="empty-state">Approved knowledge will appear here after review.</div>}
         {objects.map((object) => (
