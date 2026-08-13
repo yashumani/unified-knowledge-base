@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import hashlib
 import re
 
 from ukb.models import (
     AIEnrichmentResult,
+    AIProviderHealth,
     AIProviderName,
     AIReviewBrief,
     AITaskStatus,
     ContextPack,
+    EmbeddingResponse,
     KnowledgeObject,
     KnowledgeObjectType,
     ReviewStatus,
@@ -23,11 +26,23 @@ class NoopProvider:
     """Offline deterministic provider.
 
     This is the safety baseline: no network, no model, no secrets. It gives the
-    review workflow useful structured hints even when LLMs are disabled.
+    review workflow useful structured hints even when LLMs are disabled or when
+    a local Ollama runtime is not reachable.
     """
 
     name = AIProviderName.noop.value
     model = "deterministic"
+
+    def health_check(self) -> AIProviderHealth:
+        return AIProviderHealth(
+            provider=AIProviderName.noop,
+            reachable=True,
+            message="Deterministic fallback is available. No model runtime is required.",
+            base_url=None,
+            model=self.model,
+            embedding_model="deterministic-hash",
+            details={"network": "none", "secrets": "none"},
+        )
 
     def enrich_source(
         self,
@@ -96,6 +111,22 @@ class NoopProvider:
                 "Review source evidence before sharing this outside the approved audience."
             )
         return context_pack
+
+    def embed_texts(self, *, texts: list[str], model: str | None = None) -> EmbeddingResponse:
+        """Return deterministic hash embeddings when Ollama is unavailable.
+
+        These vectors are only a fallback scaffold. They let the API contract and
+        tests work offline; they should not be treated as semantic embeddings.
+        """
+
+        embeddings = [self._hash_embedding(text) for text in texts]
+        return EmbeddingResponse(
+            provider=AIProviderName.noop,
+            model=model or "deterministic-hash",
+            dimensions=len(embeddings[0]) if embeddings else 0,
+            embeddings=embeddings,
+            fallback_used=True,
+        )
 
     def _source_kind(self, lowered: str, source: SourceEvidence) -> str:
         if "metric" in lowered or "average" in lowered or "rate" in lowered or "kpi" in lowered:
@@ -239,3 +270,11 @@ class NoopProvider:
             if needle.lower() in sentence.lower():
                 return sentence.strip()
         return None
+
+    def _hash_embedding(self, text: str, dimensions: int = 16) -> list[float]:
+        digest = hashlib.sha256(text.encode("utf-8")).digest()
+        values = []
+        for index in range(dimensions):
+            raw = digest[index] / 255
+            values.append(round((raw * 2) - 1, 6))
+        return values
