@@ -28,7 +28,7 @@ review brief generation
 reviewer question generation
 context-pack guidance
 missing-context warnings
-future embeddings for semantic search and duplicate detection
+local embeddings for future semantic search and duplicate detection
 ```
 
 It should not be used for:
@@ -132,6 +132,7 @@ review workflow keeps working
 review item includes fallback risk flag
 knowledge is still not auto-approved
 context pack can still be built from approved objects
+embedding calls return deterministic fallback vectors
 ```
 
 This lets local development continue even before the Ollama model is pulled.
@@ -153,9 +154,58 @@ Expected provider in local mode:
   "enabled": true,
   "model": "llama3.1",
   "embedding_model": "embeddinggemma",
-  "base_url": "http://localhost:11434"
+  "base_url": "http://localhost:11434",
+  "local_only": true
 }
 ```
+
+Check Ollama readiness:
+
+```bash
+curl http://localhost:8000/ai/health
+```
+
+Possible result before pulling models:
+
+```json
+{
+  "provider": "ollama",
+  "reachable": false,
+  "message": "Ollama is reachable, but model(s) need to be pulled: llama3.1, embeddinggemma"
+}
+```
+
+Possible result after pulling models:
+
+```json
+{
+  "provider": "ollama",
+  "reachable": true,
+  "message": "Ollama is reachable and configured models are available."
+}
+```
+
+Test local embeddings:
+
+```bash
+curl -X POST http://localhost:8000/ai/embeddings \
+  -H "Content-Type: application/json" \
+  -d '{"texts": ["Incident Resolution Time", "SLA Review Dashboard"]}'
+```
+
+Expected shape:
+
+```json
+{
+  "provider": "ollama",
+  "model": "embeddinggemma",
+  "dimensions": 768,
+  "embeddings": [[...], [...]],
+  "fallback_used": false
+}
+```
+
+The exact dimension depends on the embedding model. If Ollama is unavailable, `fallback_used` is true and deterministic scaffold vectors are returned.
 
 Submit context:
 
