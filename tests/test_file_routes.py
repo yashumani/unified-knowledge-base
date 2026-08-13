@@ -1,1 +1,1 @@
-"""Route registration checks."""
+from ukb.api.main import app
