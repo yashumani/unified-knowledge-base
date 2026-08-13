@@ -6,9 +6,9 @@ from ukb.store import BrainStore
 
 
 class ContextPackService:
-    def __init__(self, store: BrainStore):
+    def __init__(self, store: BrainStore, *, retrieval: RetrievalService | None = None):
         self.store = store
-        self.retrieval = RetrievalService(store)
+        self.retrieval = retrieval or RetrievalService(store)
 
     def build(self, request: ContextPackRequest) -> ContextPack:
         objects = self.retrieval.search(
