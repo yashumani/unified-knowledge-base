@@ -7,11 +7,14 @@ from ukb.ai.service import AIEnrichmentService
 from ukb.config import get_settings
 from ukb.models import (
     AIEnrichmentResult,
+    AIProviderHealth,
     AIProviderStatus,
     AuditEvent,
     BrainGraph,
     ContextPack,
     ContextPackRequest,
+    EmbeddingRequest,
+    EmbeddingResponse,
     IngestionSubmission,
     KnowledgeObject,
     ReviewDecision,
@@ -54,6 +57,16 @@ def health() -> dict[str, str]:
 @app.get("/ai/providers", response_model=AIProviderStatus)
 def get_ai_provider_status() -> AIProviderStatus:
     return ai_enrichment_service.status()
+
+
+@app.get("/ai/health", response_model=AIProviderHealth)
+def get_ai_provider_health() -> AIProviderHealth:
+    return ai_enrichment_service.health()
+
+
+@app.post("/ai/embeddings", response_model=EmbeddingResponse)
+def build_embeddings(request: EmbeddingRequest) -> EmbeddingResponse:
+    return ai_enrichment_service.embed_texts(texts=request.texts, model=request.model)
 
 
 @app.post("/ingestion/submissions", response_model=ReviewItem)

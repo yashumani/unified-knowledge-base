@@ -70,3 +70,23 @@ def test_context_pack_enrichment_adds_ai_guidance():
 
     assert enriched.ai_guidance
     assert enriched.recommended_followups
+
+
+def test_local_ai_health_contract_works_without_network():
+    service = AIEnrichmentService(provider=NoopProvider())
+    status = service.status()
+    health = service.health()
+
+    assert status.capabilities
+    assert health.reachable is True
+    assert health.provider == status.provider
+
+
+def test_embedding_contract_has_stable_dimensions_without_ollama():
+    service = AIEnrichmentService(provider=NoopProvider())
+    response = service.embed_texts(texts=["Incident Resolution Time", "SLA Review Dashboard"])
+
+    assert response.fallback_used is True
+    assert response.dimensions == 16
+    assert len(response.embeddings) == 2
+    assert all(len(vector) == 16 for vector in response.embeddings)

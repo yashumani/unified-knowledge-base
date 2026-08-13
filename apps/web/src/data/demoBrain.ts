@@ -108,13 +108,13 @@ export const demoReviewItems: ReviewItem[] = [
     candidate_object: demoCandidate,
     ai_enrichment: {
       id: "ai_demo_reopen_rate",
-      provider: "noop",
-      model: "deterministic",
+      provider: "ollama",
+      model: "llama3.1",
       status: "completed",
       source_classification: {
         source_kind: "metric_definition",
         domain: "support",
-        summary: "The source defines a support metric and suggests a related operational driver.",
+        summary: "Local Ollama enrichment identified a support metric candidate and a related operational driver.",
         topics: ["support operations", "incident management", "metric definition"],
         suggested_tags: ["support", "metric_definition", "incident management"],
         confidence: 0.76
@@ -138,7 +138,7 @@ export const demoReviewItems: ReviewItem[] = [
         }
       ],
       review_brief: {
-        summary: "Prepared a Reopen Rate candidate and found one definition gap that should be reviewed before publication.",
+        summary: "Local Ollama prepared a Reopen Rate candidate and found one definition gap that should be reviewed before publication.",
         recommended_action: "request_changes",
         reviewer_questions: [
           "What reporting window should Reopen Rate use?",
@@ -199,7 +199,17 @@ export const demoGraph: BrainGraph = {
       sensitivity: item.candidate_object.sensitivity,
       confidence: item.candidate_object.confidence,
       metadata: item.candidate_object
-    }))
+    })),
+    ...demoReviewItems.flatMap((item) => item.ai_enrichment ? [{
+      id: item.ai_enrichment.id,
+      label: `Ollama: ${item.candidate_object.title}`,
+      type: "ai_enrichment",
+      domain: item.candidate_object.domain,
+      status: item.ai_enrichment.status,
+      sensitivity: item.candidate_object.sensitivity,
+      confidence: item.ai_enrichment.confidence,
+      metadata: item.ai_enrichment
+    }] : [])
   ],
   edges: [
     { id: "source_demo_incident_resolution::evidence_for::support.metric.incident_resolution_time", source: "source_demo_incident_resolution", target: "support.metric.incident_resolution_time", type: "evidence_for", confidence: 0.91, metadata: {} },
@@ -208,6 +218,7 @@ export const demoGraph: BrainGraph = {
     { id: "support.metric.incident_resolution_time::governed_by::support.rule.sla_review_window", source: "support.metric.incident_resolution_time", target: "support.rule.sla_review_window", type: "governed_by", confidence: 0.79, metadata: {} },
     { id: "source_demo_incident_resolution::submitted_as::review_demo_reopen_rate", source: "source_demo_incident_resolution", target: "review_demo_reopen_rate", type: "submitted_as", confidence: 0.5, metadata: {} },
     { id: "review_demo_reopen_rate::reviews::support.metric.reopen_rate", source: "review_demo_reopen_rate", target: "support.metric.reopen_rate", type: "reviews", confidence: 0.72, metadata: {} },
+    { id: "ai_demo_reopen_rate::enriches::review_demo_reopen_rate", source: "ai_demo_reopen_rate", target: "review_demo_reopen_rate", type: "enriches", confidence: 0.72, metadata: {} },
     { id: "support.metric.reopen_rate::related_to::support.metric.incident_resolution_time", source: "support.metric.reopen_rate", target: "support.metric.incident_resolution_time", type: "related_to", confidence: 0.74, metadata: {} }
   ]
 };
@@ -228,7 +239,7 @@ export const demoContextPack: ContextPack = {
     "Check related driver metrics: first response time, reopen rate, ticket backlog, and incident severity mix.",
     "Confirm whether the current reporting window has completed quality review tagging."
   ],
-  ai_guidance: "Use only approved support-operations objects and source evidence; do not treat review candidates as official context.",
+  ai_guidance: "Local Ollama guidance: use only approved support-operations objects and source evidence; do not treat review candidates as official context.",
   missing_context: [],
   generated_at: now
 };

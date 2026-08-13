@@ -17,6 +17,8 @@ React
 TypeScript
 Vite
 Custom SVG graph renderer
+FastAPI backend
+Local Ollama enrichment through the backend
 ```
 
 The app is intentionally light on dependencies. The first graph view is a custom SVG implementation rather than a graph-library dependency so the project stays easy to run inside constrained GitLab/Linux environments.
@@ -34,7 +36,7 @@ docs/UI_FRAMER_REDESIGN.md
 ## Features
 
 - API connection status
-- AI enrichment provider status
+- Local Ollama enrichment provider status
 - Offline demo fallback when the backend is unavailable
 - Context submission form
 - Human review queue
@@ -44,9 +46,13 @@ docs/UI_FRAMER_REDESIGN.md
 - Context-pack explorer with AI guidance and missing-context warnings
 - Obsidian-style graph visualization
 
-## LLM / AI enrichment integration
+## Local LLM / AI enrichment integration
 
-The UI surfaces AI enrichment as reviewer support, not as automatic approval.
+The UI surfaces local Ollama enrichment as reviewer support, not as automatic approval.
+
+```text
+React UI -> FastAPI backend -> Ollama local/internal API
+```
 
 Visible AI elements include:
 
@@ -64,6 +70,7 @@ AI enrichment nodes in graph metadata
 See:
 
 ```text
+docs/OLLAMA_LOCAL_LLM.md
 docs/LLM_FEATURE_ARCHITECTURE.md
 ```
 
@@ -134,7 +141,14 @@ GET  /review/items/{review_item_id}/ai-enrichment
 
 The graph endpoint returns a UI-oriented graph projection generated from the in-memory store for now. Later this should be backed by the durable graph/relationship store.
 
-## Running locally
+## Running locally with Ollama
+
+Pull the local models first:
+
+```bash
+ollama pull llama3.1
+ollama pull embeddinggemma
+```
 
 From the repository root:
 
@@ -146,6 +160,7 @@ npm run web:dev
 In another shell:
 
 ```bash
+cp .env.example .env
 source .venv/bin/activate
 make run
 ```
@@ -165,13 +180,23 @@ docker compose up --build
 This starts:
 
 ```text
-api  -> http://localhost:8000
-web  -> http://localhost:5173
+api     -> http://localhost:8000
+web     -> http://localhost:5173
+ollama  -> http://localhost:11434
+```
+
+Pull models into the running container:
+
+```bash
+docker exec unified-knowledge-base-ollama ollama pull llama3.1
+docker exec unified-knowledge-base-ollama ollama pull embeddinggemma
 ```
 
 ## Design boundary
 
 The UI must not bypass governance. Review actions, graph data, AI enrichment, and context packs come from the backend APIs. The graph can visualize candidate knowledge and AI review briefs, but official runtime answers should still use approved knowledge by default.
+
+The UI does not call Ollama directly; the backend calls Ollama and returns only review-safe enrichment payloads.
 
 ## Next UI iterations
 
@@ -184,3 +209,4 @@ The UI must not bypass governance. Review actions, graph data, AI enrichment, an
 7. Add visual conflict detection between definitions.
 8. Add reviewer-editable AI extracted fields.
 9. Add AI task history and provider-fallback warnings.
+10. Add Ollama model availability and provider-health details.
