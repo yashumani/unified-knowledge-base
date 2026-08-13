@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from ukb.ai.service import AIEnrichmentService
+from ukb.api.file_routes import router as file_ingestion_router
 from ukb.config import get_settings
 from ukb.models import (
     AIEnrichmentResult,
@@ -41,6 +42,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(file_ingestion_router)
 
 compiler = BrainCompiler()
 governance = GovernanceService(store)
