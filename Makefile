@@ -1,4 +1,4 @@
-.PHONY: install install-dev run test lint docker-up mcp web-install web-dev web-build web-preview ollama-models ollama-status
+.PHONY: install install-dev run test lint docker-up mcp web-install web-dev web-build web-preview ollama-models ollama-status db-upgrade db-current
 
 install:
 	pip install -e .
@@ -38,3 +38,9 @@ ollama-models:
 
 ollama-status:
 	curl http://localhost:8000/ai/providers
+
+db-upgrade:
+	alembic upgrade head
+
+db-current:
+	alembic current

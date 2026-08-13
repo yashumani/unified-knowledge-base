@@ -8,6 +8,8 @@ services:
     environment:
       UKB_ENVIRONMENT: ${UKB_ENVIRONMENT:-prod}
       UKB_CORS_ALLOW_ORIGINS: ${UKB_CORS_ALLOW_ORIGINS:-https://yashumani.github.io}
+      UKB_STORE_BACKEND: sqlalchemy
+      UKB_DATABASE_URL: postgresql+psycopg://ukb:${UKB_POSTGRES_PASSWORD}@postgres:5432/ukb
       UKB_AI_ENRICHMENT_ENABLED: ${UKB_AI_ENRICHMENT_ENABLED:-true}
       UKB_AI_MODE: ${UKB_AI_MODE:-local_ai}
       UKB_AI_PROVIDER: ${UKB_AI_PROVIDER:-ollama}
@@ -21,7 +23,28 @@ services:
     volumes:
       - ukb_object_store:/app/.ukb
     depends_on:
-      - ollama
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    networks:
+      - ukb_internal
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: ukb-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ukb
+      POSTGRES_USER: ukb
+      POSTGRES_PASSWORD: ${UKB_POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ukb -d ukb"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - ukb_internal
 
@@ -38,6 +61,7 @@ services:
 
 volumes:
   ukb_object_store:
+  postgres_data:
   ollama_models:
 
 networks:
