@@ -21,6 +21,16 @@ Custom SVG graph renderer
 
 The app is intentionally light on dependencies. The first graph view is a custom SVG implementation rather than a graph-library dependency so the project stays easy to run inside constrained GitLab/Linux environments.
 
+## Design direction
+
+The current UI uses a Framer-inspired dark SaaS command-center design: side navigation, bento cards, a product-grade hero, glass panels, graph-first storytelling, and clearer demo/connected state separation.
+
+See:
+
+```text
+docs/UI_FRAMER_REDESIGN.md
+```
+
 ## Features
 
 - API connection status
