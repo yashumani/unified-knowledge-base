@@ -3,8 +3,11 @@ from __future__ import annotations
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+from ukb.ai.service import AIEnrichmentService
 from ukb.config import get_settings
 from ukb.models import (
+    AIEnrichmentResult,
+    AIProviderStatus,
     AuditEvent,
     BrainGraph,
     ContextPack,
@@ -40,6 +43,7 @@ compiler = BrainCompiler()
 governance = GovernanceService(store)
 context_pack_service = ContextPackService(store)
 graph_service = BrainGraphService(store)
+ai_enrichment_service = AIEnrichmentService(settings=settings)
 
 
 @app.get("/health")
@@ -47,9 +51,19 @@ def health() -> dict[str, str]:
     return {"status": "ok", "environment": settings.environment}
 
 
+@app.get("/ai/providers", response_model=AIProviderStatus)
+def get_ai_provider_status() -> AIProviderStatus:
+    return ai_enrichment_service.status()
+
+
 @app.post("/ingestion/submissions", response_model=ReviewItem)
 def submit_context(submission: IngestionSubmission) -> ReviewItem:
     source, review_item = compiler.compile_submission(submission)
+    review_item.ai_enrichment = ai_enrichment_service.enrich_source(
+        source=source,
+        content=submission.content,
+        baseline_candidate=review_item.candidate_object,
+    )
     store.add_source(source)
     store.add_review_item(review_item)
     store.add_audit_event(
@@ -57,7 +71,12 @@ def submit_context(submission: IngestionSubmission) -> ReviewItem:
             event_type="submission_created",
             actor=submission.submitted_by,
             target_id=review_item.id,
-            details={"source_id": source.source_id, "domain": submission.domain},
+            details={
+                "source_id": source.source_id,
+                "domain": submission.domain,
+                "ai_enrichment_id": review_item.ai_enrichment.id if review_item.ai_enrichment else None,
+                "ai_provider": review_item.ai_enrichment.provider.value if review_item.ai_enrichment else None,
+            },
         )
     )
     return review_item
@@ -66,6 +85,45 @@ def submit_context(submission: IngestionSubmission) -> ReviewItem:
 @app.get("/review/queue", response_model=list[ReviewItem])
 def list_review_queue() -> list[ReviewItem]:
     return governance.list_queue()
+
+
+@app.post("/review/items/{review_item_id}/enrich", response_model=ReviewItem)
+def enrich_review_item(review_item_id: str) -> ReviewItem:
+    try:
+        review_item = store.review_items[review_item_id]
+        source = store.sources[review_item.source_id]
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"Review item or source not found: {review_item_id}") from exc
+
+    review_item.ai_enrichment = ai_enrichment_service.enrich_source(
+        source=source,
+        content=source.content_excerpt,
+        baseline_candidate=review_item.candidate_object,
+    )
+    store.add_audit_event(
+        AuditEvent(
+            event_type="ai_review_item_enriched",
+            actor="ai_enrichment_service",
+            target_id=review_item.id,
+            details={
+                "source_id": source.source_id,
+                "ai_enrichment_id": review_item.ai_enrichment.id,
+                "ai_provider": review_item.ai_enrichment.provider.value,
+            },
+        )
+    )
+    return review_item
+
+
+@app.get("/review/items/{review_item_id}/ai-enrichment", response_model=AIEnrichmentResult)
+def get_review_item_ai_enrichment(review_item_id: str) -> AIEnrichmentResult:
+    try:
+        enrichment = store.review_items[review_item_id].ai_enrichment
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"Review item not found: {review_item_id}") from exc
+    if enrichment is None:
+        raise HTTPException(status_code=404, detail=f"Review item has no AI enrichment: {review_item_id}")
+    return enrichment
 
 
 @app.post("/review/items/{review_item_id}/approve", response_model=ReviewItem)
@@ -113,12 +171,17 @@ def get_brain_graph(include_review_items: bool = True) -> BrainGraph:
 @app.post("/brain/context-pack", response_model=ContextPack)
 def build_context_pack(request: ContextPackRequest) -> ContextPack:
     pack = context_pack_service.build(request)
+    pack = ai_enrichment_service.enrich_context_pack(context_pack=pack)
     store.add_audit_event(
         AuditEvent(
             event_type="context_pack_requested",
             actor=request.user_id,
             target_id=pack.context_pack_id,
-            details={"question": request.question, "mode": request.mode},
+            details={
+                "question": request.question,
+                "mode": request.mode,
+                "ai_guidance_added": bool(pack.ai_guidance),
+            },
         )
     )
     return pack
