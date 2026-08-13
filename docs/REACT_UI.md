@@ -34,13 +34,38 @@ docs/UI_FRAMER_REDESIGN.md
 ## Features
 
 - API connection status
+- AI enrichment provider status
 - Offline demo fallback when the backend is unavailable
 - Context submission form
 - Human review queue
+- AI review brief and validation findings
 - Approve/reject reviewer actions
 - Published object browser
-- Context-pack explorer
+- Context-pack explorer with AI guidance and missing-context warnings
 - Obsidian-style graph visualization
+
+## LLM / AI enrichment integration
+
+The UI surfaces AI enrichment as reviewer support, not as automatic approval.
+
+Visible AI elements include:
+
+```text
+provider mode and model in the side rail
+AI-enriched review count
+AI review brief per candidate
+validation findings and severity
+reviewer questions
+AI context-pack guidance
+missing-context warnings
+AI enrichment nodes in graph metadata
+```
+
+See:
+
+```text
+docs/LLM_FEATURE_ARCHITECTURE.md
+```
 
 ## End-to-end workflow guide
 
@@ -61,6 +86,7 @@ Nodes can represent:
 ```text
 source_evidence
 review_item
+ai_enrichment
 candidate_object
 Metric
 Report
@@ -74,6 +100,7 @@ Edges can represent:
 evidence_for
 submitted_as
 reviews
+enriches_review
 appears_in
 governed_by
 related_to
@@ -99,10 +126,13 @@ active relationship highlighting
 The backend exposes:
 
 ```text
-GET /brain/graph
+GET  /brain/graph
+GET  /ai/providers
+POST /review/items/{review_item_id}/enrich
+GET  /review/items/{review_item_id}/ai-enrichment
 ```
 
-This endpoint returns a UI-oriented graph projection generated from the in-memory store for now. Later this should be backed by the durable graph/relationship store.
+The graph endpoint returns a UI-oriented graph projection generated from the in-memory store for now. Later this should be backed by the durable graph/relationship store.
 
 ## Running locally
 
@@ -141,7 +171,7 @@ web  -> http://localhost:5173
 
 ## Design boundary
 
-The UI must not bypass governance. Review actions, graph data, and context packs come from the backend APIs. The graph can visualize candidate knowledge, but official runtime answers should still use approved knowledge by default.
+The UI must not bypass governance. Review actions, graph data, AI enrichment, and context packs come from the backend APIs. The graph can visualize candidate knowledge and AI review briefs, but official runtime answers should still use approved knowledge by default.
 
 ## Next UI iterations
 
@@ -152,3 +182,5 @@ The UI must not bypass governance. Review actions, graph data, and context packs
 5. Add persistent graph layout positions.
 6. Add real graph traversal once the backend has a graph store.
 7. Add visual conflict detection between definitions.
+8. Add reviewer-editable AI extracted fields.
+9. Add AI task history and provider-fallback warnings.
