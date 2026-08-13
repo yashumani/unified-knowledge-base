@@ -2,7 +2,14 @@ from __future__ import annotations
 
 from typing import Protocol, runtime_checkable
 
-from ukb.models import AIEnrichmentResult, ContextPack, KnowledgeObject, SourceEvidence
+from ukb.models import (
+    AIEnrichmentResult,
+    AIProviderHealth,
+    ContextPack,
+    EmbeddingResponse,
+    KnowledgeObject,
+    SourceEvidence,
+)
 
 
 class AIProviderError(RuntimeError):
@@ -20,6 +27,9 @@ class AIProvider(Protocol):
     name: str
     model: str
 
+    def health_check(self) -> AIProviderHealth:
+        """Return local provider readiness without exposing secrets."""
+
     def enrich_source(
         self,
         *,
@@ -31,3 +41,6 @@ class AIProvider(Protocol):
 
     def enrich_context_pack(self, *, context_pack: ContextPack) -> ContextPack:
         """Improve context-pack guidance without adding unapproved facts."""
+
+    def embed_texts(self, *, texts: list[str], model: str | None = None) -> EmbeddingResponse:
+        """Generate local embeddings for future semantic retrieval and duplicate checks."""
