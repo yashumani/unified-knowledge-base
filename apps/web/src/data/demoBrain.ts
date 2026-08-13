@@ -84,25 +84,70 @@ export const demoObjects: KnowledgeObject[] = [
   }
 ];
 
+const demoCandidate: KnowledgeObject = {
+  id: "support.metric.reopen_rate",
+  type: "Metric",
+  title: "Reopen Rate",
+  summary: "Candidate metric for the share of resolved incidents reopened after initial resolution.",
+  domain: "support",
+  owner: "Support Operations",
+  status: "human_review_required",
+  sensitivity: "internal",
+  source_ids: ["source_demo_incident_resolution"],
+  relationships: [{ type: "related_to", target_id: "support.metric.incident_resolution_time", confidence: 0.74 }],
+  attributes: { compiler: "demo" },
+  confidence: 0.72,
+  created_at: now,
+  updated_at: now
+};
+
 export const demoReviewItems: ReviewItem[] = [
   {
     id: "review_demo_reopen_rate",
     source_id: "source_demo_incident_resolution",
-    candidate_object: {
-      id: "support.metric.reopen_rate",
-      type: "Metric",
-      title: "Reopen Rate",
-      summary: "Candidate metric for the share of resolved incidents reopened after initial resolution.",
-      domain: "support",
-      owner: "Support Operations",
-      status: "human_review_required",
-      sensitivity: "internal",
-      source_ids: ["source_demo_incident_resolution"],
-      relationships: [{ type: "related_to", target_id: "support.metric.incident_resolution_time", confidence: 0.74 }],
-      attributes: { compiler: "demo" },
+    candidate_object: demoCandidate,
+    ai_enrichment: {
+      id: "ai_demo_reopen_rate",
+      provider: "noop",
+      model: "deterministic",
+      status: "completed",
+      source_classification: {
+        source_kind: "metric_definition",
+        domain: "support",
+        summary: "The source defines a support metric and suggests a related operational driver.",
+        topics: ["support operations", "incident management", "metric definition"],
+        suggested_tags: ["support", "metric_definition", "incident management"],
+        confidence: 0.76
+      },
+      extracted_objects: [demoCandidate],
+      suggested_relationships: [
+        {
+          source_label: "Reopen Rate",
+          relationship_type: "related_to",
+          target_label: "Incident Resolution Time",
+          confidence: 0.74,
+          rationale: "Reopened incidents can change final resolution-time calculations."
+        }
+      ],
+      validation_findings: [
+        {
+          severity: "medium",
+          finding_type: "definition_needs_precision",
+          message: "The candidate should define the time window and denominator before approval.",
+          recommended_action: "Ask the reviewer to confirm whether reopened incidents are counted by created date, resolved date, or reopen date."
+        }
+      ],
+      review_brief: {
+        summary: "Prepared a Reopen Rate candidate and found one definition gap that should be reviewed before publication.",
+        recommended_action: "request_changes",
+        reviewer_questions: [
+          "What reporting window should Reopen Rate use?",
+          "Should reopened incidents be counted once or every time they reopen?"
+        ],
+        risk_flags: ["definition_needs_precision"]
+      },
       confidence: 0.72,
-      created_at: now,
-      updated_at: now
+      created_at: now
     },
     status: "human_review_required",
     reviewer: null,
@@ -183,5 +228,7 @@ export const demoContextPack: ContextPack = {
     "Check related driver metrics: first response time, reopen rate, ticket backlog, and incident severity mix.",
     "Confirm whether the current reporting window has completed quality review tagging."
   ],
+  ai_guidance: "Use only approved support-operations objects and source evidence; do not treat review candidates as official context.",
+  missing_context: [],
   generated_at: now
 };

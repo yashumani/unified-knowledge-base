@@ -1,6 +1,7 @@
 export type SourceType = "document" | "markdown" | "spreadsheet" | "sql" | "dashboard" | "git" | "api" | "manual";
 export type Sensitivity = "public" | "internal" | "confidential" | "restricted";
 export type ReviewStatus = "draft" | "submitted" | "ai_classified" | "human_review_required" | "approved" | "rejected" | "changes_requested" | "published" | "deprecated";
+export type ValidationSeverity = "info" | "low" | "medium" | "high" | "critical";
 
 export interface IngestionPayload {
   title: string;
@@ -48,10 +49,68 @@ export interface KnowledgeObject {
   updated_at: string;
 }
 
+export interface SourceClassification {
+  source_kind: string;
+  domain: string;
+  summary: string;
+  topics: string[];
+  suggested_tags: string[];
+  confidence: number;
+}
+
+export interface SuggestedRelationship {
+  source_label: string;
+  relationship_type: string;
+  target_label: string;
+  confidence: number;
+  rationale?: string | null;
+}
+
+export interface ValidationFinding {
+  severity: ValidationSeverity;
+  finding_type: string;
+  message: string;
+  source_span?: string | null;
+  recommended_action?: string | null;
+}
+
+export interface AIReviewBrief {
+  summary: string;
+  recommended_action: "approve" | "request_changes" | "reject" | "needs_review";
+  reviewer_questions: string[];
+  risk_flags: string[];
+}
+
+export interface AIEnrichmentResult {
+  id: string;
+  provider: "noop" | "ollama" | "openai" | "custom";
+  model: string;
+  status: "skipped" | "completed" | "failed";
+  source_classification: SourceClassification;
+  extracted_objects: KnowledgeObject[];
+  suggested_relationships: SuggestedRelationship[];
+  validation_findings: ValidationFinding[];
+  review_brief: AIReviewBrief;
+  confidence: number;
+  error_message?: string | null;
+  created_at: string;
+}
+
+export interface AIProviderStatus {
+  provider: "noop" | "ollama" | "openai" | "custom";
+  mode: "offline_no_model" | "local_ai" | "hosted_ai" | "hybrid";
+  enabled: boolean;
+  model: string;
+  embedding_model?: string | null;
+  base_url?: string | null;
+  hosted_allowed_for_restricted: boolean;
+}
+
 export interface ReviewItem {
   id: string;
   source_id: string;
   candidate_object: KnowledgeObject;
+  ai_enrichment?: AIEnrichmentResult | null;
   status: ReviewStatus;
   reviewer?: string | null;
   review_comment?: string | null;
@@ -84,6 +143,8 @@ export interface ContextPack {
   caveats: string[];
   related_objects: string[];
   recommended_followups: string[];
+  ai_guidance?: string | null;
+  missing_context: string[];
   generated_at: string;
 }
 
