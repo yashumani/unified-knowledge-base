@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Protocol
+from urllib.parse import urlsplit, urlunsplit
+from urllib.robotparser import RobotFileParser
 
 import httpx
 
@@ -90,3 +92,34 @@ class HttpWebFetcher:
 
     def close(self) -> None:
         self.client.close()
+
+
+class RobotsAwareWebFetcher:
+    """Apply the site's robots policy before collecting a page."""
+
+    def __init__(self, *, fetcher: HttpWebFetcher, user_agent: str, fail_closed: bool):
+        self.fetcher = fetcher
+        self.user_agent = user_agent
+        self.fail_closed = fail_closed
+
+    def fetch(self, url: str) -> FetchedWebPage:
+        parsed = urlsplit(url)
+        robots_url = urlunsplit((parsed.scheme, parsed.netloc, "/robots.txt", "", ""))
+        try:
+            robots = self.fetcher.fetch(robots_url)
+        except WebConnectorError as exc:
+            message = str(exc)
+            if "HTTP status 404" not in message and "HTTP status 410" not in message:
+                if self.fail_closed:
+                    raise WebConnectorError("Robots policy could not be verified.") from exc
+            return self.fetcher.fetch(url)
+
+        parser = RobotFileParser()
+        parser.set_url(robots_url)
+        parser.parse(robots.body.decode(robots.charset, errors="replace").splitlines())
+        if not parser.can_fetch(self.user_agent, url):
+            raise WebConnectorError("The site's robots policy does not allow collection.")
+        return self.fetcher.fetch(url)
+
+    def close(self) -> None:
+        self.fetcher.close()
