@@ -1,6 +1,6 @@
 # Documentation Index
 
-This repository is being shaped as a reusable platform for building governed AI Brains. The documentation is organized around five jobs: understand the architecture, run the demo, keep examples workplace-safe, extend the platform, and prepare for enterprise deployment.
+This repository is being shaped as a reusable platform for building governed AI Brains. The documentation is organized around six jobs: understand the architecture, run the demo, configure AI enrichment, keep examples workplace-safe, extend the platform, and prepare for enterprise deployment.
 
 ## Start here
 
@@ -12,6 +12,12 @@ This repository is being shaped as a reusable platform for building governed AI 
 | `docs/PLUGIN_ARCHITECTURE.md` | How connectors, parsers, extractors, validators, retrievers, policy plugins, and exporters fit together. |
 | `docs/OFFLINE_FIRST_AI.md` | How the platform works with no hosted AI, local AI, hosted AI, or hybrid AI. |
 | `docs/API_VS_MCP.md` | Why the REST API is the platform backend and MCP is the LLM/agent adapter. |
+
+## AI enrichment
+
+| Document | Purpose |
+|---|---|
+| `docs/LLM_FEATURE_ARCHITECTURE.md` | Architecture, provider modes, API endpoints, UI behavior, and governance boundaries for LLM-powered enrichment. |
 
 ## Workplace-safe examples
 

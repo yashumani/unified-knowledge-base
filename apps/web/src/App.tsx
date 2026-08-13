@@ -4,6 +4,7 @@ import { demoContextPack, demoGraph, demoObjects, demoReviewItems } from "./data
 import { ObsidianGraphView } from "./components/ObsidianGraphView";
 import { buildGraphFromState } from "./utils/graph";
 import type {
+  AIProviderStatus,
   BrainGraph,
   ContextPack,
   ContextPackRequest,
@@ -17,7 +18,7 @@ const reviewer = "ui.reviewer";
 
 const workflowSteps = [
   { label: "Submit", detail: "Capture source context" },
-  { label: "Classify", detail: "Create candidate knowledge" },
+  { label: "Enrich", detail: "AI review brief + checks" },
   { label: "Review", detail: "Human approval gate" },
   { label: "Publish", detail: "Approved brain object" },
   { label: "Compose", detail: "Context pack for AI apps" }
@@ -31,6 +32,16 @@ const navItems = [
   { label: "Published", href: "#published-objects" }
 ];
 
+const demoAIStatus: AIProviderStatus = {
+  provider: "noop",
+  mode: "offline_no_model",
+  enabled: true,
+  model: "deterministic",
+  embedding_model: "embeddinggemma",
+  base_url: null,
+  hosted_allowed_for_restricted: false
+};
+
 export default function App() {
   const [environment, setEnvironment] = useState("unknown");
   const [demoMode, setDemoMode] = useState(false);
@@ -40,31 +51,35 @@ export default function App() {
   const [objects, setObjects] = useState<KnowledgeObject[]>([]);
   const [graph, setGraph] = useState<BrainGraph>(demoGraph);
   const [contextPack, setContextPack] = useState<ContextPack | null>(null);
+  const [aiStatus, setAIStatus] = useState<AIProviderStatus>(demoAIStatus);
 
   const stats = useMemo(
     () => ({
       published: objects.length,
       review: reviewItems.length,
       graphNodes: graph.nodes.length,
-      graphEdges: graph.edges.length
+      graphEdges: graph.edges.length,
+      enrichedReviews: reviewItems.filter((item) => item.ai_enrichment).length
     }),
-    [graph.edges.length, graph.nodes.length, objects.length, reviewItems.length]
+    [graph.edges.length, graph.nodes.length, objects.length, reviewItems]
   );
 
   async function refresh() {
     setLoading(true);
     setError(null);
     try {
-      const [health, reviews, publishedObjects] = await Promise.all([
+      const [health, reviews, publishedObjects, providerStatus] = await Promise.all([
         brainClient.health(),
         brainClient.listReviewItems(),
-        brainClient.listObjects()
+        brainClient.listObjects(),
+        brainClient.getAIProviderStatus()
       ]);
       const nextGraph = await brainClient.getGraph().catch(() => buildGraphFromState(publishedObjects, reviews));
       setEnvironment(health.environment);
       setReviewItems(reviews);
       setObjects(publishedObjects);
       setGraph(nextGraph);
+      setAIStatus(providerStatus);
       setDemoMode(false);
     } catch (caught) {
       setEnvironment("offline-demo");
@@ -72,6 +87,7 @@ export default function App() {
       setObjects(demoObjects);
       setGraph(demoGraph);
       setContextPack(demoContextPack);
+      setAIStatus(demoAIStatus);
       setDemoMode(true);
       setError(caught instanceof Error ? caught.message : "Could not reach API. Using built-in demo data.");
     } finally {
@@ -153,6 +169,12 @@ export default function App() {
     await refresh();
   }
 
+  async function enrichReview(reviewItemId: string) {
+    if (demoMode) return;
+    await brainClient.enrichReviewItem(reviewItemId);
+    await refresh();
+  }
+
   async function askBrain(request: ContextPackRequest) {
     if (demoMode) {
       setContextPack({
@@ -183,6 +205,11 @@ export default function App() {
           ))}
         </nav>
         <div className="nav-callout">
+          <span>AI enrichment</span>
+          <strong>{aiStatus.provider} · {aiStatus.mode}</strong>
+          <p>{aiStatus.enabled ? `Model: ${aiStatus.model}` : "Disabled by server config"}</p>
+        </div>
+        <div className="nav-callout">
           <span>Demo domain</span>
           <strong>Support Ops</strong>
           <p>Uses only synthetic, workplace-safe examples.</p>
@@ -202,8 +229,8 @@ export default function App() {
             <p className="eyebrow">Framer-inspired enterprise SaaS console</p>
             <h1>Governed AI Brain command center</h1>
             <p className="hero-copy">
-              A dashboard-led workspace for submitting context, validating candidates, publishing approved brain objects,
-              and exploring the knowledge graph behind every context pack.
+              A dashboard-led workspace for submitting context, enriching candidates with AI review briefs,
+              publishing approved brain objects, and exploring the knowledge graph behind every context pack.
             </p>
             <div className="hero-actions">
               <button type="button" onClick={() => document.getElementById("context-ingestion")?.scrollIntoView({ behavior: "smooth" })}>
@@ -241,7 +268,7 @@ export default function App() {
         <section className="stats-grid" aria-label="Brain state summary">
           <Metric label="Published objects" value={stats.published} detail="approved runtime context" />
           <Metric label="Review queue" value={stats.review} detail="awaiting validation" />
-          <Metric label="Graph nodes" value={stats.graphNodes} detail="sources + objects" />
+          <Metric label="AI enriched" value={stats.enrichedReviews} detail="review briefs attached" />
           <Metric label="Graph edges" value={stats.graphEdges} detail="typed relationships" />
         </section>
 
@@ -256,7 +283,7 @@ export default function App() {
 
         <main className="workbench">
           <SubmitContext onSubmit={submitContext} demoMode={demoMode} />
-          <ReviewQueue items={reviewItems} onApprove={approveReview} onReject={rejectReview} demoMode={demoMode} />
+          <ReviewQueue items={reviewItems} onApprove={approveReview} onReject={rejectReview} onEnrich={enrichReview} demoMode={demoMode} />
           <ContextPackExplorer onAsk={askBrain} contextPack={contextPack} demoMode={demoMode} />
           <PublishedObjects objects={objects} />
         </main>
@@ -311,9 +338,9 @@ function SubmitContext({ onSubmit, demoMode }: { onSubmit: (payload: IngestionPa
           <p className="eyebrow">Context ingestion</p>
           <h2>Submit context</h2>
         </div>
-        <span className="chip">Source → Candidate</span>
+        <span className="chip">Source → AI brief → Candidate</span>
       </div>
-      <p className="panel-copy">Paste synthetic source context and let the compiler create a candidate for human review.</p>
+      <p className="panel-copy">Paste synthetic source context and let the compiler create a candidate with AI enrichment for human review.</p>
       <form onSubmit={submit} className="stack">
         <label>Title<input value={title} onChange={(event) => setTitle(event.target.value)} required /></label>
         <div className="form-row">
@@ -330,7 +357,7 @@ function SubmitContext({ onSubmit, demoMode }: { onSubmit: (payload: IngestionPa
         </div>
         <label>Context<textarea value={content} onChange={(event) => setContent(event.target.value)} rows={8} required /></label>
         <button type="submit" disabled={submitting || !title || !content}>
-          {submitting ? "Submitting..." : demoMode ? "Simulate submission" : "Submit for review"}
+          {submitting ? "Submitting..." : demoMode ? "Simulate AI-enriched submission" : "Submit and enrich"}
         </button>
       </form>
     </section>
@@ -341,11 +368,13 @@ function ReviewQueue({
   items,
   onApprove,
   onReject,
+  onEnrich,
   demoMode
 }: {
   items: ReviewItem[];
   onApprove: (id: string) => Promise<void>;
   onReject: (id: string) => Promise<void>;
+  onEnrich: (id: string) => Promise<void>;
   demoMode: boolean;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(items[0]?.id ?? null);
@@ -361,6 +390,7 @@ function ReviewQueue({
   }, [items, selectedId]);
 
   const selectedItem = selectedId ? items.find((item) => item.id === selectedId) : undefined;
+  const enrichment = selectedItem?.ai_enrichment;
 
   return (
     <section className="panel review-panel" id="review-queue">
@@ -383,7 +413,7 @@ function ReviewQueue({
             >
               <span className="badge">{item.candidate_object.type}</span>
               <strong>{item.candidate_object.title}</strong>
-              <small>{item.status} · {Math.round(item.candidate_object.confidence * 100)}% confidence</small>
+              <small>{item.status} · {Math.round(item.candidate_object.confidence * 100)}% confidence · {item.ai_enrichment ? "AI brief" : "No AI brief"}</small>
             </button>
           ))}
         </div>
@@ -393,12 +423,40 @@ function ReviewQueue({
               <span className="badge">Candidate</span>
               <h3>{selectedItem.candidate_object.title}</h3>
               <p>{selectedItem.candidate_object.summary}</p>
+              {enrichment && (
+                <div className="ai-brief">
+                  <div className="ai-brief-header">
+                    <strong>AI review brief</strong>
+                    <span>{enrichment.provider} · {Math.round(enrichment.confidence * 100)}%</span>
+                  </div>
+                  <p>{enrichment.review_brief.summary}</p>
+                  {enrichment.validation_findings.length > 0 && (
+                    <ul className="finding-list">
+                      {enrichment.validation_findings.slice(0, 3).map((finding) => (
+                        <li key={`${finding.finding_type}-${finding.message}`} className={`finding finding-${finding.severity}`}>
+                          <strong>{finding.severity}</strong>
+                          <span>{finding.message}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {enrichment.review_brief.reviewer_questions.length > 0 && (
+                    <div className="question-stack">
+                      <strong>Reviewer questions</strong>
+                      {enrichment.review_brief.reviewer_questions.slice(0, 3).map((question) => <span key={question}>{question}</span>)}
+                    </div>
+                  )}
+                </div>
+              )}
               <dl>
                 <div><dt>Status</dt><dd>{selectedItem.status}</dd></div>
                 <div><dt>Domain</dt><dd>{selectedItem.candidate_object.domain}</dd></div>
                 <div><dt>Owner</dt><dd>{selectedItem.candidate_object.owner ?? "Not assigned"}</dd></div>
               </dl>
               <div className="actions">
+                {!demoMode && !enrichment && (
+                  <button type="button" className="secondary" onClick={() => onEnrich(selectedItem.id)}>Run AI enrichment</button>
+                )}
                 <button type="button" onClick={() => onApprove(selectedItem.id)}>
                   {demoMode ? "Simulate approval" : "Approve and publish"}
                 </button>
@@ -457,7 +515,7 @@ function ContextPackExplorer({
           <option value="lineage">Lineage</option>
           <option value="governance_review">Governance review</option>
         </select>
-        <button type="submit" disabled={asking}>{asking ? "Generating..." : demoMode ? "Simulate pack" : "Generate pack"}</button>
+        <button type="submit" disabled={asking}>{asking ? "Generating..." : demoMode ? "Simulate pack" : "Generate enriched pack"}</button>
       </form>
       {contextPack && (
         <div className="context-pack">
@@ -467,6 +525,18 @@ function ContextPackExplorer({
             <span>{contextPack.mode}</span>
           </div>
           <p>{contextPack.answer_guidance}</p>
+          {contextPack.ai_guidance && (
+            <div className="ai-guidance">
+              <strong>AI enrichment guidance</strong>
+              <span>{contextPack.ai_guidance}</span>
+            </div>
+          )}
+          {contextPack.missing_context.length > 0 && (
+            <div className="caveat-box">
+              <strong>Missing context</strong>
+              <span>{contextPack.missing_context.join(" · ")}</span>
+            </div>
+          )}
           <div className="pack-grid">
             <div>
               <h4>Evidence</h4>
