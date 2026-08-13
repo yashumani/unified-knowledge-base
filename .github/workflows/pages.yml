@@ -41,8 +41,8 @@ jobs:
       - name: Build React UI
         env:
           GITHUB_PAGES: "true"
-          # Set this when the FastAPI backend is available from an approved URL.
-          # VITE_UKB_API_BASE_URL: https://ukb-api.internal.example.com
+          # Optional repository variable. Leave unset for demo/local fallback behavior.
+          VITE_UKB_API_BASE_URL: ${{ vars.UKB_API_BASE_URL }}
         run: npm run web:build
 
       - name: Configure GitHub Pages
