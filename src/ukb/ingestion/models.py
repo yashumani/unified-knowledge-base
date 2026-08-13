@@ -13,3 +13,9 @@ class FileArtifactMetadata(BaseModel):
     object_uri: str
     content_digest: str
     size_bytes: int
+
+
+class FileIngestionResponse(BaseModel):
+    source: SourceEvidence
+    review_item: ReviewItem
+    artifact: FileArtifactMetadata
