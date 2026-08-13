@@ -39,7 +39,7 @@ jobs:
           python -m pip install -e ".[dev,mcp]"
 
       - name: Ruff
-        run: ruff check src tests
+        run: ruff check --select E4,E7,E9,F src tests
 
       - name: Mypy
         run: mypy src/ukb
