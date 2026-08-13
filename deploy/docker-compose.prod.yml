@@ -1,0 +1,45 @@
+services:
+  api:
+    image: ${UKB_API_IMAGE:-ghcr.io/yashumani/unified-knowledge-base-api:latest}
+    container_name: ukb-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      UKB_ENVIRONMENT: ${UKB_ENVIRONMENT:-prod}
+      UKB_CORS_ALLOW_ORIGINS: ${UKB_CORS_ALLOW_ORIGINS:-https://yashumani.github.io}
+      UKB_AI_ENRICHMENT_ENABLED: ${UKB_AI_ENRICHMENT_ENABLED:-true}
+      UKB_AI_MODE: ${UKB_AI_MODE:-local_ai}
+      UKB_AI_PROVIDER: ${UKB_AI_PROVIDER:-ollama}
+      UKB_AI_BASE_URL: ${UKB_AI_BASE_URL:-http://ollama:11434}
+      UKB_AI_CHAT_MODEL: ${UKB_AI_CHAT_MODEL:-llama3.1}
+      UKB_AI_EMBEDDING_MODEL: ${UKB_AI_EMBEDDING_MODEL:-embeddinggemma}
+      UKB_STORE_AI_PROMPTS: ${UKB_STORE_AI_PROMPTS:-false}
+      UKB_STORE_AI_OUTPUTS: ${UKB_STORE_AI_OUTPUTS:-true}
+    ports:
+      - "${UKB_API_PORT:-8000}:8000"
+    volumes:
+      - ukb_object_store:/app/.ukb
+    depends_on:
+      - ollama
+    networks:
+      - ukb_internal
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ukb-ollama
+    restart: unless-stopped
+    expose:
+      - "11434"
+    volumes:
+      - ollama_models:/root/.ollama
+    networks:
+      - ukb_internal
+
+volumes:
+  ukb_object_store:
+  ollama_models:
+
+networks:
+  ukb_internal:
+    name: ukb_internal
