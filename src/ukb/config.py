@@ -26,6 +26,25 @@ class Settings(BaseSettings):
         "http://localhost:4173,http://127.0.0.1:4173"
     )
 
+    # AI enrichment. The default is deterministic and offline-safe. Hosted model
+    # calls must be enabled explicitly through server-side environment config.
+    ai_enrichment_enabled: bool = True
+    ai_mode: str = "offline_no_model"
+    ai_provider: str = "noop"
+    ai_base_url: str = "http://localhost:11434"
+    ai_chat_model: str = "deterministic"
+    ai_embedding_model: str = "embeddinggemma"
+    ai_max_input_chars: int = 20000
+    ai_timeout_seconds: int = 45
+    allow_hosted_ai_for_restricted: bool = False
+    store_ai_prompts: bool = False
+    store_ai_outputs: bool = True
+
+    # Optional hosted provider settings. Never expose these to the React app.
+    openai_api_key: str | None = None
+    openai_base_url: str = "https://api.openai.com"
+    openai_model: str = "gpt-4o-mini"
+
     # Future persistence targets.
     database_url: str = "sqlite:///./ukb-dev.db"
     object_store_url: str = "file://./.ukb/object-store"
