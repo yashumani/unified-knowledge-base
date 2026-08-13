@@ -4,7 +4,7 @@
 
 This project is designed so the production-style version can be hosted on an internal GitLab/Linux/Docker server.
 
-Do not assume public cloud services are available.
+Do not assume public cloud services are available. For this Unified Knowledge Base use case, AI enrichment should use a local/internal Ollama runtime.
 
 ## Deployment shape
 
@@ -15,6 +15,7 @@ GitLab repository
   -> push to GitLab container registry
   -> deploy on Linux server with Docker Compose or Kubernetes
   -> internal API URL
+  -> internal Ollama service
   -> internal MCP endpoint or stdio gateway
 ```
 
@@ -23,17 +24,21 @@ GitLab repository
 ```text
 dev
   local Docker Compose
+  synthetic data
+  Ollama running locally or as compose service
 
 stage
   private GitLab server
   synthetic data
   test reviewers
+  internal Ollama host or sidecar
 
 prod
   private GitLab server
   real enterprise sources
   SSO / service accounts
   audit logs
+  locked-down internal Ollama host
 ```
 
 ## GitLab CI flow
@@ -48,6 +53,8 @@ deploy-dev
 deploy-stage
 deploy-prod
 ```
+
+CI should not require Ollama unless the job explicitly runs local-model integration tests. Unit tests should be able to use the deterministic `noop` fallback.
 
 ## Secrets
 
@@ -66,6 +73,32 @@ service account JSON
 private certificates
 ```
 
+Ollama local enrichment does not require hosted API keys for the default UKB workflow.
+
+## Local LLM deployment
+
+Recommended internal topology:
+
+```text
+React UI
+  -> internal FastAPI service
+      -> internal Ollama service
+```
+
+The browser should not call Ollama directly.
+
+For Docker Compose, the API uses:
+
+```text
+UKB_AI_PROVIDER=ollama
+UKB_AI_MODE=local_ai
+UKB_AI_BASE_URL=http://ollama:11434
+UKB_AI_CHAT_MODEL=llama3.1
+UKB_AI_EMBEDDING_MODEL=embeddinggemma
+```
+
+The Ollama port should be reachable by the API container but should not be exposed publicly in a production-like deployment.
+
 ## Docker Compose production starter
 
 Services to add as the platform matures:
@@ -73,6 +106,7 @@ Services to add as the platform matures:
 ```text
 api
 worker
+ollama
 postgres
 redis
 object-store
@@ -109,6 +143,8 @@ rate limits
 audit logs
 ```
 
+MCP tools must call the same governed brain runtime as the REST API; MCP must not bypass review or access control.
+
 ## Workplace-safe development pattern
 
 Use this public/personal repository for:
@@ -118,6 +154,7 @@ architecture
 synthetic examples
 open-source scaffold
 generic code
+local Ollama integration patterns
 ```
 
 Use private GitLab for:
@@ -129,4 +166,5 @@ real dashboard metadata
 real source data
 enterprise auth
 work-specific logic
+approved internal Ollama model/runtime choices
 ```
