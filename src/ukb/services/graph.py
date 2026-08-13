@@ -9,7 +9,7 @@ class BrainGraphService:
 
     This projection is UI-oriented. It does not replace graph persistence or
     lineage storage; it gives the React app a single endpoint for visualizing
-    sources, review items, published objects, and relationships.
+    sources, review items, published objects, AI enrichment state, and relationships.
     """
 
     def __init__(self, store: BrainStore):
@@ -54,6 +54,7 @@ class BrainGraphService:
                 add_edge(obj.id, relationship.target_id, relationship.type, relationship.confidence)
 
         def add_review_node(review_item: ReviewItem) -> None:
+            ai = review_item.ai_enrichment
             nodes[review_item.id] = GraphNode(
                 id=review_item.id,
                 label=f"Review: {review_item.candidate_object.title}",
@@ -66,10 +67,27 @@ class BrainGraphService:
                     "reviewer": review_item.reviewer,
                     "review_comment": review_item.review_comment,
                     "candidate_object_id": review_item.candidate_object.id,
+                    "ai_enrichment_id": ai.id if ai else None,
+                    "ai_provider": ai.provider.value if ai else None,
+                    "ai_review_brief": ai.review_brief.summary if ai else None,
+                    "ai_validation_findings": [finding.model_dump(mode="json") for finding in ai.validation_findings] if ai else [],
                 },
             )
             add_edge(review_item.source_id, review_item.id, "submitted_as")
             add_edge(review_item.id, review_item.candidate_object.id, "reviews")
+            if ai:
+                ai_node_id = f"ai:{ai.id}"
+                nodes[ai_node_id] = GraphNode(
+                    id=ai_node_id,
+                    label=f"AI brief: {review_item.candidate_object.title}",
+                    type="ai_enrichment",
+                    domain=review_item.candidate_object.domain,
+                    status=ai.status.value,
+                    sensitivity=review_item.candidate_object.sensitivity.value,
+                    confidence=ai.confidence,
+                    metadata=ai.model_dump(mode="json"),
+                )
+                add_edge(ai_node_id, review_item.id, "enriches_review", ai.confidence)
 
         for source in self.store.sources.values():
             nodes[source.source_id] = GraphNode(
