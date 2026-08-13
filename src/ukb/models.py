@@ -189,6 +189,32 @@ class AIProviderStatus(BaseModel):
     embedding_model: str | None = None
     base_url: str | None = None
     hosted_allowed_for_restricted: bool = False
+    local_only: bool = True
+    capabilities: list[str] = Field(default_factory=list)
+
+
+class AIProviderHealth(BaseModel):
+    provider: AIProviderName
+    reachable: bool
+    message: str
+    base_url: str | None = None
+    model: str
+    embedding_model: str | None = None
+    checked_at: datetime = Field(default_factory=utc_now)
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
+class EmbeddingRequest(BaseModel):
+    texts: list[str] = Field(..., min_length=1, max_length=32)
+    model: str | None = None
+
+
+class EmbeddingResponse(BaseModel):
+    provider: AIProviderName
+    model: str
+    dimensions: int
+    embeddings: list[list[float]]
+    fallback_used: bool = False
 
 
 class ReviewItem(BaseModel):
