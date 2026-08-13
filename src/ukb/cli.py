@@ -4,7 +4,7 @@ import json
 
 import typer
 
-from ukb.models import ContextPackRequest, IngestionSubmission, ReviewDecision
+from ukb.models import ContextPackRequest, IngestionSubmission, ReviewDecision, SourceType
 from ukb.services.compiler import BrainCompiler
 from ukb.services.context_pack import ContextPackService
 from ukb.services.governance import GovernanceService
@@ -23,7 +23,7 @@ def submit(title: str, content: str, submitted_by: str = "cli-user", domain: str
         title=title,
         content=content,
         submitted_by=submitted_by,
-        source_type="manual",
+        source_type=SourceType.manual,
         domain=domain,
     )
     source, review_item = compiler.compile_submission(submission)
