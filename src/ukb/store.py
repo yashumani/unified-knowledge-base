@@ -1,51 +1,22 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from ukb.config import Settings, get_settings
+from ukb.storage import BrainStore, SqlAlchemyBrainStore
 
-from ukb.models import AuditEvent, KnowledgeObject, ReviewItem, ReviewStatus, SourceEvidence
 
+def build_store(settings: Settings | None = None) -> BrainStore:
+    """Build the configured UKB storage backend.
 
-@dataclass
-class BrainStore:
-    """Development store.
-
-    This in-memory store makes the scaffold runnable. Replace with Postgres and
-    object storage before using the platform for durable data.
+    The code default remains memory-safe for tests and first import. Local and
+    production environment files select SQLAlchemy for durable SQLite/Postgres.
     """
 
-    sources: dict[str, SourceEvidence] = field(default_factory=dict)
-    review_items: dict[str, ReviewItem] = field(default_factory=dict)
-    knowledge_objects: dict[str, KnowledgeObject] = field(default_factory=dict)
-    audit_events: list[AuditEvent] = field(default_factory=list)
-
-    def add_source(self, source: SourceEvidence) -> SourceEvidence:
-        self.sources[source.source_id] = source
-        return source
-
-    def add_review_item(self, review_item: ReviewItem) -> ReviewItem:
-        self.review_items[review_item.id] = review_item
-        return review_item
-
-    def list_review_items(self, status: ReviewStatus | None = None) -> list[ReviewItem]:
-        items = list(self.review_items.values())
-        if status is not None:
-            return [item for item in items if item.status == status]
-        return items
-
-    def publish_object(self, obj: KnowledgeObject) -> KnowledgeObject:
-        obj.status = ReviewStatus.published
-        self.knowledge_objects[obj.id] = obj
-        return obj
-
-    def list_objects(self, domain: str | None = None) -> list[KnowledgeObject]:
-        objects = list(self.knowledge_objects.values())
-        if domain:
-            return [obj for obj in objects if obj.domain == domain]
-        return objects
-
-    def add_audit_event(self, event: AuditEvent) -> AuditEvent:
-        self.audit_events.append(event)
-        return event
+    active_settings = settings or get_settings()
+    if active_settings.store_backend.lower().strip() == "sqlalchemy":
+        return SqlAlchemyBrainStore(active_settings.database_url)
+    return BrainStore()
 
 
-store = BrainStore()
+store = build_store()
+
+__all__ = ["BrainStore", "SqlAlchemyBrainStore", "build_store", "store"]
