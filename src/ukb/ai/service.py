@@ -8,11 +8,13 @@ from ukb.config import Settings, get_settings
 from ukb.models import (
     AIEnrichmentMode,
     AIEnrichmentResult,
+    AIProviderHealth,
     AIProviderName,
     AIProviderStatus,
-    AITaskStatus,
     AIReviewBrief,
+    AITaskStatus,
     ContextPack,
+    EmbeddingResponse,
     KnowledgeObject,
     SourceClassification,
     SourceEvidence,
@@ -24,7 +26,7 @@ class AIEnrichmentService:
 
     The service owns provider routing and safe fallback behavior. Providers may
     enrich source context and context packs, but they never approve or publish
-    knowledge.
+    knowledge. This use case is optimized for local Ollama first.
     """
 
     def __init__(self, *, settings: Settings | None = None, provider: AIProvider | None = None):
@@ -41,7 +43,22 @@ class AIEnrichmentService:
             embedding_model=self.settings.ai_embedding_model,
             base_url=self._safe_base_url(),
             hosted_allowed_for_restricted=self.settings.allow_hosted_ai_for_restricted,
+            local_only=self.provider.name != AIProviderName.openai.value,
+            capabilities=self._capabilities(),
         )
+
+    def health(self) -> AIProviderHealth:
+        try:
+            return self.provider.health_check()
+        except (AIProviderError, AttributeError) as exc:
+            return AIProviderHealth(
+                provider=AIProviderName(self.provider.name),
+                reachable=False,
+                message=f"AI provider health check failed: {exc}",
+                base_url=self._safe_base_url(),
+                model=getattr(self.provider, "model", "unknown"),
+                embedding_model=self.settings.ai_embedding_model,
+            )
 
     def enrich_source(
         self,
@@ -93,12 +110,21 @@ class AIEnrichmentService:
         except AIProviderError:
             return self.fallback.enrich_context_pack(context_pack=context_pack)
 
+    def embed_texts(self, *, texts: list[str], model: str | None = None) -> EmbeddingResponse:
+        if not self.settings.ai_enrichment_enabled:
+            return self.fallback.embed_texts(texts=texts, model=model)
+        try:
+            return self.provider.embed_texts(texts=texts, model=model)
+        except (AIProviderError, AttributeError):
+            return self.fallback.embed_texts(texts=texts, model=model)
+
     def _build_provider(self, settings: Settings) -> AIProvider:
         provider = settings.ai_provider.lower().strip()
         if provider == AIProviderName.ollama.value:
             return OllamaProvider(
                 base_url=settings.ai_base_url,
                 model=settings.ai_chat_model,
+                embedding_model=settings.ai_embedding_model,
                 timeout_seconds=settings.ai_timeout_seconds,
             )
         if provider == AIProviderName.openai.value:
@@ -114,7 +140,7 @@ class AIEnrichmentService:
         try:
             return AIEnrichmentMode(self.settings.ai_mode)
         except ValueError:
-            return AIEnrichmentMode.offline_no_model
+            return AIEnrichmentMode.local_ai
 
     def _safe_base_url(self) -> str | None:
         if self.provider.name == AIProviderName.noop.value:
@@ -129,6 +155,19 @@ class AIEnrichmentService:
         if self.settings.allow_hosted_ai_for_restricted:
             return False
         return source.sensitivity.value in {"confidential", "restricted"}
+
+    def _capabilities(self) -> list[str]:
+        if self.provider.name == AIProviderName.noop.value:
+            return ["deterministic_classification", "deterministic_review_brief", "hash_embedding_fallback"]
+        if self.provider.name == AIProviderName.ollama.value:
+            return [
+                "local_source_classification",
+                "local_review_brief",
+                "local_context_pack_guidance",
+                "local_embeddings",
+                "deterministic_fallback",
+            ]
+        return ["source_classification", "review_brief", "context_pack_guidance", "deterministic_fallback"]
 
     def _skipped_result(
         self,
