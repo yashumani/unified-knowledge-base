@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -27,15 +28,21 @@ class ZvecSearchIndex:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.collection_name = collection_name
         self.document_count = 0
-        self.last_synced_at = None
+        self.indexed_ids: set[str] = set()
+        self.last_synced_at: datetime | None = None
         self.last_error: str | None = None
         self.collection = self._open_or_create()
 
     def rebuild(self, documents: list[SearchDocument]) -> SearchIndexStatus:
+        current_ids = {document.id for document in documents}
         try:
+            stale_ids = sorted(self.indexed_ids - current_ids)
+            if stale_ids:
+                self.collection.delete(ids=stale_ids)
             if documents:
                 self.collection.upsert([self._to_doc(document) for document in documents])
                 self.collection.optimize()
+            self.indexed_ids = current_ids
             self.document_count = len(documents)
             self.last_synced_at = utc_now()
             self.last_error = None
@@ -59,7 +66,7 @@ class ZvecSearchIndex:
             self.last_error = str(exc)
             raise ZvecUnavailableError(f"Zvec query failed: {exc}") from exc
         query = self._normalize(request.query)
-        hits = []
+        hits: list[SearchHit] = []
         for result in results:
             fields = dict(result.fields or {})
             title = self._normalize(str(fields.get("title", "")))
