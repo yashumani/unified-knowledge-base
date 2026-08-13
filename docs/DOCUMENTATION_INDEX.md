@@ -1,6 +1,6 @@
 # Documentation Index
 
-This repository is being shaped as a reusable platform for building governed AI Brains. The documentation is organized around six jobs: understand the architecture, run the demo, configure local Ollama enrichment, keep examples workplace-safe, extend the platform, and prepare for enterprise deployment.
+This repository is being shaped as a reusable platform for building governed AI Brains. The documentation is organized around seven jobs: understand the architecture, run the demo, configure local Ollama enrichment, host with GitHub as the control plane, keep examples workplace-safe, extend the platform, and prepare for enterprise deployment.
 
 ## Start here
 
@@ -19,6 +19,14 @@ This repository is being shaped as a reusable platform for building governed AI 
 |---|---|
 | `docs/OLLAMA_LOCAL_LLM.md` | Local Ollama setup, Docker Compose instructions, model pulls, provider config, and testing commands for UKB. |
 | `docs/LLM_FEATURE_ARCHITECTURE.md` | Architecture, provider modes, API endpoints, UI behavior, and governance boundaries for LLM-powered enrichment. |
+
+## GitHub hosting and deployment
+
+| Document | Purpose |
+|---|---|
+| `docs/GITHUB_HOSTING_MODEL.md` | GitHub Pages, GHCR, GitHub Actions, self-hosted runner, production Compose, and runtime-boundary model. |
+| `docs/GITHUB_PAGES_DEPLOYMENT.md` | Static React UI deployment on GitHub Pages. |
+| `docs/GITLAB_DEPLOYMENT.md` | GitLab/Linux/Docker deployment model for private enterprise environments. |
 
 ## Workplace-safe examples
 
@@ -56,7 +64,6 @@ A PowerPoint presenter export can be generated outside the repository when neede
 | `docs/REACT_UI.md` | React console architecture, graph view boundary, local run commands, and next UI iterations. |
 | `docs/UI_FRAMER_REDESIGN.md` | Framer-inspired design direction, adopted UI patterns, and future design work. |
 | `docs/UI_CONSOLE_END_TO_END.md` | Full UI workflow for submit, review, approve, graph inspection, and context-pack generation. |
-| `docs/GITHUB_PAGES_DEPLOYMENT.md` | Static React UI deployment on GitHub Pages. |
 
 ## Governance and security
 
@@ -73,8 +80,6 @@ A PowerPoint presenter export can be generated outside the repository when neede
 | `docs/PRODUCT_REQUIREMENTS.md` | MVP product requirements. |
 | `docs/ROADMAP.md` | Phased roadmap. |
 | `docs/CONTEXT_PACK.md` | Context pack contract. |
-| `docs/GITLAB_DEPLOYMENT.md` | GitLab/Linux/Docker deployment model. |
-| `docs/GITHUB_PAGES_DEPLOYMENT.md` | Static React UI deployment on GitHub Pages. |
 
 ## Documentation principle
 
