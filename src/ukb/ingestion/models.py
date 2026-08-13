@@ -1,0 +1,1 @@
+"""Typed file-ingestion responses."""
