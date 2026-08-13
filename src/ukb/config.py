@@ -7,9 +7,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Application settings.
 
-    The defaults are safe for local development and intentionally route LLM
-    enrichment to a local Ollama runtime. Production values should come from
-    GitLab CI/CD variables, Docker secrets, or the runtime environment.
+    Code defaults remain safe for tests. Environment files opt local and
+    production runtimes into durable SQL storage and local Ollama enrichment.
     """
 
     model_config = SettingsConfigDict(env_file=".env", env_prefix="UKB_", extra="ignore")
@@ -18,18 +17,13 @@ class Settings(BaseSettings):
     environment: str = Field(default="local", description="local, dev, stage, prod")
     log_level: str = "INFO"
 
-    # API auth is intentionally stubbed in the scaffold.
     api_token: str = "dev-token-change-me"
 
-    # Local web UI origins. Keep explicit origins instead of wildcarding because
-    # the React app will eventually carry authenticated user sessions.
     cors_allow_origins: str = (
         "http://localhost:5173,http://127.0.0.1:5173,"
         "http://localhost:4173,http://127.0.0.1:4173"
     )
 
-    # AI enrichment defaults to local Ollama. If Ollama is unavailable, the
-    # AIEnrichmentService falls back to NoopProvider so review workflows still run.
     ai_enrichment_enabled: bool = True
     ai_mode: str = "local_ai"
     ai_provider: str = "ollama"
@@ -42,17 +36,16 @@ class Settings(BaseSettings):
     store_ai_prompts: bool = False
     store_ai_outputs: bool = True
 
-    # Hosted provider settings remain present for future/private extensions, but
-    # they are not the default UKB path. Never expose these to the React app.
     openai_api_key: str | None = None
     openai_base_url: str = "https://api.openai.com"
     openai_model: str = "gpt-4o-mini"
 
-    # Future persistence targets.
-    database_url: str = "sqlite:///./ukb-dev.db"
+    # Keep the code default in-memory so imports and tests never create files.
+    # `.env.example` selects SQLAlchemy with SQLite for durable local use.
+    store_backend: str = "memory"
+    database_url: str = "sqlite+pysqlite:///./.ukb/ukb.db"
     object_store_url: str = "file://./.ukb/object-store"
 
-    # MCP settings.
     mcp_server_name: str = "unified-knowledge-base"
 
     @property
