@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import re
 from collections import Counter
+from datetime import datetime
 
 from ukb.models import utc_now
 from ukb.search.base import SearchDocument, SearchHit, SearchIndexStatus, SearchRequest
@@ -17,7 +18,7 @@ class MemorySearchIndex:
         self.requested_backend = requested_backend
         self.fallback_reason = fallback_reason
         self.documents: dict[str, SearchDocument] = {}
-        self.last_synced_at = None
+        self.last_synced_at: datetime | None = None
 
     def rebuild(self, documents: list[SearchDocument]) -> SearchIndexStatus:
         self.documents = {document.id: document for document in documents}
@@ -32,7 +33,7 @@ class MemorySearchIndex:
         sensitivity_filter = {value.value for value in request.sensitivities}
         hits: list[SearchHit] = []
 
-        document_frequencies = Counter()
+        document_frequencies: Counter[str] = Counter()
         for document in self.documents.values():
             document_frequencies.update(set(self._tokens(document.search_text)))
         corpus_size = max(len(self.documents), 1)
