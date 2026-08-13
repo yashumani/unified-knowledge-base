@@ -25,6 +25,7 @@ This repository is being shaped as a reusable platform for building governed AI 
 | Asset | Purpose |
 |---|---|
 | `docs/DEMO_GUIDE.md` | Live demo script, commands, and fallback flow. |
+| `docs/UI_CONSOLE_END_TO_END.md` | Click-by-click UI console walkthrough from context submission through approved context pack. |
 | `docs/ARCHITECTURE_STORYBOARD.md` | Narrative map for explaining the platform in a meeting. |
 | `docs/demo/demo-slides.html` | Offline browser-based slide deck for repository use. |
 | `docs/demo/slides-outline.md` | Slide-by-slide speaker guide. |
@@ -40,6 +41,14 @@ A PowerPoint presenter export can be generated outside the repository when neede
 | `docs/diagrams/brain-runtime.mmd` | Mermaid diagram for the runtime architecture. |
 | `docs/diagrams/plugin-lifecycle.mmd` | Mermaid diagram for plugin-to-review lifecycle. |
 | `docs/diagrams/offline-first-modes.mmd` | Mermaid diagram for deterministic, local AI, hosted AI, and hybrid operation. |
+
+## UI and frontend
+
+| Document | Purpose |
+|---|---|
+| `docs/REACT_UI.md` | React console architecture, graph view boundary, local run commands, and next UI iterations. |
+| `docs/UI_CONSOLE_END_TO_END.md` | Full UI workflow for submit, review, approve, graph inspection, and context-pack generation. |
+| `docs/GITHUB_PAGES_DEPLOYMENT.md` | Static React UI deployment on GitHub Pages. |
 
 ## Governance and security
 
