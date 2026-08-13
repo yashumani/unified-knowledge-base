@@ -43,6 +43,8 @@ source sensitivity checks
 fallback behavior
 review-item enrichment
 context-pack enrichment
+embedding calls
+health/model-readiness checks
 audit metadata
 ```
 
@@ -144,6 +146,25 @@ retrieval hints
 
 Ollama must not invent facts that are absent from approved objects or source evidence.
 
+### Local embeddings
+
+The backend now exposes an embeddings API that uses Ollama's configured embedding model when available.
+
+```text
+POST /ai/embeddings
+```
+
+This is currently a scaffold for the next retrieval layer. It enables:
+
+```text
+semantic duplicate detection
+future vector retrieval
+source similarity checks
+context-pack candidate expansion
+```
+
+If Ollama is unavailable, the API falls back to deterministic hash vectors so the contract remains testable offline. These fallback vectors are not semantic embeddings.
+
 ## What the LLM must not do
 
 ```text
@@ -170,7 +191,7 @@ Network: local/internal only
 Default base URL: http://localhost:11434
 Default model: llama3.1
 Default embedding model: embeddinggemma
-Use cases: extraction, review briefs, context-pack guidance, embeddings later
+Use cases: extraction, review briefs, context-pack guidance, embeddings
 ```
 
 ### offline_no_model
@@ -181,7 +202,7 @@ Fallback mode for locked-down environments, CI, or machines without Ollama.
 Provider: noop
 Network: none
 Secrets: none
-Behavior: deterministic enrichment and validation only
+Behavior: deterministic enrichment, validation, and hash embeddings only
 ```
 
 ### hosted_ai
@@ -207,6 +228,9 @@ ValidationFinding
 AIReviewBrief
 AIEnrichmentResult
 AIProviderStatus
+AIProviderHealth
+EmbeddingRequest
+EmbeddingResponse
 ```
 
 `ReviewItem` has:
@@ -249,6 +273,8 @@ The service owns:
 provider routing
 server-side settings
 safe fallback
+local provider health checks
+embedding calls
 hosted-provider sensitivity blocking
 context-pack enrichment
 ```
@@ -257,6 +283,8 @@ context-pack enrichment
 
 ```text
 GET  /ai/providers
+GET  /ai/health
+POST /ai/embeddings
 POST /review/items/{review_item_id}/enrich
 GET  /review/items/{review_item_id}/ai-enrichment
 ```
@@ -320,7 +348,7 @@ AI enrichment nodes in graph projection
 
 ### Local-only default
 
-The default UKB path sends enrichment requests only to the configured local/internal Ollama endpoint.
+The default UKB path sends enrichment and embedding requests only to the configured local/internal Ollama endpoint.
 
 ### No browser-side LLM calls
 
@@ -343,26 +371,28 @@ The local Ollama feature is working when:
 
 ```text
 1. Ollama is running locally or as a Docker Compose service.
-2. The default chat model is pulled.
-3. User submits support context through the UI or API.
-4. Backend saves source evidence.
-5. Baseline compiler creates a candidate.
-6. Ollama enrichment attaches classification, review brief, findings, and suggested relationships.
-7. Reviewer sees AI guidance but still approves/rejects manually.
-8. Approved object appears in the brain store.
-9. Context pack includes approved evidence plus AI guidance/missing-context warnings.
-10. Graph projection shows AI enrichment as review-supporting metadata.
+2. The default chat and embedding models are pulled.
+3. GET /ai/health confirms local model readiness.
+4. POST /ai/embeddings returns Ollama embeddings or explicit fallback vectors.
+5. User submits support context through the UI or API.
+6. Backend saves source evidence.
+7. Baseline compiler creates a candidate.
+8. Ollama enrichment attaches classification, review brief, findings, and suggested relationships.
+9. Reviewer sees AI guidance but still approves/rejects manually.
+10. Approved object appears in the brain store.
+11. Context pack includes approved evidence plus AI guidance/missing-context warnings.
+12. Graph projection shows AI enrichment as review-supporting metadata.
 ```
 
 ## Future work
 
 ```text
 persistent AI task table
-provider health checks and model availability checks
 structured-output schemas per local model
-embedding generation and semantic duplicate detection
+semantic duplicate detection using stored embeddings
 reviewer-editable extracted fields
 AI-generated documentation from approved objects
 LLM evaluation suite with golden questions
 streaming task status for long document enrichment
+local model selection profiles by hardware size
 ```
