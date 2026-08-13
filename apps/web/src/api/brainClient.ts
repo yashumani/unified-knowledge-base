@@ -14,7 +14,10 @@ import type {
   ReviewItem
 } from "../types";
 
-export const API_BASE = import.meta.env.VITE_UKB_API_BASE_URL ?? "http://localhost:8000";
+const configuredApiBase = import.meta.env.VITE_UKB_API_BASE_URL;
+export const API_BASE = configuredApiBase && configuredApiBase.trim().length > 0
+  ? configuredApiBase.replace(/\/$/, "")
+  : "http://localhost:8000";
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
