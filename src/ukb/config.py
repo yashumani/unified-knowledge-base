@@ -6,8 +6,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Application settings.
 
-    The defaults are safe for local development. Production values should come
-    from GitLab CI/CD variables, Docker secrets, or the runtime environment.
+    The defaults are safe for local development and intentionally route LLM
+    enrichment to a local Ollama runtime. Production values should come from
+    GitLab CI/CD variables, Docker secrets, or the runtime environment.
     """
 
     model_config = SettingsConfigDict(env_file=".env", env_prefix="UKB_", extra="ignore")
@@ -26,13 +27,13 @@ class Settings(BaseSettings):
         "http://localhost:4173,http://127.0.0.1:4173"
     )
 
-    # AI enrichment. The default is deterministic and offline-safe. Hosted model
-    # calls must be enabled explicitly through server-side environment config.
+    # AI enrichment defaults to local Ollama. If Ollama is unavailable, the
+    # AIEnrichmentService falls back to NoopProvider so review workflows still run.
     ai_enrichment_enabled: bool = True
-    ai_mode: str = "offline_no_model"
-    ai_provider: str = "noop"
+    ai_mode: str = "local_ai"
+    ai_provider: str = "ollama"
     ai_base_url: str = "http://localhost:11434"
-    ai_chat_model: str = "deterministic"
+    ai_chat_model: str = "llama3.1"
     ai_embedding_model: str = "embeddinggemma"
     ai_max_input_chars: int = 20000
     ai_timeout_seconds: int = 45
@@ -40,7 +41,8 @@ class Settings(BaseSettings):
     store_ai_prompts: bool = False
     store_ai_outputs: bool = True
 
-    # Optional hosted provider settings. Never expose these to the React app.
+    # Hosted provider settings remain present for future/private extensions, but
+    # they are not the default UKB path. Never expose these to the React app.
     openai_api_key: str | None = None
     openai_base_url: str = "https://api.openai.com"
     openai_model: str = "gpt-4o-mini"
