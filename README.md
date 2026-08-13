@@ -254,6 +254,45 @@ ollama  -> http://localhost:11434
 
 Inside Docker Compose, the API reaches Ollama at `http://ollama:11434`.
 
+## GitHub hosting model
+
+GitHub is the control plane, not the full runtime host.
+
+GitHub hosts:
+
+```text
+source code
+pull requests and issues
+GitHub Pages static React UI
+GitHub Actions workflows
+GitHub Container Registry API images
+```
+
+Your machine or private server hosts:
+
+```text
+UKB FastAPI backend
+Ollama local LLM
+model files
+future database and object storage
+```
+
+The deployment assets are:
+
+```text
+.github/workflows/pages.yml              Static React UI to GitHub Pages
+.github/workflows/docker-publish.yml     API image to GHCR
+.github/workflows/deploy-self-hosted.yml Runtime update through self-hosted runner
+deploy/docker-compose.prod.yml           API + private Ollama production Compose
+deploy/prod.env.example                  Runtime environment template
+```
+
+See:
+
+```text
+docs/GITHUB_HOSTING_MODEL.md
+```
+
 ## Run the MCP server
 
 ```bash
@@ -273,6 +312,8 @@ src/ukb/
 
 apps/web/              React console
 
+deploy/                production Compose and environment templates
+
 knowledge/
   ontology/            brain object schema and relationship grammar
   domains/             synthetic support example
@@ -285,6 +326,7 @@ docs/
   API_VS_MCP.md
   GOVERNANCE_WORKFLOW.md
   CONTEXT_PACK.md
+  GITHUB_HOSTING_MODEL.md
   GITHUB_PAGES_DEPLOYMENT.md
   LLM_FEATURE_ARCHITECTURE.md
   OLLAMA_LOCAL_LLM.md
