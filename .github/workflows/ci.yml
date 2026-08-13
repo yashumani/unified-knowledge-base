@@ -38,6 +38,13 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e ".[dev,mcp]"
 
+      - name: Validate initial database migration
+        run: |
+          mkdir -p .ukb
+          UKB_STORE_BACKEND=sqlalchemy \
+          UKB_DATABASE_URL=sqlite+pysqlite:///./.ukb/ci-migration.db \
+          alembic upgrade head
+
       - name: Ruff
         run: ruff check --select E4,E7,E9,F src tests
 
@@ -98,6 +105,8 @@ jobs:
         run: docker compose -f docker-compose.yml config --quiet
 
       - name: Validate production Compose configuration
+        env:
+          UKB_POSTGRES_PASSWORD: ci-only-password
         run: docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env config --quiet
 
       - name: Build API image
