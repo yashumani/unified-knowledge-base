@@ -34,6 +34,7 @@ class WebCaptureResponse(BaseModel):
     source: SourceEvidence
     review_item: ReviewItem
     artifact: WebArtifactMetadata
+    extracted_text: str = Field(default="", exclude=True)
 
 
 class WebConnectorStatus(BaseModel):
