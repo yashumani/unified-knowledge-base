@@ -23,8 +23,8 @@ file_ingestion_service = FileIngestionService(
 )
 
 router = APIRouter(tags=["ingestion"])
-router.include_router(search_router)
-router.include_router(web_connector_router)
+router.routes.extend(search_router.routes)
+router.routes.extend(web_connector_router.routes)
 
 
 @router.post("/ingestion/files", response_model=FileIngestionResponse)
