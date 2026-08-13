@@ -40,11 +40,11 @@ class Settings(BaseSettings):
     openai_base_url: str = "https://api.openai.com"
     openai_model: str = "gpt-4o-mini"
 
-    # Keep the code default in-memory so imports and tests never create files.
-    # `.env.example` selects SQLAlchemy with SQLite for durable local use.
     store_backend: str = "memory"
     database_url: str = "sqlite+pysqlite:///./.ukb/ukb.db"
     object_store_url: str = "file://./.ukb/object-store"
+    max_upload_bytes: int = 10 * 1024 * 1024
+    max_extracted_chars: int = 250000
 
     mcp_server_name: str = "unified-knowledge-base"
 
