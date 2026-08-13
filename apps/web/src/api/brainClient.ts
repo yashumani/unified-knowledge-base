@@ -1,10 +1,13 @@
 import type {
   AIEnrichmentResult,
+  AIProviderHealth,
   AIProviderStatus,
   AuditEvent,
   BrainGraph,
   ContextPack,
   ContextPackRequest,
+  EmbeddingRequest,
+  EmbeddingResponse,
   IngestionPayload,
   KnowledgeObject,
   ReviewDecision,
@@ -35,6 +38,12 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 export const brainClient = {
   health: () => request<{ status: string; environment: string }>("/health"),
   getAIProviderStatus: () => request<AIProviderStatus>("/ai/providers"),
+  getAIProviderHealth: () => request<AIProviderHealth>("/ai/health"),
+  buildEmbeddings: (payload: EmbeddingRequest) =>
+    request<EmbeddingResponse>("/ai/embeddings", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
   submitContext: (payload: IngestionPayload) =>
     request<ReviewItem>("/ingestion/submissions", {
       method: "POST",
