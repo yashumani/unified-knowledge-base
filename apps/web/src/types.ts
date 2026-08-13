@@ -106,8 +106,8 @@ export interface AIProviderStatus {
   embedding_model?: string | null;
   base_url?: string | null;
   hosted_allowed_for_restricted: boolean;
-  local_only: boolean;
-  capabilities: string[];
+  local_only?: boolean;
+  capabilities?: string[];
 }
 
 export interface AIProviderHealth {
