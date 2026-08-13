@@ -4,11 +4,28 @@
 
 The AI Brain must be useful even when hosted AI and internet access are unavailable.
 
-AI should be a pluggable accelerator, not a hard dependency.
+AI should be a pluggable accelerator, not a hard dependency. For this Unified Knowledge Base use case, the default local AI provider is **Ollama**.
 
 ## Modes
 
-### 1. Offline, no model
+### 1. Offline, local AI
+
+Default UKB development mode.
+
+Uses a local Ollama service running on the user's machine or internal server.
+
+Uses:
+
+- classify documents
+- summarize source evidence
+- enrich candidate metrics and rules
+- generate reviewer questions
+- produce context-pack guidance
+- generate embeddings later
+
+### 2. Offline, no model
+
+Fallback mode for locked-down machines, CI, or environments where Ollama is not installed yet.
 
 Works with:
 
@@ -21,54 +38,35 @@ Works with:
 
 This mode is enough for governance, documentation, and basic retrieval.
 
-### 2. Offline, local AI
-
-Uses local model services running inside the user's machine or internal server.
-
-Potential uses:
-
-- classify documents
-- summarize source evidence
-- extract candidate metrics and rules
-- generate embeddings
-- rerank search results
-- draft review notes
-
 ### 3. Hosted AI
 
-Uses approved hosted model providers only when policy allows it.
+Not the default path for this repository.
 
-Potential uses:
-
-- higher-quality extraction
-- conflict explanation
-- narrative generation
-- advanced reasoning over context packs
+Hosted providers should be used only in approved private deployments with explicit policy, network, and data-sensitivity controls.
 
 ### 4. Hybrid
 
-Uses local AI for default work and hosted AI only for approved tasks.
+Future policy-aware mode.
+
+Uses local AI by default and hosted AI only for approved tasks.
 
 ## Local AI provider abstraction
 
-The runtime should call an internal interface, not a specific vendor:
+The runtime calls an internal interface, not the frontend and not a browser-side model endpoint:
 
 ```text
 AIProvider
-  summarize(text) -> summary
-  classify(text) -> labels
-  extract(text, schema) -> candidates
-  embed(texts) -> vectors
-  rerank(query, candidates) -> ranked candidates
+  enrich_source(source, content, baseline_candidate) -> AIEnrichmentResult
+  enrich_context_pack(context_pack) -> ContextPack
+  embed(texts) -> vectors later
 ```
 
 Implementations can include:
 
 ```text
+OllamaProvider      local LLM/embedding service, default for UKB
 NoopProvider        deterministic fallback
-OllamaProvider      local LLM/embedding service
-LlamaCppProvider    local model runtime
-HostedProvider      approved enterprise model endpoint
+HostedProvider      future/private extension point only
 ```
 
 ## Important product rule
@@ -84,11 +82,11 @@ human-authored source evidence
 
 A local model may help create candidates, but it should not publish official knowledge.
 
-## Why local AI matters
+## Why local Ollama matters
 
-For many enterprises, the limiting factor is not model quality. It is data governance, network restrictions, and approval workflow.
+For many enterprise-like environments, the limiting factor is not model quality. It is data governance, network restrictions, and approval workflow.
 
-Local AI support lets teams prototype inside constrained environments while keeping the architecture compatible with hosted AI later.
+Local Ollama support lets teams prototype inside constrained environments while keeping prompts and context inside the local/internal runtime boundary.
 
 ## Suggested local stack
 
@@ -96,19 +94,19 @@ MVP local stack:
 
 ```text
 FastAPI runtime
-Postgres or SQLite for metadata
+React UI
+Ollama local LLM service
+Postgres or SQLite for metadata later
 local filesystem/object store for evidence
 keyword retrieval first
-optional Ollama for local generation and embeddings
+local embeddings later
 ```
-
-Ollama's embedding documentation describes local embedding generation through its CLI and HTTP API, which makes it a practical optional adapter for local semantic retrieval experiments.
 
 ## Configuration example
 
 ```yaml
 runtime:
-  mode: offline_first
+  mode: local_ai
   ai:
     local:
       enabled: true
@@ -120,15 +118,26 @@ runtime:
       enabled: false
 ```
 
+Environment equivalent:
+
+```bash
+UKB_AI_ENRICHMENT_ENABLED=true
+UKB_AI_MODE=local_ai
+UKB_AI_PROVIDER=ollama
+UKB_AI_BASE_URL=http://localhost:11434
+UKB_AI_CHAT_MODEL=llama3.1
+UKB_AI_EMBEDDING_MODEL=embeddinggemma
+```
+
 ## Failure behavior
 
-If local or hosted AI is unavailable:
+If Ollama is unavailable:
 
 ```text
 continue deterministic validation
 continue manual review
 continue serving approved context packs
-mark AI classification as unavailable
+mark enrichment with fallback risk flags
 never silently downgrade governance
 ```
 
@@ -140,8 +149,8 @@ GitLab repo
   -> Docker image
   -> internal Linux server
   -> API service
-  -> optional MCP service
-  -> optional local AI sidecar
+  -> MCP service
+  -> Ollama sidecar or internal Ollama host
 ```
 
-The local AI sidecar should be optional. The API should start without it.
+The API should still start if Ollama is unavailable, but local Ollama is the preferred enrichment path for this use case.
