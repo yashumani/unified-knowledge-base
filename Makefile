@@ -1,4 +1,4 @@
-.PHONY: install install-dev run test lint docker-up mcp web-install web-dev web-build web-preview
+.PHONY: install install-dev run test lint docker-up mcp web-install web-dev web-build web-preview ollama-models ollama-status
 
 install:
 	pip install -e .
@@ -32,3 +32,9 @@ web-build:
 
 web-preview:
 	npm run web:preview
+
+ollama-models:
+	bash scripts/ollama_pull_models.sh
+
+ollama-status:
+	curl http://localhost:8000/ai/providers
