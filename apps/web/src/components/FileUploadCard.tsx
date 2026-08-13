@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 import { API_BASE } from "../api/brainClient";
 
@@ -8,8 +8,17 @@ interface FileUploadCardProps {
 }
 
 export function FileUploadCard({ demoMode, onUploaded }: FileUploadCardProps) {
+  const [connected, setConnected] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(`${API_BASE}/health`, { signal: controller.signal })
+      .then((response) => setConnected(response.ok))
+      .catch(() => setConnected(false));
+    return () => controller.abort();
+  }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -17,7 +26,7 @@ export function FileUploadCard({ demoMode, onUploaded }: FileUploadCardProps) {
     const fileInput = form.elements.namedItem("file") as HTMLInputElement;
     const file = fileInput.files?.[0];
     if (!file) return;
-    if (demoMode) {
+    if (demoMode || !connected) {
       setMessage("Connect the backend to preserve source files.");
       return;
     }
@@ -52,8 +61,10 @@ export function FileUploadCard({ demoMode, onUploaded }: FileUploadCardProps) {
       </div>
       <p className="panel-copy">Preserve a text-oriented source before local AI enrichment and human review.</p>
       <form className="stack" onSubmit={submit}>
-        <input name="file" type="file" accept=".txt,.md,.markdown,.sql,.csv,.json,.yaml,.yml" disabled={uploading} required />
-        <button type="submit" disabled={uploading || demoMode}>{uploading ? "Uploading..." : "Upload and enrich"}</button>
+        <input name="file" type="file" accept=".txt,.md,.markdown,.sql,.csv,.json,.yaml,.yml" disabled={uploading || !connected} required />
+        <button type="submit" disabled={uploading || demoMode || !connected}>
+          {uploading ? "Uploading..." : connected ? "Upload and enrich" : "Backend required"}
+        </button>
       </form>
       {message && <div className="notice">{message}</div>}
     </section>
