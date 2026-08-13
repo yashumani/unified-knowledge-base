@@ -102,6 +102,7 @@ class WebKnowledgeConnector:
                 size_bytes=stored.size_bytes,
                 discovered_links=extracted.links,
             ),
+            extracted_text=content,
         )
 
 
