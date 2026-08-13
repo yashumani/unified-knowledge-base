@@ -1,6 +1,6 @@
 from ukb.ai.providers.noop import NoopProvider
 from ukb.ai.service import AIEnrichmentService
-from ukb.models import ContextPackRequest, IngestionSubmission
+from ukb.models import ContextPackRequest, IngestionSubmission, ReviewDecision
 from ukb.services.compiler import BrainCompiler
 from ukb.services.context_pack import ContextPackService
 from ukb.services.governance import GovernanceService
@@ -56,7 +56,7 @@ def test_context_pack_enrichment_adds_ai_guidance():
     source, review_item = compiler.compile_submission(submission)
     store.add_source(source)
     store.add_review_item(review_item)
-    governance.approve(review_item.id, decision={"reviewed_by": "reviewer"})
+    governance.approve(review_item.id, ReviewDecision(reviewed_by="reviewer"))
 
     pack = context_service.build(
         ContextPackRequest(
