@@ -109,15 +109,19 @@ class SearchIndex(Protocol):
 
     def rebuild(self, documents: list[SearchDocument]) -> SearchIndexStatus:
         """Replace the derived index contents with approved documents."""
+        ...
 
     def search(self, request: SearchRequest) -> list[SearchHit]:
         """Return ranked candidate identifiers without bypassing governance."""
+        ...
 
     def status(self) -> SearchIndexStatus:
         """Return index readiness and fallback information."""
+        ...
 
     def close(self) -> None:
         """Release local index resources."""
+        ...
 
 
 def approved_documents(objects: list[KnowledgeObject]) -> list[SearchDocument]:
