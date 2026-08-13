@@ -10,6 +10,7 @@
 - [x] Add synthetic support-operations knowledge examples
 - [x] Add React console and Obsidian-style graph view
 - [x] Add workplace-safe example policy
+- [x] Add AI enrichment architecture and offline-safe provider scaffold
 
 ## Phase 1: Local MVP
 
@@ -21,6 +22,7 @@
 - [ ] Add admin review UI
 - [ ] Add role-based filtering
 - [ ] Add CLI commands for compile/validate/publish
+- [ ] Persist AI enrichment runs and review findings
 
 ## Phase 2: Support Operations Brain MVP
 
@@ -30,6 +32,7 @@
 - [ ] Add context pack mode for operational metric movement explanation
 - [ ] Add narrative template engine
 - [ ] Add golden-question evaluation suite
+- [ ] Add provider-backed LLM extraction with structured output validation
 
 ## Phase 3: Enterprise Governance
 
@@ -41,6 +44,7 @@
 - [ ] conflict detection
 - [ ] freshness review reminders
 - [ ] audit export
+- [ ] AI usage policy by sensitivity and source domain
 
 ## Phase 4: Retrieval Runtime
 
@@ -51,6 +55,7 @@
 - [ ] tool-call tracing
 - [ ] context pack evaluations
 - [ ] hallucination/factuality checks
+- [ ] embedding-backed duplicate and relationship detection
 
 ## Phase 5: Production Platform
 
@@ -62,3 +67,4 @@
 - [ ] MCP Streamable HTTP endpoint
 - [ ] Python SDK package
 - [ ] documentation site
+- [ ] model/provider observability and cost controls
