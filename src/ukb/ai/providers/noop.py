@@ -98,10 +98,10 @@ class NoopProvider:
         return context_pack
 
     def _source_kind(self, lowered: str, source: SourceEvidence) -> str:
-        if "dashboard" in lowered or source.source_type.value == "dashboard":
-            return "report_or_dashboard_context"
         if "metric" in lowered or "average" in lowered or "rate" in lowered or "kpi" in lowered:
             return "metric_definition"
+        if "dashboard" in lowered or source.source_type.value == "dashboard":
+            return "report_or_dashboard_context"
         if "rule" in lowered or "must" in lowered or "policy" in lowered or "caveat" in lowered:
             return "business_rule"
         if "select " in lowered or " from " in lowered:
