@@ -5,11 +5,7 @@ from ukb.store import BrainStore
 
 
 class RetrievalService:
-    """Simple keyword retrieval for the scaffold.
-
-    Production should replace this with permission-aware hybrid retrieval:
-    keyword + vector + graph traversal + semantic layer lookups.
-    """
+    """Deterministic approved-object retrieval pending local index activation."""
 
     def __init__(self, store: BrainStore):
         self.store = store
@@ -17,26 +13,14 @@ class RetrievalService:
     def search(self, query: str, domains: list[str] | None = None, limit: int = 5) -> list[KnowledgeObject]:
         normalized_query = query.lower()
         domain_filter = set(domains or [])
-
         candidates = []
         for obj in self.store.knowledge_objects.values():
             if domain_filter and obj.domain not in domain_filter:
                 continue
-
-            haystack = " ".join(
-                [
-                    obj.title,
-                    obj.summary,
-                    obj.type.value,
-                    obj.domain,
-                    str(obj.attributes),
-                ]
-            ).lower()
-
+            haystack = " ".join([obj.title, obj.summary, obj.type.value, obj.domain, str(obj.attributes)]).lower()
             score = self._score(normalized_query, haystack)
             if score > 0:
                 candidates.append((score, obj))
-
         candidates.sort(key=lambda item: item[0], reverse=True)
         return [obj for _, obj in candidates[:limit]]
 
