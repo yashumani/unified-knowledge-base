@@ -6,8 +6,17 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      # Inside Docker Compose, the API reaches Ollama by service name.
+      - UKB_AI_PROVIDER=ollama
+      - UKB_AI_MODE=local_ai
+      - UKB_AI_BASE_URL=http://ollama:11434
+      - UKB_AI_CHAT_MODEL=${UKB_AI_CHAT_MODEL:-llama3.1}
+      - UKB_AI_EMBEDDING_MODEL=${UKB_AI_EMBEDDING_MODEL:-embeddinggemma}
     volumes:
       - ./.ukb:/app/.ukb
+    depends_on:
+      - ollama
 
   web:
     build:
@@ -21,13 +30,24 @@ services:
     depends_on:
       - api
 
-  # Future production services:
-  # postgres:
-  #   image: postgres:16
-  #   environment:
-  #     POSTGRES_DB: ukb
-  #     POSTGRES_USER: ukb
-  #     POSTGRES_PASSWORD: change-me
-  #
-  # redis:
-  #   image: redis:7
+  ollama:
+    image: ollama/ollama:latest
+    container_name: unified-knowledge-base-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+
+volumes:
+  ollama-models:
+
+# Future production services:
+# postgres:
+#   image: postgres:16
+#   environment:
+#     POSTGRES_DB: ukb
+#     POSTGRES_USER: ukb
+#     POSTGRES_PASSWORD: change-me
+#
+# redis:
+#   image: redis:7
