@@ -91,3 +91,7 @@
   color: #dbeafe;
   line-height: 1.5;
 }
+
+.node-ai-enrichment circle {
+  fill: #c084fc;
+}
