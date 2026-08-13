@@ -39,9 +39,8 @@ def test_file_service_preserves_original_and_creates_candidate(tmp_path: Path) -
     assert service.object_store.get_bytes(parsed.artifact.object_key) == payload
 
 
-def test_file_service_rejects_unsupported_and_oversized_files(tmp_path: Path) -> None:
-    service = build_service(tmp_path / "objects", max_upload_bytes=8)
-
+def test_file_service_rejects_unsupported_extension(tmp_path: Path) -> None:
+    service = build_service(tmp_path / "objects")
     with pytest.raises(FileIngestionError, match="Unsupported file extension"):
         service.ingest(
             filename="image.png",
@@ -52,6 +51,9 @@ def test_file_service_rejects_unsupported_and_oversized_files(tmp_path: Path) ->
             sensitivity=Sensitivity.internal,
         )
 
+
+def test_file_service_rejects_oversized_file(tmp_path: Path) -> None:
+    service = build_service(tmp_path / "objects", max_upload_bytes=8)
     with pytest.raises(FileIngestionError, match="exceeds"):
         service.ingest(
             filename="large.txt",
