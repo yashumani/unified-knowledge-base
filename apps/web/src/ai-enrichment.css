@@ -1,0 +1,93 @@
+.ai-brief, .ai-guidance {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(167, 139, 250, 0.26);
+  border-radius: 18px;
+  padding: 14px;
+  background:
+    radial-gradient(circle at top right, rgba(167, 139, 250, 0.14), transparent 46%),
+    rgba(15, 23, 42, 0.64);
+}
+
+.ai-brief-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #ddd6fe;
+}
+
+.ai-brief-header span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.finding-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.finding {
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  padding: 10px;
+  background: rgba(255,255,255,0.045);
+}
+
+.finding strong {
+  width: max-content;
+  border-radius: 999px;
+  padding: 0.16rem 0.48rem;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.finding span {
+  color: #cbd5e1;
+  line-height: 1.45;
+}
+
+.finding-info strong, .finding-low strong {
+  color: #a5f3fc;
+  background: rgba(34, 211, 238, 0.12);
+}
+
+.finding-medium strong {
+  color: #fde68a;
+  background: rgba(251, 191, 36, 0.13);
+}
+
+.finding-high strong, .finding-critical strong {
+  color: #fecdd3;
+  background: rgba(251, 113, 133, 0.16);
+}
+
+.question-stack {
+  display: grid;
+  gap: 6px;
+}
+
+.question-stack > span {
+  color: #c7d2fe;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  padding-left: 12px;
+  border-left: 2px solid rgba(103, 232, 249, 0.34);
+}
+
+.ai-guidance {
+  margin: 12px 0;
+  color: #ddd6fe;
+}
+
+.ai-guidance span {
+  color: #dbeafe;
+  line-height: 1.5;
+}
