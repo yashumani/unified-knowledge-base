@@ -32,6 +32,16 @@ The app is intentionally light on dependencies. The first graph view is a custom
 - Context-pack explorer
 - Obsidian-style graph visualization
 
+## End-to-end workflow guide
+
+Use the dedicated walkthrough when showing the UI console from submission to approved context pack:
+
+```text
+docs/UI_CONSOLE_END_TO_END.md
+```
+
+That guide covers both static GitHub Pages demo mode and backend-connected local mode, using only the neutral support-operations sample domain.
+
 ## Graph view
 
 The graph is not an embedded Obsidian desktop component. It is an Obsidian-style graph projection over UKB data.
