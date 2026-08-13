@@ -1,5 +1,5 @@
 # Deploy the UKB runtime on a machine you control through a GitHub self-hosted runner.
-# This does not make GitHub host the backend or Ollama; it uses GitHub Actions as the deployment control plane.
+# GitHub is the deployment control plane; the API, PostgreSQL, and Ollama run on the private host.
 name: Deploy UKB runtime on self-hosted runner
 
 on:
@@ -22,7 +22,6 @@ permissions:
 
 jobs:
   deploy:
-    # Configure your runner with labels: self-hosted, linux, ukb.
     runs-on: [self-hosted, linux, ukb]
     env:
       UKB_API_IMAGE: ghcr.io/${{ github.repository_owner }}/unified-knowledge-base-api:${{ inputs.image_tag }}
@@ -30,14 +29,14 @@ jobs:
 
     steps:
       - name: Checkout deployment assets
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Verify Docker Compose is available
         run: |
           docker version
           docker compose version
 
-      - name: Log in to GHCR for private/package-protected images
+      - name: Log in to GHCR
         run: echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: Prepare deployment directory
@@ -47,22 +46,55 @@ jobs:
           cp deploy/docker-compose.prod.yml "${UKB_DEPLOY_PATH}/docker-compose.yml"
           if [ ! -f "${UKB_DEPLOY_PATH}/.env" ]; then
             cp deploy/prod.env.example "${UKB_DEPLOY_PATH}/.env"
-            echo "Created ${UKB_DEPLOY_PATH}/.env from deploy/prod.env.example. Review it before production use."
+            echo "Created ${UKB_DEPLOY_PATH}/.env. Populate its blank secret values before production use."
+            exit 1
           fi
 
-      - name: Pull API and Ollama images
+      - name: Validate runtime configuration
         working-directory: ${{ inputs.deploy_path }}
         run: |
-          UKB_API_IMAGE="${UKB_API_IMAGE}" docker compose --env-file .env pull
+          test -n "$(grep '^UKB_API_TOKEN=' .env | cut -d= -f2-)"
+          test -n "$(grep '^UKB_POSTGRES_PASSWORD=' .env | cut -d= -f2-)"
+          UKB_API_IMAGE="${UKB_API_IMAGE}" docker compose --env-file .env config --quiet
 
-      - name: Start or update UKB runtime
+      - name: Pull runtime images
         working-directory: ${{ inputs.deploy_path }}
-        run: |
-          UKB_API_IMAGE="${UKB_API_IMAGE}" docker compose --env-file .env up -d
-          docker compose ps
+        run: UKB_API_IMAGE="${UKB_API_IMAGE}" docker compose --env-file .env pull
 
-      - name: Show runtime checks
+      - name: Start private dependencies
         working-directory: ${{ inputs.deploy_path }}
         run: |
-          echo "UKB API should be reachable on the configured UKB_API_PORT."
-          echo "Ollama is intentionally private on the Compose network and is not published to the internet."
+          UKB_API_IMAGE="${UKB_API_IMAGE}" docker compose --env-file .env up -d postgres ollama
+          for attempt in $(seq 1 24); do
+            if docker compose --env-file .env exec -T postgres pg_isready -U ukb -d ukb; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "PostgreSQL did not become ready."
+          exit 1
+
+      - name: Apply database migrations
+        working-directory: ${{ inputs.deploy_path }}
+        run: |
+          UKB_API_IMAGE="${UKB_API_IMAGE}" docker compose --env-file .env run --rm --no-deps api alembic upgrade head
+
+      - name: Start or update UKB API
+        working-directory: ${{ inputs.deploy_path }}
+        run: |
+          UKB_API_IMAGE="${UKB_API_IMAGE}" docker compose --env-file .env up -d api
+          docker compose --env-file .env ps
+
+      - name: Verify governed API
+        working-directory: ${{ inputs.deploy_path }}
+        run: |
+          for attempt in $(seq 1 12); do
+            if docker compose --env-file .env exec -T api python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:8000/health', timeout=10).read().decode())"; then
+              docker compose --env-file .env exec -T api python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:8000/ai/providers', timeout=10).read().decode())"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "UKB API health check failed."
+          docker compose --env-file .env logs api
+          exit 1
