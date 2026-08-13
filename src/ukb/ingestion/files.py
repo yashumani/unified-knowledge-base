@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from pathlib import Path
+from typing import ClassVar
 
 from ukb.ingestion.models import FileArtifactMetadata
 from ukb.models import IngestionSubmission, ReviewItem, Sensitivity, SourceEvidence, SourceType
@@ -25,7 +26,7 @@ class ParsedFileSubmission:
 class FileIngestionService:
     """Validate, preserve, and compile text-oriented source files."""
 
-    extension_types = {
+    extension_types: ClassVar[dict[str, SourceType]] = {
         ".txt": SourceType.document,
         ".md": SourceType.markdown,
         ".markdown": SourceType.markdown,
@@ -81,9 +82,13 @@ class FileIngestionService:
         if len(extracted_text) > self.max_extracted_chars:
             extracted_text = extracted_text[: self.max_extracted_chars]
 
+        resolved_title = (title or Path(safe_filename).stem).strip()
+        if len(resolved_title) < 3:
+            raise FileIngestionError("The source title must contain at least three characters.")
+
         digest = hashlib.sha256(data).hexdigest()
         submission = IngestionSubmission(
-            title=(title or Path(safe_filename).stem).strip(),
+            title=resolved_title,
             source_type=source_type,
             submitted_by=submitted_by,
             content=extracted_text,
