@@ -47,6 +47,7 @@ A PowerPoint presenter export can be generated outside the repository when neede
 | Document | Purpose |
 |---|---|
 | `docs/REACT_UI.md` | React console architecture, graph view boundary, local run commands, and next UI iterations. |
+| `docs/UI_FRAMER_REDESIGN.md` | Framer-inspired design direction, adopted UI patterns, and future design work. |
 | `docs/UI_CONSOLE_END_TO_END.md` | Full UI workflow for submit, review, approve, graph inspection, and context-pack generation. |
 | `docs/GITHUB_PAGES_DEPLOYMENT.md` | Static React UI deployment on GitHub Pages. |
 
