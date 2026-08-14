@@ -103,8 +103,22 @@ class BrainCompiler:
                 score += 0.07
         return min(score, 0.92)
 
+    # Owner names run until a clause boundary. Without these stops the match
+    # swallows the rest of the sentence, so "owned by Support Operations and
+    # reviewed weekly" would name the owner "Support Operations and reviewed
+    # weekly".
+    owner_stop_words = (" and ", " but ", " which ", " that ", " with ", " for ")
+
     def _extract_owner(self, content: str) -> str | None:
         match = re.search(r"owned by ([A-Za-z0-9 _&-]+)", content, re.IGNORECASE)
         if not match:
             return None
-        return match.group(1).strip().rstrip(".")
+
+        owner = match.group(1).strip()
+        lowered = owner.lower()
+        for stop_word in self.owner_stop_words:
+            index = lowered.find(stop_word)
+            if index > 0:
+                owner = owner[:index]
+                lowered = owner.lower()
+        return owner.strip().rstrip(".,;:") or None

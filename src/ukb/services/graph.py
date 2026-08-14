@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from ukb.models import BrainGraph, GraphEdge, GraphNode, KnowledgeObject, ReviewItem
+from ukb.services.access import SENSITIVITY_ORDER, AccessPolicyService
 from ukb.store import BrainStore
 
 
@@ -10,14 +11,36 @@ class BrainGraphService:
     This projection is UI-oriented. It does not replace graph persistence or
     lineage storage; it gives the React app a single endpoint for visualizing
     sources, review items, published objects, AI enrichment state, and relationships.
+
+    Node metadata carries source excerpts and unapproved candidate content, so
+    the same clearance check that guards context packs is applied here. Without
+    it the graph endpoint would be a way around retrieval filtering.
     """
 
     def __init__(self, store: BrainStore):
         self.store = store
 
-    def build(self, include_review_items: bool = True) -> BrainGraph:
+    def build(
+        self,
+        include_review_items: bool = True,
+        access_policy: AccessPolicyService | None = None,
+        principal: str = "anonymous",
+    ) -> BrainGraph:
         nodes: dict[str, GraphNode] = {}
         edges: dict[str, GraphEdge] = {}
+
+        clearance = (
+            access_policy.clearance_for(principal) if access_policy is not None else None
+        )
+        # IDs withheld by clearance. Edges touching them are pruned at the end,
+        # because an edge pointing at a missing node still discloses that the
+        # node exists.
+        hidden: set[str] = set()
+
+        def visible(sensitivity) -> bool:
+            if clearance is None:
+                return True
+            return SENSITIVITY_ORDER[sensitivity] <= SENSITIVITY_ORDER[clearance]
 
         def add_edge(source: str | None, target: str | None, edge_type: str, confidence: float = 0.5) -> None:
             if not source or not target or source == target:
@@ -32,6 +55,9 @@ class BrainGraphService:
             )
 
         def add_object_node(obj: KnowledgeObject, node_type: str = "knowledge_object") -> None:
+            if not visible(obj.sensitivity):
+                hidden.add(obj.id)
+                return
             if obj.id not in nodes:
                 nodes[obj.id] = GraphNode(
                     id=obj.id,
@@ -54,6 +80,11 @@ class BrainGraphService:
                 add_edge(obj.id, relationship.target_id, relationship.type, relationship.confidence)
 
         def add_review_node(review_item: ReviewItem) -> None:
+            if not visible(review_item.candidate_object.sensitivity):
+                hidden.add(review_item.id)
+                if review_item.ai_enrichment:
+                    hidden.add(f"ai:{review_item.ai_enrichment.id}")
+                return
             ai = review_item.ai_enrichment
             nodes[review_item.id] = GraphNode(
                 id=review_item.id,
@@ -90,6 +121,9 @@ class BrainGraphService:
                 add_edge(ai_node_id, review_item.id, "enriches_review", ai.confidence)
 
         for source in self.store.sources.values():
+            if not visible(source.sensitivity):
+                hidden.add(source.source_id)
+                continue
             nodes[source.source_id] = GraphNode(
                 id=source.source_id,
                 label=source.title,
@@ -115,4 +149,9 @@ class BrainGraphService:
                 add_object_node(review_item.candidate_object, node_type="candidate_object")
                 add_review_node(review_item)
 
-        return BrainGraph(nodes=list(nodes.values()), edges=list(edges.values()))
+        visible_edges = [
+            edge
+            for edge in edges.values()
+            if edge.source not in hidden and edge.target not in hidden
+        ]
+        return BrainGraph(nodes=list(nodes.values()), edges=visible_edges)
