@@ -13,7 +13,8 @@ import { PublishStep } from "./components/steps/PublishStep";
 import { ReviewStep } from "./components/steps/ReviewStep";
 import { SubmitStep } from "./components/steps/SubmitStep";
 import { useActiveStep } from "./hooks/useActiveStep";
-import { useBrainState } from "./hooks/useBrainState";
+import { REVIEWER, useBrainState } from "./hooks/useBrainState";
+import { ActivityLedger } from "./components/ActivityLedger";
 import { STEP_INTRO } from "./pipeline/copy";
 import { deriveStepStates, resolveNextMove } from "./pipeline/derive";
 
@@ -112,8 +113,10 @@ export default function App() {
           <StepSection state={stepState(2)} intro={STEP_INTRO.review} onNavigate={goToStep}>
             <ReviewStep
               items={brain.reviewItems}
+              reviewer={REVIEWER}
               onApprove={brain.approveReview}
               onReject={brain.rejectReview}
+              onRequestChanges={brain.requestChanges}
               demoMode={brain.demoMode}
             />
           </StepSection>
@@ -146,6 +149,8 @@ export default function App() {
           </div>
           <ObsidianGraphView graph={brain.graph} />
         </section>
+
+        <ActivityLedger records={brain.ledger} />
       </main>
     </div>
   );
