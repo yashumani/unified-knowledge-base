@@ -3,6 +3,11 @@ import { brainClient } from "../api/brainClient";
 import { demoContextPack, demoGraph, demoObjects, demoReviewItems } from "../data/demoBrain";
 import { buildGraphFromState } from "../utils/graph";
 import type {
+  PipelineSnapshot,
+  ReviewDecisionRecord,
+  SessionActivity
+} from "../pipeline/types";
+import type {
   AIProviderStatus,
   BrainGraph,
   ContextPack,
@@ -11,6 +16,13 @@ import type {
   KnowledgeObject,
   ReviewItem
 } from "../types";
+
+const EMPTY_SESSION: SessionActivity = {
+  submitted: [],
+  enriched: [],
+  published: [],
+  packsBuilt: 0
+};
 
 export const REVIEWER = "ui.reviewer";
 
@@ -35,6 +47,13 @@ export function useBrainState() {
   const [graph, setGraph] = useState<BrainGraph>(demoGraph);
   const [contextPack, setContextPack] = useState<ContextPack | null>(null);
   const [aiStatus, setAIStatus] = useState<AIProviderStatus>(demoAIStatus);
+  // Append-only record of governed decisions. The review handlers drop items
+  // from the queue once decided, so without this a rejection would leave no
+  // trace that anything happened at all.
+  const [ledger, setLedger] = useState<ReviewDecisionRecord[]>([]);
+  const [session, setSession] = useState<SessionActivity>(EMPTY_SESSION);
+
+  const record = (entry: ReviewDecisionRecord) => setLedger((current) => [entry, ...current]);
 
   const stats = useMemo(
     () => ({
@@ -121,17 +140,29 @@ export function useBrainState() {
       ];
       setReviewItems(nextReviews);
       setGraph(buildGraphFromState(objects, nextReviews));
+      setSession((s) => ({ ...s, submitted: [...s.submitted, payload.title] }));
       return;
     }
 
     await brainClient.submitContext(payload);
+    setSession((s) => ({ ...s, submitted: [...s.submitted, payload.title] }));
     await refresh();
   }
 
   async function approveReview(reviewItemId: string) {
+    const item = reviewItems.find((review) => review.id === reviewItemId);
+    if (!item) return;
+    const entry: ReviewDecisionRecord = {
+      reviewItemId,
+      candidateTitle: item.candidate_object.title,
+      action: "approved",
+      reviewer: REVIEWER,
+      comment: null,
+      at: new Date().toISOString(),
+      hadAIBrief: Boolean(item.ai_enrichment)
+    };
+
     if (demoMode) {
-      const item = reviewItems.find((review) => review.id === reviewItemId);
-      if (!item) return;
       const approvedObject: KnowledgeObject = {
         ...item.candidate_object,
         status: "published",
@@ -142,6 +173,8 @@ export function useBrainState() {
       setObjects(nextObjects);
       setReviewItems(nextReviews);
       setGraph(buildGraphFromState(nextObjects, nextReviews));
+      record(entry);
+      setSession((s) => ({ ...s, published: [...s.published, item.candidate_object.title] }));
       return;
     }
 
@@ -149,14 +182,29 @@ export function useBrainState() {
       reviewed_by: REVIEWER,
       comment: "Approved from React console."
     });
+    record(entry);
+    setSession((s) => ({ ...s, published: [...s.published, item.candidate_object.title] }));
     await refresh();
   }
 
   async function rejectReview(reviewItemId: string) {
+    const item = reviewItems.find((review) => review.id === reviewItemId);
+    if (!item) return;
+    const entry: ReviewDecisionRecord = {
+      reviewItemId,
+      candidateTitle: item.candidate_object.title,
+      action: "rejected",
+      reviewer: REVIEWER,
+      comment: null,
+      at: new Date().toISOString(),
+      hadAIBrief: Boolean(item.ai_enrichment)
+    };
+
     if (demoMode) {
       const nextReviews = reviewItems.filter((review) => review.id !== reviewItemId);
       setReviewItems(nextReviews);
       setGraph(buildGraphFromState(objects, nextReviews));
+      record(entry);
       return;
     }
 
@@ -164,12 +212,14 @@ export function useBrainState() {
       reviewed_by: REVIEWER,
       comment: "Rejected from React console."
     });
+    record(entry);
     await refresh();
   }
 
   async function enrichReview(reviewItemId: string) {
     if (demoMode) return;
     await brainClient.enrichReviewItem(reviewItemId);
+    setSession((s) => ({ ...s, enriched: [...s.enriched, reviewItemId] }));
     await refresh();
   }
 
@@ -182,12 +232,27 @@ export function useBrainState() {
         mode: request.mode,
         generated_at: new Date().toISOString()
       });
+      setSession((s) => ({ ...s, packsBuilt: s.packsBuilt + 1 }));
       return;
     }
     setContextPack(await brainClient.buildContextPack(request));
+    setSession((s) => ({ ...s, packsBuilt: s.packsBuilt + 1 }));
   }
 
+  const snapshot: PipelineSnapshot = {
+    reviewItems,
+    objects,
+    contextPack,
+    aiStatus,
+    demoMode,
+    ledger,
+    session
+  };
+
   return {
+    snapshot,
+    ledger,
+    session,
     environment,
     demoMode,
     loading,

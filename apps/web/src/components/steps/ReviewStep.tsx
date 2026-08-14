@@ -5,13 +5,11 @@ export function ReviewStep({
   items,
   onApprove,
   onReject,
-  onEnrich,
   demoMode
 }: {
   items: ReviewItem[];
   onApprove: (id: string) => Promise<void>;
   onReject: (id: string) => Promise<void>;
-  onEnrich: (id: string) => Promise<void>;
   demoMode: boolean;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(items[0]?.id ?? null);
@@ -30,14 +28,7 @@ export function ReviewStep({
   const enrichment = selectedItem?.ai_enrichment;
 
   return (
-    <section className="panel review-panel" id="review-queue">
-      <div className="panel-header">
-        <div>
-          <p className="eyebrow">Human validation</p>
-          <h2>Review queue</h2>
-        </div>
-        <span className="chip warning-chip">{items.length} pending</span>
-      </div>
+    <div className="panel review-panel">
       <div className="review-layout">
         <ul className="scroll-list">
           {items.length === 0 && (
@@ -102,12 +93,14 @@ export function ReviewStep({
                 <div><dt>Domain</dt><dd>{selectedItem.candidate_object.domain}</dd></div>
                 <div><dt>Owner</dt><dd>{selectedItem.candidate_object.owner ?? "Not assigned"}</dd></div>
               </dl>
+              {!enrichment && (
+                <p className="step-locked" role="note">
+                  No AI brief was generated for this candidate. Approving is allowed — the
+                  decision is yours — and the activity log will record that it happened
+                  without one.
+                </p>
+              )}
               <div className="actions">
-                {!demoMode && !enrichment && (
-                  <button type="button" className="secondary" onClick={() => onEnrich(selectedItem.id)}>
-                    Run AI enrichment
-                  </button>
-                )}
                 <button type="button" onClick={() => onApprove(selectedItem.id)}>
                   {demoMode ? "Simulate approval" : "Approve and publish"}
                 </button>
@@ -121,6 +114,6 @@ export function ReviewStep({
           )}
         </aside>
       </div>
-    </section>
+    </div>
   );
 }

@@ -37,17 +37,7 @@ export function SubmitStep({
   }
 
   return (
-    <section className="panel panel-accent" id="context-ingestion">
-      <div className="panel-header">
-        <div>
-          <p className="eyebrow">Context ingestion</p>
-          <h2>Submit context</h2>
-        </div>
-        <span className="chip">Source → AI brief → Candidate</span>
-      </div>
-      <p className="panel-copy">
-        Paste synthetic source context and let the compiler create a candidate with AI enrichment for human review.
-      </p>
+    <div className="panel panel-accent">
       <form onSubmit={submit} className="stack">
         <label>Title<input value={title} onChange={(event) => setTitle(event.target.value)} required /></label>
         <div className="form-row">
@@ -64,9 +54,9 @@ export function SubmitStep({
         </div>
         <label>Context<textarea value={content} onChange={(event) => setContent(event.target.value)} rows={8} required /></label>
         <button type="submit" disabled={submitting || !title || !content}>
-          {submitting ? "Submitting..." : demoMode ? "Simulate AI-enriched submission" : "Submit and enrich"}
+          {submitting ? "Submitting..." : demoMode ? "Simulate submission" : "Submit for review"}
         </button>
       </form>
-    </section>
+    </div>
   );
 }

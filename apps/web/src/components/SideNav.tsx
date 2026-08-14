@@ -1,14 +1,26 @@
+import type { StepId, StepState } from "../pipeline/types";
 import type { AIProviderStatus } from "../types";
 
-const navItems = [
-  { label: "Map", href: "#brain-map" },
-  { label: "Submit", href: "#context-ingestion" },
-  { label: "Review", href: "#review-queue" },
-  { label: "Context Pack", href: "#context-pack" },
-  { label: "Published", href: "#published-objects" }
+const TRAILING_LINKS = [
+  { label: "Brain map", href: "#brain-map" },
+  { label: "Activity", href: "#activity" }
 ];
 
-export function SideNav({ aiStatus }: { aiStatus: AIProviderStatus }) {
+/**
+ * Navigation renders from the same step array as the stepper and the section
+ * headings, so the three can no longer drift. They previously disagreed on both
+ * order and vocabulary — the nav led with the graph and called step 5
+ * "Context Pack" while the timeline called it "Compose".
+ */
+export function SideNav({
+  aiStatus,
+  states,
+  onNavigate
+}: {
+  aiStatus: AIProviderStatus;
+  states: StepState[];
+  onNavigate: (stepId: StepId) => void;
+}) {
   return (
     <aside className="side-nav" aria-label="Console navigation">
       <div className="brand-lockup">
@@ -18,20 +30,33 @@ export function SideNav({ aiStatus }: { aiStatus: AIProviderStatus }) {
           <span>Governed context OS</span>
         </div>
       </div>
-      <nav>
-        {navItems.map((item) => (
-          <a href={item.href} key={item.href}>{item.label}</a>
+      <nav aria-label="Sections">
+        {states.map((state) => (
+          <a
+            key={state.step.id}
+            href={`#${state.step.sectionId}`}
+            aria-current={state.isActive ? "step" : undefined}
+            className={state.isActive ? "is-active" : undefined}
+            onClick={(event) => {
+              event.preventDefault();
+              onNavigate(state.step.id);
+            }}
+          >
+            <span className="nav-index" aria-hidden="true">{state.step.number}</span>
+            {state.step.label}
+          </a>
+        ))}
+        {TRAILING_LINKS.map((item) => (
+          <a href={item.href} key={item.href}>
+            <span className="nav-index" aria-hidden="true">·</span>
+            {item.label}
+          </a>
         ))}
       </nav>
       <div className="nav-callout">
         <span>AI enrichment</span>
         <strong>{aiStatus.provider} · {aiStatus.mode}</strong>
         <p>{aiStatus.enabled ? `Model: ${aiStatus.model}` : "Disabled by server config"}</p>
-      </div>
-      <div className="nav-callout">
-        <span>Demo domain</span>
-        <strong>Support Ops</strong>
-        <p>Uses only synthetic, workplace-safe examples.</p>
       </div>
     </aside>
   );
