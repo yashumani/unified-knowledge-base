@@ -38,7 +38,16 @@
 .success-chip { border-color: rgba(52, 211, 153, 0.3); color: var(--green-soft); background: rgba(52, 211, 153, 0.1); }
 
 .review-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 340px); gap: var(--space-3); }
-.scroll-list { display: grid; gap: var(--space-3); max-height: 440px; overflow: auto; padding-right: var(--space-1); }
+.scroll-list {
+  display: grid;
+  gap: var(--space-3);
+  max-height: 440px;
+  overflow: auto;
+  /* List semantics without the marker/indent. */
+  margin: 0;
+  padding: 0 var(--space-1) 0 0;
+  list-style: none;
+}
 .review-item, .object-card, .context-pack, .candidate-inspector {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-lg);
