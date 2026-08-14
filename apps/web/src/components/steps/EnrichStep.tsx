@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ProvenanceNote } from "../common/ProvenanceNote";
 import type { AIProviderStatus, ReviewItem } from "../../types";
 
 const MODE_EXPLANATION: Record<string, string> = {
@@ -17,12 +18,14 @@ export function EnrichStep({
   items,
   aiStatus,
   onEnrich,
-  enrichingId
+  enrichingId,
+  demoMode
 }: {
   items: ReviewItem[];
   aiStatus: AIProviderStatus;
   onEnrich: (id: string) => Promise<void>;
   enrichingId: string | null;
+  demoMode: boolean;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(items[0]?.id ?? null);
 
@@ -92,13 +95,18 @@ export function EnrichStep({
             <>
               <span className="badge">Candidate</span>
               <h3>{selected.candidate_object.title}</h3>
-              {!enrichment && (
+              {enrichingId === selected.id && (
+                <div className="brief-skeleton" aria-hidden="true">
+                  <span /><span /><span />
+                </div>
+              )}
+              {!enrichment && enrichingId !== selected.id && (
                 <p className="panel-copy">
                   No brief has been generated for this candidate. Enrichment is optional —
                   a reviewer may approve from the source evidence alone.
                 </p>
               )}
-              {enrichment && (
+              {enrichment && enrichingId !== selected.id && (
                 <div className="ai-brief">
                   <div className="ai-brief-header">
                     <strong>AI review brief</strong>
@@ -129,6 +137,21 @@ export function EnrichStep({
                       ))}
                     </div>
                   )}
+                  {enrichment.review_brief.risk_flags.length > 0 && (
+                    <ul className="capability-list">
+                      {enrichment.review_brief.risk_flags.map((flag) => (
+                        <li key={flag} className="chip warning-chip">{flag.replace(/_/g, " ")}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {/* Rendered as advice, never as a button that acts. The
+                      platform rule is that a model suggests and a human
+                      decides. */}
+                  <p className="advisory">
+                    <strong>AI suggests: {enrichment.review_brief.recommended_action.replace(/_/g, " ")}</strong>
+                    {" — advisory only. A human still makes the decision in step 3."}
+                  </p>
+                  <ProvenanceNote visible={demoMode} />
                 </div>
               )}
               <div className="actions">

@@ -1,12 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { brainClient } from "../api/brainClient";
-import { demoContextPack, demoGraph, demoObjects, demoReviewItems } from "../data/demoBrain";
+import { DEMO_ENRICHMENT_LATENCY_MS, DEMO_PACK_LATENCY_MS } from "../demo/config";
+import { compileSubmission } from "../demo/offlineCompiler";
+import { buildContextPack } from "../demo/offlineContextPack";
+import { enrichSource } from "../demo/offlineEnrichment";
+import {
+  demoGraph,
+  demoObjects,
+  demoReviewItems,
+  demoSources
+} from "../data/demoBrain";
 import { buildGraphFromState } from "../utils/graph";
-import type {
-  PipelineSnapshot,
-  ReviewDecisionRecord,
-  SessionActivity
-} from "../pipeline/types";
+import type { PipelineSnapshot, ReviewDecisionRecord, SessionActivity } from "../pipeline/types";
 import type {
   AIProviderStatus,
   BrainGraph,
@@ -14,8 +19,13 @@ import type {
   ContextPackRequest,
   IngestionPayload,
   KnowledgeObject,
-  ReviewItem
+  ReviewItem,
+  SourceEvidence
 } from "../types";
+
+export const REVIEWER = "ui.reviewer";
+
+const EMPTY_GRAPH: BrainGraph = { nodes: [], edges: [], generated_at: "" };
 
 const EMPTY_SESSION: SessionActivity = {
   submitted: [],
@@ -24,19 +34,25 @@ const EMPTY_SESSION: SessionActivity = {
   packsBuilt: 0
 };
 
-export const REVIEWER = "ui.reviewer";
-
+/** What the browser-side offline provider reports about itself. */
 export const demoAIStatus: AIProviderStatus = {
   provider: "noop",
   mode: "offline_no_model",
   enabled: true,
   model: "deterministic",
-  embedding_model: "embeddinggemma",
+  embedding_model: null,
   base_url: null,
-  hosted_allowed_for_restricted: false
+  hosted_allowed_for_restricted: false,
+  local_only: true,
+  capabilities: [
+    "deterministic_classification",
+    "deterministic_review_brief",
+    "offline_context_pack"
+  ]
 };
 
-/** Owns every piece of console state plus the connected/demo handler pairs. */
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export function useBrainState() {
   const [environment, setEnvironment] = useState("unknown");
   const [demoMode, setDemoMode] = useState(false);
@@ -44,12 +60,12 @@ export function useBrainState() {
   const [error, setError] = useState<string | null>(null);
   const [reviewItems, setReviewItems] = useState<ReviewItem[]>([]);
   const [objects, setObjects] = useState<KnowledgeObject[]>([]);
-  const [graph, setGraph] = useState<BrainGraph>(demoGraph);
+  const [sources, setSources] = useState<SourceEvidence[]>([]);
+  // Not seeded with fixtures. Seeding meant a connected console rendered
+  // synthetic support-ops data before any fetch resolved.
+  const [graph, setGraph] = useState<BrainGraph>(EMPTY_GRAPH);
   const [contextPack, setContextPack] = useState<ContextPack | null>(null);
-  const [aiStatus, setAIStatus] = useState<AIProviderStatus>(demoAIStatus);
-  // Append-only record of governed decisions. The review handlers drop items
-  // from the queue once decided, so without this a rejection would leave no
-  // trace that anything happened at all.
+  const [aiStatus, setAIStatus] = useState<AIProviderStatus | null>(null);
   const [ledger, setLedger] = useState<ReviewDecisionRecord[]>([]);
   const [session, setSession] = useState<SessionActivity>(EMPTY_SESSION);
 
@@ -66,35 +82,68 @@ export function useBrainState() {
     [graph.edges.length, graph.nodes.length, objects.length, reviewItems]
   );
 
+  function enterDemoMode(message: string | null) {
+    setEnvironment("offline-demo");
+    setReviewItems(demoReviewItems);
+    setObjects(demoObjects);
+    setSources(demoSources);
+    setGraph(demoGraph);
+    setAIStatus(demoAIStatus);
+    setDemoMode(true);
+    // The context pack is deliberately NOT seeded. It is the last step of the
+    // walk, and pre-filling it would show step 5 as already done before the
+    // viewer has composed anything.
+    setContextPack(null);
+    setError(message);
+  }
+
   async function refresh() {
     setLoading(true);
     setError(null);
     try {
-      const [health, reviews, publishedObjects, providerStatus] = await Promise.all([
-        brainClient.health(),
+      // Health decides connected vs demo. Previously a single Promise.all
+      // covered four endpoints, so one failing route made the console announce
+      // "no backend connected" while showing fabricated data — the opposite of
+      // what demo mode is supposed to signal.
+      const health = await brainClient.health();
+
+      const [reviews, publishedObjects, providerStatus, fetchedGraph] = await Promise.allSettled([
         brainClient.listReviewItems(),
         brainClient.listObjects(),
-        brainClient.getAIProviderStatus()
+        brainClient.getAIProviderStatus(),
+        brainClient.getGraph()
       ]);
-      const nextGraph = await brainClient
-        .getGraph()
-        .catch(() => buildGraphFromState(publishedObjects, reviews));
+
+      const nextReviews = reviews.status === "fulfilled" ? reviews.value : [];
+      const nextObjects = publishedObjects.status === "fulfilled" ? publishedObjects.value : [];
+
       setEnvironment(health.environment);
-      setReviewItems(reviews);
-      setObjects(publishedObjects);
-      setGraph(nextGraph);
-      setAIStatus(providerStatus);
+      setReviewItems(nextReviews);
+      setObjects(nextObjects);
+      setGraph(
+        fetchedGraph.status === "fulfilled"
+          ? fetchedGraph.value
+          : buildGraphFromState(nextObjects, nextReviews)
+      );
+      if (providerStatus.status === "fulfilled") setAIStatus(providerStatus.value);
       setDemoMode(false);
-    } catch (caught) {
-      setEnvironment("offline-demo");
-      setReviewItems(demoReviewItems);
-      setObjects(demoObjects);
-      setGraph(demoGraph);
-      setContextPack(demoContextPack);
-      setAIStatus(demoAIStatus);
-      setDemoMode(true);
+
+      // A partial failure is reported as a partial failure, not as demo mode.
+      const failed = [
+        reviews.status === "rejected" ? "review queue" : null,
+        publishedObjects.status === "rejected" ? "published objects" : null,
+        providerStatus.status === "rejected" ? "AI provider status" : null
+      ].filter(Boolean);
       setError(
-        caught instanceof Error ? caught.message : "Could not reach API. Using built-in demo data."
+        failed.length
+          ? `Connected, but these could not be loaded: ${failed.join(", ")}.`
+          : null
+      );
+    } catch (caught) {
+      enterDemoMode(
+        caught instanceof Error
+          ? `${caught.message} — showing the built-in demo brain.`
+          : "Could not reach the API. Showing the built-in demo brain."
       );
     } finally {
       setLoading(false);
@@ -106,38 +155,23 @@ export function useBrainState() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** Clear everything this viewer did and reseed, without losing their place. */
+  function restartDemo() {
+    setReviewItems(demoReviewItems);
+    setObjects(demoObjects);
+    setSources(demoSources);
+    setGraph(demoGraph);
+    setContextPack(null);
+    setLedger([]);
+    setSession(EMPTY_SESSION);
+  }
+
   async function submitContext(payload: IngestionPayload) {
     if (demoMode) {
-      const id = `review_ui_${Date.now()}`;
-      const candidate: KnowledgeObject = {
-        id: `candidate.${payload.domain}.${payload.title.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`,
-        type: payload.content.toLowerCase().includes("dashboard") ? "Report" : "Metric",
-        title: payload.title,
-        summary: payload.content.slice(0, 240),
-        domain: payload.domain,
-        owner: payload.content.match(/owned by ([A-Za-z0-9 _&-]+)/i)?.[1] ?? null,
-        status: "human_review_required",
-        sensitivity: payload.sensitivity,
-        source_ids: [`source_ui_${Date.now()}`],
-        relationships: [],
-        attributes: { tags: payload.tags, demo_mode: true },
-        confidence: 0.67,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      const nextReviews: ReviewItem[] = [
-        {
-          id,
-          source_id: candidate.source_ids[0],
-          candidate_object: candidate,
-          status: "human_review_required",
-          reviewer: null,
-          review_comment: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        ...reviewItems
-      ];
+      // Runs the same heuristics as ukb.services.compiler rather than guessing.
+      const { source, reviewItem } = compileSubmission(payload);
+      const nextReviews = [reviewItem, ...reviewItems];
+      setSources((current) => [source, ...current]);
       setReviewItems(nextReviews);
       setGraph(buildGraphFromState(objects, nextReviews));
       setSession((s) => ({ ...s, submitted: [...s.submitted, payload.title] }));
@@ -149,18 +183,54 @@ export function useBrainState() {
     await refresh();
   }
 
-  async function approveReview(reviewItemId: string) {
-    const item = reviewItems.find((review) => review.id === reviewItemId);
-    if (!item) return;
-    const entry: ReviewDecisionRecord = {
-      reviewItemId,
+  async function enrichReview(reviewItemId: string) {
+    if (demoMode) {
+      const item = reviewItems.find((review) => review.id === reviewItemId);
+      if (!item) return;
+      const source =
+        sources.find((candidate) => candidate.source_id === item.source_id) ?? sources[0];
+      if (!source) return;
+
+      await wait(DEMO_ENRICHMENT_LATENCY_MS);
+      const enrichment = enrichSource({
+        source,
+        content: String(item.candidate_object.attributes?.raw_excerpt ?? source.content_excerpt),
+        candidate: item.candidate_object
+      });
+      const nextReviews = reviewItems.map((review) =>
+        review.id === reviewItemId ? { ...review, ai_enrichment: enrichment } : review
+      );
+      setReviewItems(nextReviews);
+      setGraph(buildGraphFromState(objects, nextReviews));
+      setSession((s) => ({ ...s, enriched: [...s.enriched, reviewItemId] }));
+      return;
+    }
+
+    await brainClient.enrichReviewItem(reviewItemId);
+    setSession((s) => ({ ...s, enriched: [...s.enriched, reviewItemId] }));
+    await refresh();
+  }
+
+  function decisionRecord(
+    item: ReviewItem,
+    action: ReviewDecisionRecord["action"],
+    comment: string | null
+  ): ReviewDecisionRecord {
+    return {
+      reviewItemId: item.id,
       candidateTitle: item.candidate_object.title,
-      action: "approved",
+      action,
       reviewer: REVIEWER,
-      comment: null,
+      comment,
       at: new Date().toISOString(),
       hadAIBrief: Boolean(item.ai_enrichment)
     };
+  }
+
+  async function approveReview(reviewItemId: string, comment: string | null = null) {
+    const item = reviewItems.find((review) => review.id === reviewItemId);
+    if (!item) return;
+    const entry = decisionRecord(item, "approved", comment);
 
     if (demoMode) {
       const approvedObject: KnowledgeObject = {
@@ -180,25 +250,17 @@ export function useBrainState() {
 
     await brainClient.approveReviewItem(reviewItemId, {
       reviewed_by: REVIEWER,
-      comment: "Approved from React console."
+      comment: comment ?? "Approved from the React console."
     });
     record(entry);
     setSession((s) => ({ ...s, published: [...s.published, item.candidate_object.title] }));
     await refresh();
   }
 
-  async function rejectReview(reviewItemId: string) {
+  async function rejectReview(reviewItemId: string, comment: string | null = null) {
     const item = reviewItems.find((review) => review.id === reviewItemId);
     if (!item) return;
-    const entry: ReviewDecisionRecord = {
-      reviewItemId,
-      candidateTitle: item.candidate_object.title,
-      action: "rejected",
-      reviewer: REVIEWER,
-      comment: null,
-      at: new Date().toISOString(),
-      hadAIBrief: Boolean(item.ai_enrichment)
-    };
+    const entry = decisionRecord(item, "rejected", comment);
 
     if (demoMode) {
       const nextReviews = reviewItems.filter((review) => review.id !== reviewItemId);
@@ -210,34 +272,65 @@ export function useBrainState() {
 
     await brainClient.rejectReviewItem(reviewItemId, {
       reviewed_by: REVIEWER,
-      comment: "Rejected from React console."
+      comment: comment ?? "Rejected from the React console."
     });
     record(entry);
     await refresh();
   }
 
-  async function enrichReview(reviewItemId: string) {
-    if (demoMode) return;
-    await brainClient.enrichReviewItem(reviewItemId);
-    setSession((s) => ({ ...s, enriched: [...s.enriched, reviewItemId] }));
+  /**
+   * Send a candidate back for rework. Implemented in the backend, typed in the
+   * client, recommended by the enrichment brief itself — and until now the UI
+   * was the only layer that could not do it.
+   */
+  async function requestChanges(reviewItemId: string, comment: string | null = null) {
+    const item = reviewItems.find((review) => review.id === reviewItemId);
+    if (!item) return;
+    const entry = decisionRecord(item, "changes_requested", comment);
+
+    if (demoMode) {
+      // The item stays in the queue; only its state changes.
+      const nextReviews = reviewItems.map((review) =>
+        review.id === reviewItemId
+          ? {
+              ...review,
+              status: "changes_requested" as const,
+              reviewer: REVIEWER,
+              review_comment: comment,
+              updated_at: new Date().toISOString(),
+              candidate_object: {
+                ...review.candidate_object,
+                status: "changes_requested" as const
+              }
+            }
+          : review
+      );
+      setReviewItems(nextReviews);
+      setGraph(buildGraphFromState(objects, nextReviews));
+      record(entry);
+      return;
+    }
+
+    await brainClient.requestChanges(reviewItemId, {
+      reviewed_by: REVIEWER,
+      comment: comment ?? "Changes requested from the React console."
+    });
+    record(entry);
     await refresh();
   }
 
   async function askBrain(request: ContextPackRequest) {
     if (demoMode) {
-      setContextPack({
-        ...demoContextPack,
-        question: request.question,
-        user_id: request.user_id,
-        mode: request.mode,
-        generated_at: new Date().toISOString()
-      });
+      await wait(DEMO_PACK_LATENCY_MS);
+      setContextPack(buildContextPack({ request, objects, sources }));
       setSession((s) => ({ ...s, packsBuilt: s.packsBuilt + 1 }));
       return;
     }
     setContextPack(await brainClient.buildContextPack(request));
     setSession((s) => ({ ...s, packsBuilt: s.packsBuilt + 1 }));
   }
+
+  const resolvedAIStatus = aiStatus ?? demoAIStatus;
 
   const snapshot: PipelineSnapshot = {
     reviewItems,
@@ -261,12 +354,15 @@ export function useBrainState() {
     objects,
     graph,
     contextPack,
-    aiStatus,
+    aiStatus: resolvedAIStatus,
+    aiStatusLoaded: aiStatus !== null,
     stats,
     refresh,
+    restartDemo,
     submitContext,
     approveReview,
     rejectReview,
+    requestChanges,
     enrichReview,
     askBrain
   };

@@ -138,14 +138,20 @@ label { display: grid; gap: 0.48rem; color: var(--text-3); font-size: var(--fs-b
   margin-bottom: var(--space-3);
   display: flex;
   justify-content: space-between;
-  gap: var(--space-3);
-  align-items: center;
+  gap: var(--space-4);
+  align-items: flex-start;
   border: 1px solid rgba(251, 191, 36, 0.28);
   background: rgba(251, 191, 36, 0.12);
   color: var(--amber-soft);
   border-radius: var(--radius-lg);
   padding: var(--space-3) var(--space-4);
 }
+.mode-banner > div { display: grid; gap: 6px; }
+.mode-banner span { line-height: 1.55; }
+.mode-banner details { margin-top: var(--space-1); }
+.mode-banner summary { cursor: pointer; font-weight: 900; }
+.mode-banner details p { margin: var(--space-2) 0 0; color: var(--text-2); line-height: 1.55; max-width: 74ch; }
+.mode-banner button { flex: 0 0 auto; }
 .framer-hero {
   min-height: 520px;
   display: grid;

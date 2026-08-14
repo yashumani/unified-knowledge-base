@@ -108,13 +108,13 @@ export const demoReviewItems: ReviewItem[] = [
     candidate_object: demoCandidate,
     ai_enrichment: {
       id: "ai_demo_reopen_rate",
-      provider: "ollama",
-      model: "llama3.1",
+      provider: "noop",
+      model: "deterministic",
       status: "completed",
       source_classification: {
         source_kind: "metric_definition",
         domain: "support",
-        summary: "Local Ollama enrichment identified a support metric candidate and a related operational driver.",
+        summary: "Deterministic offline enrichment identified a support metric candidate and a related operational driver.",
         topics: ["support operations", "incident management", "metric definition"],
         suggested_tags: ["support", "metric_definition", "incident management"],
         confidence: 0.76
@@ -138,7 +138,7 @@ export const demoReviewItems: ReviewItem[] = [
         }
       ],
       review_brief: {
-        summary: "Local Ollama prepared a Reopen Rate candidate and found one definition gap that should be reviewed before publication.",
+        summary: "Deterministic offline enrichment prepared a Reopen Rate candidate and found one definition gap that should be reviewed before publication.",
         recommended_action: "request_changes",
         reviewer_questions: [
           "What reporting window should Reopen Rate use?",
@@ -202,7 +202,7 @@ export const demoGraph: BrainGraph = {
     })),
     ...demoReviewItems.flatMap((item) => item.ai_enrichment ? [{
       id: item.ai_enrichment.id,
-      label: `Ollama: ${item.candidate_object.title}`,
+      label: `Offline brief: ${item.candidate_object.title}`,
       type: "ai_enrichment",
       domain: item.candidate_object.domain,
       status: item.ai_enrichment.status,
@@ -239,7 +239,7 @@ export const demoContextPack: ContextPack = {
     "Check related driver metrics: first response time, reopen rate, ticket backlog, and incident severity mix.",
     "Confirm whether the current reporting window has completed quality review tagging."
   ],
-  ai_guidance: "Local Ollama guidance: use only approved support-operations objects and source evidence; do not treat review candidates as official context.",
+  ai_guidance: "Offline guidance: use only approved support-operations objects and source evidence; do not treat review candidates as official context.",
   missing_context: [],
   generated_at: now
 };
