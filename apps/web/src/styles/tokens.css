@@ -1,0 +1,157 @@
+/* Design tokens.
+ *
+ * This is the only file allowed to declare raw colour literals. Every other
+ * stylesheet references a token. New rules must not introduce a bare hex.
+ *
+ * Font: no webfont is loaded on purpose. The previous stack asked for Inter
+ * with no <link> and no @font-face anywhere in the project, so it silently
+ * fell back to the system UI face and nobody ever saw Inter. Self-hosting a
+ * variable woff2 would add ~150KB to a repo whose stated value is running in
+ * constrained offline environments (docs/REACT_UI.md:24), and a CDN is
+ * disallowed. If a brand face is wanted later, self-host it under
+ * apps/web/public/fonts/ with font-display: swap.
+ */
+
+:root {
+  color-scheme: dark;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+
+  /* Surfaces */
+  --bg: #050711;
+  --bg-top: #07101d;
+  --bg-bottom: #03050c;
+  --panel: rgba(13, 18, 32, 0.78);
+  --panel-strong: rgba(18, 25, 43, 0.94);
+  --line: rgba(255, 255, 255, 0.11);
+  --line-strong: rgba(255, 255, 255, 0.18);
+  --shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+  --shadow-card: 0 18px 60px rgba(0, 0, 0, 0.24);
+
+  /* Text */
+  --text: #f5f7fb;
+  --muted: #8f9bb3;
+  --soft: #c7d2fe;
+  --text-2: #b9c8e6;
+  --text-3: #c7d5f4;
+  --text-4: #b5c4df;
+  --text-code: #cbd5e1;
+  --nav-link: #dbe6ff;
+  --on-secondary: #e5edff;
+  --ink: #07111f;
+  --ink-deep: #120b2c;
+
+  /* Accents */
+  --cyan: #67e8f9;
+  --blue: #60a5fa;
+  --violet: #a78bfa;
+  --green: #34d399;
+  --amber: #fbbf24;
+  --rose: #fb7185;
+  --sky: #38bdf8;
+  --accent-1: #7dd3fc;
+  --accent-2: #c4b5fd;
+  --accent-3: #f0abfc;
+
+  /* Tinted foregrounds for status surfaces */
+  --cyan-soft: #a5f3fc;
+  --amber-soft: #fde68a;
+  --green-soft: #bbf7d0;
+  --teal-soft: #a7f3d0;
+  --rose-soft: #fecdd3;
+  --violet-soft: #ddd6fe;
+
+  /* Graph */
+  --graph-label: #dbeafe;
+  --graph-edge: #9ee7ff;
+  --graph-ink: #060b17;
+  --graph-bg: #040713;
+  --node-ai: #c084fc;
+  --node-default: #64748b;
+  --node-stroke-active: #f8fafc;
+  --select-ring: #fef08a;
+
+  /* Spacing scale. Adopted where an existing value already matches; legacy
+     one-off literals are left alone so this pass does not move pixels. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* Radius scale. Eleven ad-hoc radii collapse onto these eight; three rules
+     shift by 2px, which is imperceptible on a blurred glass panel. */
+  --radius-xs: 14px;
+  --radius-sm: 16px;
+  --radius-md: 18px;
+  --radius-lg: 22px;
+  --radius-xl: 26px;
+  --radius-2xl: 30px;
+  --radius-3xl: 34px;
+  --radius-pill: 999px;
+
+  /* Motion */
+  --dur-fast: 120ms;
+  --dur: 170ms;
+  --dur-slow: 280ms;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  /* Type */
+  --fs-2xs: 0.68rem;
+  --fs-xs: 0.72rem;
+  --fs-sm: 0.78rem;
+  --fs-base: 0.86rem;
+  --fs-md: 1rem;
+  --fs-lg: 1.26rem;
+  --fs-2xl: 2.2rem;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+/* Visible only to assistive technology. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* First focusable element; stays out of the way until tabbed to. */
+.skip-link {
+  position: absolute;
+  left: var(--space-4);
+  top: var(--space-4);
+  z-index: 100;
+  transform: translateY(-200%);
+  transition: transform var(--dur) var(--ease);
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  color: var(--ink);
+  font-weight: 900;
+  text-decoration: none;
+  padding: 0.76rem 1.04rem;
+  border-radius: var(--radius-pill);
+}
+.skip-link:focus-visible { transform: translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
