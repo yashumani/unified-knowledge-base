@@ -25,14 +25,7 @@ export function ComposeStep({
   }
 
   return (
-    <section className="panel wide-panel" id="context-pack">
-      <div className="panel-header">
-        <div>
-          <p className="eyebrow">Context runtime</p>
-          <h2>Generate context pack</h2>
-        </div>
-        <span className="chip">Approved knowledge only</span>
-      </div>
+    <div className="panel wide-panel">
       <form onSubmit={submit} className="context-form">
         <input
           value={question}
@@ -51,7 +44,7 @@ export function ComposeStep({
           <option value="governance_review">Governance review</option>
         </select>
         <button type="submit" disabled={asking}>
-          {asking ? "Generating..." : demoMode ? "Simulate pack" : "Generate enriched pack"}
+          {asking ? "Building..." : demoMode ? "Simulate pack" : "Build pack"}
         </button>
       </form>
       {contextPack && (
@@ -98,6 +91,6 @@ export function ComposeStep({
           )}
         </div>
       )}
-    </section>
+    </div>
   );
 }

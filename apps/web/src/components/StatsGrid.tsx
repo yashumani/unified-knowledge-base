@@ -12,11 +12,13 @@ export function StatsGrid({
   published,
   review,
   enrichedReviews,
+  graphNodes,
   graphEdges
 }: {
   published: number;
   review: number;
   enrichedReviews: number;
+  graphNodes: number;
   graphEdges: number;
 }) {
   return (
@@ -24,6 +26,8 @@ export function StatsGrid({
       <Metric label="Published objects" value={published} detail="approved runtime context" />
       <Metric label="Review queue" value={review} detail="awaiting validation" />
       <Metric label="AI enriched" value={enrichedReviews} detail="review briefs attached" />
+      {/* graphNodes was computed and thrown away, while the docs promise it. */}
+      <Metric label="Graph nodes" value={graphNodes} detail="sources, candidates, objects" />
       <Metric label="Graph edges" value={graphEdges} detail="typed relationships" />
     </section>
   );

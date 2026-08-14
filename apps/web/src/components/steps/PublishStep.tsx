@@ -2,14 +2,7 @@ import type { KnowledgeObject } from "../../types";
 
 export function PublishStep({ objects }: { objects: KnowledgeObject[] }) {
   return (
-    <section className="panel wide-panel" id="published-objects">
-      <div className="panel-header">
-        <div>
-          <p className="eyebrow">Published AI Brain</p>
-          <h2>Approved knowledge</h2>
-        </div>
-        <span className="chip success-chip">{objects.length} published</span>
-      </div>
+    <div className="panel wide-panel">
       <div className="object-grid">
         {objects.length === 0 && (
           <div className="empty-state">Approved knowledge will appear here after review.</div>
@@ -23,6 +16,6 @@ export function PublishStep({ objects }: { objects: KnowledgeObject[] }) {
           </article>
         ))}
       </div>
-    </section>
+    </div>
   );
 }
