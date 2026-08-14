@@ -17,8 +17,20 @@ class Settings(BaseSettings):
     environment: str = Field(default="local", description="local, dev, stage, prod")
     log_level: str = "INFO"
 
-    # API auth is intentionally stubbed in the scaffold.
+    # Shared-secret auth for mutating and privileged endpoints. This is a
+    # single-tenant stopgap until SSO/OIDC lands; it is enforced by default so
+    # the gap cannot go unnoticed. Rotate api_token away from the shipped
+    # default before exposing the API beyond localhost.
     api_token: str = "dev-token-change-me"
+    require_auth: bool = True
+    default_api_token: str = "dev-token-change-me"
+
+    # Access policy. The scaffold has no identity provider, so every caller gets
+    # default_user_clearance unless listed in user_clearances as
+    # "user:level,user2:level". Objects above the caller's clearance are dropped
+    # before a context pack is composed.
+    default_user_clearance: str = "internal"
+    user_clearances: str = ""
 
     # Local web UI origins. Keep explicit origins instead of wildcarding because
     # the React app will eventually carry authenticated user sessions.
@@ -54,9 +66,17 @@ class Settings(BaseSettings):
     # MCP settings.
     mcp_server_name: str = "unified-knowledge-base"
 
+    # MCP agents may submit and read context, but approval is a human gate.
+    # Enabling this hands an LLM client the publish button; keep it off.
+    mcp_allow_approval: bool = False
+
     @property
     def cors_origins(self) -> list[str]:
         return [origin.strip() for origin in self.cors_allow_origins.split(",") if origin.strip()]
+
+    @property
+    def api_token_is_default(self) -> bool:
+        return self.api_token == self.default_api_token
 
 
 @lru_cache

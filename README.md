@@ -161,10 +161,16 @@ Open:
 http://localhost:8000/docs
 ```
 
+Every route except `/health` requires the API token from `.env`. Export it once:
+
+```bash
+export UKB_API_TOKEN=dev-token-change-me
+```
+
 Check the local LLM provider:
 
 ```bash
-curl http://localhost:8000/ai/providers
+curl -H "Authorization: Bearer $UKB_API_TOKEN" http://localhost:8000/ai/providers
 ```
 
 Expected provider:
@@ -176,9 +182,13 @@ ollama
 ### 4. Run the React UI
 
 ```bash
+cp apps/web/.env.example apps/web/.env
 npm install
 npm run web:dev
 ```
+
+`VITE_UKB_API_TOKEN` must match the backend `UKB_API_TOKEN`, or the console falls
+back to demo mode.
 
 Open:
 
@@ -190,6 +200,7 @@ http://localhost:5173
 
 ```bash
 curl -X POST http://localhost:8000/ingestion/submissions \
+  -H "Authorization: Bearer $UKB_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Incident Resolution Time Definition",
@@ -205,7 +216,7 @@ The review item should include an `ai_enrichment` payload. If Ollama is unavaila
 ### 6. Review queue
 
 ```bash
-curl http://localhost:8000/review/queue
+curl -H "Authorization: Bearer $UKB_API_TOKEN" http://localhost:8000/review/queue
 ```
 
 ### 7. Approve a review item
@@ -214,6 +225,7 @@ Replace `{review_item_id}` with the ID from the queue.
 
 ```bash
 curl -X POST http://localhost:8000/review/items/{review_item_id}/approve \
+  -H "Authorization: Bearer $UKB_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"reviewed_by": "domain.reviewer", "comment": "Approved for synthetic demo."}'
 ```
@@ -222,6 +234,7 @@ curl -X POST http://localhost:8000/review/items/{review_item_id}/approve \
 
 ```bash
 curl -X POST http://localhost:8000/brain/context-pack \
+  -H "Authorization: Bearer $UKB_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "question": "Why did incident resolution time increase?",
@@ -230,6 +243,38 @@ curl -X POST http://localhost:8000/brain/context-pack \
     "mode": "executive_insight"
   }'
 ```
+
+## Access model
+
+Two controls run before any context reaches a consumer.
+
+**Transport auth.** Every route except `/health` requires `UKB_API_TOKEN`, sent as
+`Authorization: Bearer <token>` or `X-API-Token: <token>`. This is a single shared
+secret, not user identity; it gates access to the service, not between users.
+
+**Clearance filtering.** Knowledge objects and source evidence carry a sensitivity
+(`public` < `internal` < `confidential` < `restricted`). Anything above the caller's
+clearance is dropped during retrieval, before a context pack is composed, and the
+same filter applies to `/brain/objects`, `/brain/graph`, and the MCP adapter.
+
+`access_decision` reports what the policy actually did:
+
+```text
+allowed   nothing was blocked, or some matches were returned
+          (caveats state how many were withheld)
+denied    matches existed but every one was above the caller's clearance
+```
+
+An empty result with nothing blocked stays `allowed` — that is missing context,
+not a denial.
+
+Clearance follows the authenticated principal, never `user_id` in the request
+body. The body field is client-asserted and is recorded for audit attribution
+only; honoring it would let any caller pick their own clearance.
+
+Until SSO/OIDC lands, every token holder shares `UKB_DEFAULT_USER_CLEARANCE`.
+Set it to the least-privileged consumer level and grant specific principals
+upward through `UKB_USER_CLEARANCES`.
 
 ## Docker Compose with Ollama
 
@@ -299,6 +344,12 @@ docs/GITHUB_HOSTING_MODEL.md
 python -m ukb.mcp.server
 ```
 
+MCP clients are LLM agents, so they submit and read but cannot approve. The
+`approve_review_item` tool returns a refusal unless an operator sets
+`UKB_MCP_ALLOW_APPROVAL=true` for a supervised environment. Agents are treated as
+a single `mcp-client` principal for clearance, so naming a different user in a
+tool argument does not widen access.
+
 ## Repository map
 
 ```text
@@ -342,7 +393,9 @@ This is a scaffold, not a production system yet. The next real build steps are:
 2. Add object storage for source evidence.
 3. Add vector/hybrid search using local embeddings.
 4. Add graph relationships.
-5. Add real auth and ACL filtering.
+5. Replace the shared API token with SSO/OIDC and per-user roles. Sensitivity
+   filtering already runs at retrieval time; what is missing is real identity to
+   drive it, so today every token holder shares one clearance.
 6. Add persistent review UI flows.
 7. Harden local Ollama deployment for private GitLab/Linux environments.
 8. Add source connectors one by one.

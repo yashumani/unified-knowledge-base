@@ -19,10 +19,21 @@ export const API_BASE = configuredApiBase && configuredApiBase.trim().length > 0
   ? configuredApiBase.replace(/\/$/, "")
   : "http://localhost:8000";
 
+// The API requires a token on every route except /health. This is a
+// single-tenant development convenience: a Vite env var is baked into the
+// client bundle at build time, so it is only ever safe for a local or
+// trusted-network deployment. A public deployment must move to per-user
+// sessions (SSO/OIDC) rather than shipping a shared secret to the browser.
+const configuredApiToken = import.meta.env.VITE_UKB_API_TOKEN;
+export const API_TOKEN = configuredApiToken?.trim() ?? "";
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
   if (!headers.has("Content-Type") && init.body) {
     headers.set("Content-Type", "application/json");
+  }
+  if (API_TOKEN && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${API_TOKEN}`);
   }
 
   const response = await fetch(`${API_BASE}${path}`, {
@@ -32,6 +43,12 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   if (!response.ok) {
     const detail = await response.text();
+    if (response.status === 401 || response.status === 403) {
+      throw new Error(
+        `${response.status} ${response.statusText}: API token missing or rejected. ` +
+          `Set VITE_UKB_API_TOKEN to match the server's UKB_API_TOKEN.`
+      );
+    }
     throw new Error(`${response.status} ${response.statusText}: ${detail}`);
   }
 
