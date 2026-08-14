@@ -189,6 +189,48 @@
 .provider-strip dd { margin: 0; font-weight: 900; }
 .capability-list { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0 0 var(--space-4); padding: 0; }
 
+.advisory {
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-xs);
+  border: 1px solid rgba(167, 139, 250, 0.28);
+  background: rgba(167, 139, 250, 0.08);
+  color: var(--text-2);
+  line-height: 1.5;
+}
+.advisory strong { color: var(--violet-soft); text-transform: capitalize; }
+
+.brief-skeleton { display: grid; gap: var(--space-2); }
+.brief-skeleton span {
+  height: 12px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.14), rgba(255,255,255,0.06));
+  background-size: 200% 100%;
+  animation: brief-shimmer 1.2s linear infinite;
+}
+.brief-skeleton span:nth-child(2) { width: 82%; }
+.brief-skeleton span:nth-child(3) { width: 64%; }
+@keyframes brief-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+.provenance-note {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+.provenance-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--amber);
+}
+
 /* Quoted sentence that triggered a validation finding. */
 .finding-span {
   margin: 4px 0 0;

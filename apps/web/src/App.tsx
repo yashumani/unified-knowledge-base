@@ -44,8 +44,26 @@ export default function App() {
       <main className="app-shell" id="main">
         {brain.demoMode && (
           <div className="mode-banner" role="status">
-            <strong>Demo Mode</strong>
-            <span>No backend connected. Actions are simulated and reset on refresh.</span>
+            <div>
+              <strong>Demo mode</strong>
+              <span>
+                No backend is connected. Every step below still runs — classification,
+                enrichment and context-pack composition all execute in your browser using
+                the platform's deterministic offline provider.
+              </span>
+              <details>
+                <summary>What does that mean?</summary>
+                <p>
+                  The console normally talks to a FastAPI backend. Without one it falls back to
+                  a port of the same offline provider the server uses when no model runtime is
+                  available, so the workflow is real even though nothing is persisted. Reload
+                  and it all resets.
+                </p>
+              </details>
+            </div>
+            <button type="button" className="secondary" onClick={brain.restartDemo}>
+              Restart demo
+            </button>
           </div>
         )}
 
@@ -87,6 +105,7 @@ export default function App() {
               aiStatus={brain.aiStatus}
               onEnrich={runEnrichment}
               enrichingId={enrichingId}
+              demoMode={brain.demoMode}
             />
           </StepSection>
 
