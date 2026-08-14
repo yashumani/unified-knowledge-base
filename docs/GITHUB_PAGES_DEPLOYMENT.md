@@ -92,6 +92,31 @@ This keeps the graph deployable as a static GitHub Pages site and allows it to r
 5. GitHub Pages serves the deployed UI.
 ```
 
+## Previewing the Pages build locally
+
+`vite.config.ts` derives `base` from the `GITHUB_PAGES` environment variable,
+and `vite preview` reads the same config. Set it for **both** commands:
+
+```bash
+GITHUB_PAGES=true npm run web:build
+cd apps/web && GITHUB_PAGES=true npx vite preview
+```
+
+Then open:
+
+```text
+http://localhost:4173/unified-knowledge-base/
+```
+
+If the preview is started without the variable it serves with base `/`, so every
+request under `/unified-knowledge-base/assets/` hits the SPA fallback and gets
+`index.html` back with `Content-Type: text/html`. The browser refuses the module
+script and the page renders blank. That looks like a broken build and is not —
+check the variable before investigating anything else.
+
+This preview is the check worth running before every Pages deploy: it is the
+only local step that exercises the subpath the workflow actually publishes to.
+
 ## Safety note
 
 Keep public GitHub Pages data synthetic. Do not build real enterprise documents, metrics, dashboards, credentials, employer-specific examples, carrier or telecom workflows, finance-planning examples, customer data, or proprietary screenshots into the static bundle.

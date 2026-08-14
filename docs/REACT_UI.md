@@ -198,6 +198,39 @@ The UI must not bypass governance. Review actions, graph data, AI enrichment, an
 
 The UI does not call Ollama directly; the backend calls Ollama and returns only review-safe enrichment payloads.
 
+## Pipeline structure
+
+The console is organised around the five governed steps, in order:
+
+```text
+1 Submit    #context-ingestion   compiler creates a candidate
+2 Enrich    #enrichment-lab      provider produces a reviewer brief
+3 Review    #review-queue        a human approves, rejects, or requests changes
+4 Publish   #published-objects   approved objects become official context
+5 Compose   #context-pack        a governed pack for an AI app
+```
+
+Then `#brain-map` and `#activity`.
+
+`src/pipeline/steps.ts` is the only place these labels, their order and their
+anchors are defined. The stepper, the side navigation and every section heading
+render from it. Adding or renaming a step means editing that file and nothing
+else — do not reintroduce a parallel list.
+
+Each step derives `locked | available | complete` from live state, and pairs a
+what-just-happened line with a fixed governance statement.
+
+## Demo mode
+
+The GitHub Pages build has no API token, so it always runs in demo mode. Demo
+mode is not a set of canned screens: `src/demo` is a browser port of
+`ukb.ai.providers.noop`, `BrainCompiler`, and the retrieval and context-pack
+services, so classification, enrichment and pack composition all really run.
+Nothing in `src/demo` may import from `src/api`.
+
+Artifacts produced this way are labelled with their provenance. Keep it that
+way — demo mode must never be mistaken for connected mode.
+
 ## Next UI iterations
 
 1. Add authentication-aware user identity.

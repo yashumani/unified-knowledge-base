@@ -18,6 +18,84 @@
   cursor: grab;
 }
 .graph-background { fill: transparent; }
+.graph-empty { fill: var(--muted); font-size: 16px; font-weight: 900; }
+.graph-canvas-column { display: grid; gap: var(--space-3); min-width: 0; }
+.graph-hint { margin: 0 0 var(--space-3); color: var(--muted); font-size: var(--fs-base); line-height: 1.5; }
+
+/* Node types were colour-only with no legend anywhere. Each swatch pairs its
+   fill with a shape cue so the encoding does not depend on hue alone. */
+.graph-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  list-style: none;
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+.graph-legend li { display: flex; align-items: center; gap: 6px; }
+.legend-swatch {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-pill);
+  background: var(--node-default);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+.legend-swatch.shape-ring { background: transparent !important; border-width: 3px; }
+.legend-swatch.shape-dashed { border-style: dashed; }
+.legend-swatch.node-source-evidence { background: var(--cyan); border-color: var(--cyan); }
+.legend-swatch.node-review-item { background: var(--amber); border-color: var(--amber); }
+.legend-swatch.node-candidate-object { background: var(--rose); border-color: var(--rose); }
+.legend-swatch.node-metric { background: var(--violet); }
+.legend-swatch.node-report { background: var(--sky); }
+.legend-swatch.node-businessrule { background: var(--green); }
+.legend-swatch.node-ai-enrichment { background: var(--node-ai); border-color: var(--node-ai); }
+
+.graph-node-list { display: grid; gap: var(--space-2); }
+.graph-node-list h3 { margin: 0; font-size: var(--fs-base); color: var(--muted); text-transform: uppercase; letter-spacing: 0.14em; }
+.graph-node-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.graph-node-list button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+}
+.graph-node-list button:hover { border-color: var(--line-strong); transform: none; box-shadow: none; }
+.graph-node-list button.is-selected { border-color: var(--select-ring); background: rgba(254, 240, 138, 0.12); }
+.graph-node-list small { color: var(--muted); font-weight: 700; }
+.node-list-label { max-width: 22ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.graph-node:focus-visible { outline: none; }
+.graph-node:focus-visible circle { stroke: var(--select-ring); stroke-width: 4; }
+
+.node-detail { display: grid; gap: var(--space-2); }
+.node-detail p { margin: 0; color: var(--text-2); line-height: 1.55; }
+.node-detail blockquote {
+  margin: 0;
+  padding-left: var(--space-3);
+  border-left: 2px solid rgba(103, 232, 249, 0.4);
+  color: var(--muted);
+  line-height: 1.5;
+  font-size: var(--fs-base);
+}
+.node-detail-brief strong { color: var(--violet-soft); }
+.node-raw summary { cursor: pointer; color: var(--muted); font-size: var(--fs-sm); font-weight: 900; }
+.node-raw pre { margin-top: var(--space-2); }
 
 .edge line { stroke: rgba(148, 163, 184, 0.3); stroke-width: 1.5; }
 .edge text {
