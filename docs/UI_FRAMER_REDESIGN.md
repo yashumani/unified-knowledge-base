@@ -117,17 +117,54 @@ apps/web/src/styles.css
 docs/UI_FRAMER_REDESIGN.md
 ```
 
+## Superseded by the pipeline-first restructure
+
+The visual language above still holds. Two of its structural choices do not,
+and were changed deliberately:
+
+- **The workflow timeline no longer lives in the hero.** It was static
+  decoration bound to no state. A sticky rail below the hero now carries a real
+  state-driven stepper plus the single next action, so it stays reachable at any
+  scroll position instead of scrolling away.
+- **The graph is no longer the first thing on the page.** It follows the five
+  steps rather than preceding them, because a first-time viewer met a dense node
+  diagram before learning what was being graphed. It is still framed as the
+  trust layer; it is now the payoff rather than the preamble.
+
+The hero was also resized to dashboard proportions. It previously reserved
+520px with a headline scaling to 7.6rem, which pushed the workflow below the
+fold — at odds with this document's own opening rule that the console is
+dashboard-led rather than a marketing landing page.
+
+See `docs/reviews/UI_PIPELINE_RESTRUCTURE_REVIEW.md`.
+
+## Styling rules
+
+```text
+tokens.css is the only file allowed to declare a raw colour literal
+new rules reference a token; no bare hex anywhere else
+spacing, radius, motion and type all have scales
+```
+
+Gate:
+
+```bash
+rg '#[0-9a-fA-F]{3,8}' apps/web/src --glob '!**/tokens.css'   # expect zero
+```
+
 ## Future UI work
 
-The next UI phase should add:
+Delivered since this document was written: request-changes UI, keyboard-
+accessible graph node list, light/dark theme *tokens* (the scale exists; only
+the dark palette is populated).
+
+Still open:
 
 ```text
 React Router routes
 review detail drawer/modal
-request-changes UI
 edit-before-approval
-keyboard-accessible graph node list
-context-pack tabs
+context-pack tabs and raw export
 persistent graph layout
-light/dark theme tokens
+a populated light palette
 ```
