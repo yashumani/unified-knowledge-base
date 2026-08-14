@@ -1,9 +1,14 @@
+/* AI review brief, validation findings, and context-pack guidance.
+ *
+ * The graph's .node-ai-enrichment fill used to live here; it now sits with the
+ * other node-type fills in graph.css. */
+
 .ai-brief, .ai-guidance {
   display: grid;
   gap: 10px;
   border: 1px solid rgba(167, 139, 250, 0.26);
-  border-radius: 18px;
-  padding: 14px;
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
   background:
     radial-gradient(circle at top right, rgba(167, 139, 250, 0.14), transparent 46%),
     rgba(15, 23, 42, 0.64);
@@ -14,18 +19,18 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  color: #ddd6fe;
+  color: var(--violet-soft);
 }
 
 .ai-brief-header span {
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: var(--fs-sm);
   font-weight: 900;
 }
 
 .finding-list {
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -33,39 +38,39 @@
 
 .finding {
   display: grid;
-  gap: 4px;
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 14px;
+  gap: var(--space-1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-xs);
   padding: 10px;
-  background: rgba(255,255,255,0.045);
+  background: rgba(255, 255, 255, 0.045);
 }
 
 .finding strong {
   width: max-content;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 0.16rem 0.48rem;
-  font-size: 0.68rem;
+  font-size: var(--fs-2xs);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 
 .finding span {
-  color: #cbd5e1;
+  color: var(--text-code);
   line-height: 1.45;
 }
 
 .finding-info strong, .finding-low strong {
-  color: #a5f3fc;
+  color: var(--cyan-soft);
   background: rgba(34, 211, 238, 0.12);
 }
 
 .finding-medium strong {
-  color: #fde68a;
+  color: var(--amber-soft);
   background: rgba(251, 191, 36, 0.13);
 }
 
 .finding-high strong, .finding-critical strong {
-  color: #fecdd3;
+  color: var(--rose-soft);
   background: rgba(251, 113, 133, 0.16);
 }
 
@@ -75,23 +80,19 @@
 }
 
 .question-stack > span {
-  color: #c7d2fe;
-  font-size: 0.86rem;
+  color: var(--soft);
+  font-size: var(--fs-base);
   line-height: 1.45;
-  padding-left: 12px;
+  padding-left: var(--space-3);
   border-left: 2px solid rgba(103, 232, 249, 0.34);
 }
 
 .ai-guidance {
-  margin: 12px 0;
-  color: #ddd6fe;
+  margin: var(--space-3) 0;
+  color: var(--violet-soft);
 }
 
 .ai-guidance span {
-  color: #dbeafe;
+  color: var(--graph-label);
   line-height: 1.5;
-}
-
-.node-ai-enrichment circle {
-  fill: #c084fc;
 }
