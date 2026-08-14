@@ -189,6 +189,80 @@
 .provider-strip dd { margin: 0; font-weight: 900; }
 .capability-list { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0 0 var(--space-4); padding: 0; }
 
+/* ---- Status, signal, confirmation, ledger ------------------------------ */
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line-strong);
+  font-size: var(--fs-xs);
+  font-weight: 900;
+  white-space: nowrap;
+}
+.tone-neutral { color: var(--muted); background: rgba(148, 163, 184, 0.1); }
+.tone-waiting { color: var(--amber-soft); border-color: rgba(251, 191, 36, 0.34); background: rgba(251, 191, 36, 0.1); }
+.tone-positive { color: var(--green-soft); border-color: rgba(52, 211, 153, 0.34); background: rgba(52, 211, 153, 0.1); }
+.tone-negative { color: var(--rose-soft); border-color: rgba(251, 113, 133, 0.36); background: rgba(251, 113, 133, 0.12); }
+.tone-caution { color: var(--accent-3); border-color: rgba(240, 171, 252, 0.34); background: rgba(240, 171, 252, 0.1); }
+
+/* Confidence is a review signal, never a score to act on, so the bar keeps one
+   neutral colour at every value and always carries its caption. */
+.review-signal { display: grid; gap: 6px; }
+.review-signal-head { display: flex; justify-content: space-between; gap: var(--space-3); font-size: var(--fs-base); }
+.review-signal-head span { color: var(--muted); }
+.review-signal-track {
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.review-signal-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--cyan), var(--violet));
+}
+.review-signal small { color: var(--muted); font-size: var(--fs-xs); }
+
+.confirm-pair { display: inline-flex; gap: var(--space-2); }
+.confirm-yes { background: linear-gradient(135deg, var(--amber), var(--accent-3)); color: var(--ink-deep); }
+.action-hint { color: var(--muted); line-height: 1.5; }
+.prior-comment {
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-xs);
+  border-left: 3px solid var(--line-strong);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-2);
+}
+.review-item-meta { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+
+.object-card-head { display: flex; justify-content: space-between; gap: var(--space-2); align-items: center; }
+.object-meta { display: grid; gap: 4px; margin: var(--space-3) 0 0; }
+.object-meta div { display: flex; justify-content: space-between; gap: var(--space-3); }
+.object-meta dt { color: var(--muted); font-size: var(--fs-sm); }
+.object-meta dd { margin: 0; font-size: var(--fs-sm); font-weight: 900; }
+
+.ledger-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.ledger-entry {
+  display: grid;
+  gap: 4px;
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-strong);
+  background: rgba(255, 255, 255, 0.035);
+}
+.ledger-entry.is-approved { border-left-color: var(--green); }
+.ledger-entry.is-rejected { border-left-color: var(--rose); }
+.ledger-entry.is-changes_requested { border-left-color: var(--accent-3); }
+.ledger-head { display: flex; gap: var(--space-3); align-items: baseline; flex-wrap: wrap; }
+.ledger-head span { color: var(--text-2); }
+.ledger-head small, .ledger-actor { color: var(--muted); font-size: var(--fs-sm); }
+.ledger-comment { margin: var(--space-2) 0 0; color: var(--text-2); font-style: italic; }
+
 .advisory {
   margin: 0;
   padding: var(--space-3);
