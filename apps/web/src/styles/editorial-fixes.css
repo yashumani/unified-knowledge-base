@@ -11,3 +11,30 @@
 @supports not (overflow: clip) {
   .editorial-ticker { overflow-x: hidden; }
 }
+
+@media (max-width: 680px) {
+  .ticker-track {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    max-width: 100%;
+    transform: none !important;
+    animation: none;
+  }
+
+  .ticker-track span {
+    display: flex;
+    justify-content: space-between;
+    min-width: 0;
+    padding: 0.7rem;
+    border-right: 1px solid var(--paper-bright);
+    border-bottom: 1px solid var(--paper-bright);
+    font-size: 0.75rem;
+    line-height: 1.15;
+    white-space: normal;
+  }
+
+  .ticker-track span:nth-child(2n) { border-right: 0; }
+  .ticker-track span:nth-child(n + 8) { display: none; }
+  .ticker-track span:nth-child(7) { grid-column: 1 / -1; border-right: 0; }
+}
