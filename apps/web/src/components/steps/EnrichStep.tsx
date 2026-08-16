@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ProvenanceNote } from "../common/ProvenanceNote";
 import type { AIProviderStatus, ReviewItem } from "../../types";
 
@@ -28,14 +28,27 @@ export function EnrichStep({
   demoMode: boolean;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(items[0]?.id ?? null);
+  const previousNewestId = useRef<string | null>(items[0]?.id ?? null);
 
   useEffect(() => {
-    if (!items.length) {
+    const newestId = items[0]?.id ?? null;
+    if (!newestId) {
+      previousNewestId.current = null;
       setSelectedId(null);
       return;
     }
+
+    // Submissions are inserted at the front of the queue. Keep the reviewer on
+    // the object they just created instead of silently leaving an older seeded
+    // candidate selected.
+    if (newestId !== previousNewestId.current) {
+      previousNewestId.current = newestId;
+      setSelectedId(newestId);
+      return;
+    }
+
     if (!selectedId || !items.some((item) => item.id === selectedId)) {
-      setSelectedId(items[0].id);
+      setSelectedId(newestId);
     }
   }, [items, selectedId]);
 
@@ -144,9 +157,6 @@ export function EnrichStep({
                       ))}
                     </ul>
                   )}
-                  {/* Rendered as advice, never as a button that acts. The
-                      platform rule is that a model suggests and a human
-                      decides. */}
                   <p className="advisory">
                     <strong>AI suggests: {enrichment.review_brief.recommended_action.replace(/_/g, " ")}</strong>
                     {" — advisory only. A human still makes the decision in step 3."}
