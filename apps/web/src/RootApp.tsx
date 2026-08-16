@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import AdvancedApp from "./App";
 import { GuidedDemo } from "./components/GuidedDemo";
+import { WorkspaceApp } from "./components/workspace/WorkspaceApp";
 
-type Experience = "guided" | "advanced";
+export type Experience = "workspace" | "guided" | "advanced";
 
 function experienceFromLocation(): Experience {
-  if (typeof window === "undefined") return "guided";
-  return new URLSearchParams(window.location.search).get("view") === "advanced"
-    ? "advanced"
-    : "guided";
+  if (typeof window === "undefined") return "workspace";
+  const view = new URLSearchParams(window.location.search).get("view");
+  if (view === "advanced") return "advanced";
+  if (view === "guided") return "guided";
+  return "workspace";
 }
 
 export default function RootApp() {
@@ -22,13 +24,13 @@ export default function RootApp() {
 
   function navigate(next: Experience) {
     const url = new URL(window.location.href);
-    if (next === "advanced") {
-      url.searchParams.set("view", "advanced");
-      url.hash = "";
+    url.searchParams.delete("page");
+    if (next === "advanced" || next === "guided") {
+      url.searchParams.set("view", next);
     } else {
       url.searchParams.delete("view");
-      url.hash = "";
     }
+    url.hash = "";
     window.history.pushState({}, "", url);
     setExperience(next);
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -41,13 +43,33 @@ export default function RootApp() {
         <button
           type="button"
           className="experience-switcher"
-          onClick={() => navigate("guided")}
+          onClick={() => navigate("workspace")}
         >
-          ← Guided demo
+          ← Dashboard
         </button>
       </div>
     );
   }
 
-  return <GuidedDemo onOpenAdvanced={() => navigate("advanced")} />;
+  if (experience === "guided") {
+    return (
+      <div className="guided-experience-shell">
+        <GuidedDemo onOpenAdvanced={() => navigate("advanced")} />
+        <button
+          type="button"
+          className="experience-switcher"
+          onClick={() => navigate("workspace")}
+        >
+          ← Dashboard
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <WorkspaceApp
+      onOpenAdvanced={() => navigate("advanced")}
+      onOpenGuided={() => navigate("guided")}
+    />
+  );
 }
