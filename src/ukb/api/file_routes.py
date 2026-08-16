@@ -3,6 +3,8 @@ from __future__ import annotations
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from ukb.ai.service import AIEnrichmentService
+from ukb.api.search_routes import router as search_router
+from ukb.api.web_routes import router as web_connector_router
 from ukb.config import get_settings
 from ukb.ingestion import FileIngestionError, FileIngestionResponse, FileIngestionService
 from ukb.models import AuditEvent, Sensitivity, SourceEvidence
@@ -21,6 +23,8 @@ file_ingestion_service = FileIngestionService(
 )
 
 router = APIRouter(tags=["ingestion"])
+router.routes.extend(search_router.routes)
+router.routes.extend(web_connector_router.routes)
 
 
 @router.post("/ingestion/files", response_model=FileIngestionResponse)

@@ -1,45 +1,57 @@
 from __future__ import annotations
 
-from ukb.models import KnowledgeObject
+from ukb.config import Settings, get_settings
+from ukb.models import KnowledgeObject, ReviewStatus
+from ukb.search import SearchIndex, SearchIndexStatus, SearchRequest, SearchResponse, SearchResult, build_search_index
+from ukb.search.base import approved_documents
 from ukb.store import BrainStore
 
 
 class RetrievalService:
-    """Simple keyword retrieval for the scaffold.
+    """Retrieve only published knowledge through a rebuildable local index."""
 
-    Production should replace this with permission-aware hybrid retrieval:
-    keyword + vector + graph traversal + semantic layer lookups.
-    """
-
-    def __init__(self, store: BrainStore):
+    def __init__(self, store: BrainStore, *, settings: Settings | None = None, index: SearchIndex | None = None):
         self.store = store
+        self.settings = settings or get_settings()
+        self.index = index or build_search_index(self.settings)
+        self._sync_key: tuple[tuple[str, str], ...] | None = None
 
     def search(self, query: str, domains: list[str] | None = None, limit: int = 5) -> list[KnowledgeObject]:
-        normalized_query = query.lower()
-        domain_filter = set(domains or [])
+        response = self.search_response(SearchRequest(query=query, domains=domains or [], limit=limit))
+        return [result.object for result in response.results]
 
-        candidates = []
-        for obj in self.store.knowledge_objects.values():
-            if domain_filter and obj.domain not in domain_filter:
+    def search_response(self, request: SearchRequest) -> SearchResponse:
+        self._ensure_synced()
+        results: list[SearchResult] = []
+        for hit in self.index.search(request):
+            obj = self.store.knowledge_objects.get(hit.object_id)
+            if obj is None or obj.status != ReviewStatus.published:
                 continue
+            results.append(SearchResult(hit=hit, object=obj))
+            if len(results) >= request.limit:
+                break
+        return SearchResponse(query=request.query, results=results, index=self.index.status())
 
-            haystack = " ".join(
-                [
-                    obj.title,
-                    obj.summary,
-                    obj.type.value,
-                    obj.domain,
-                    str(obj.attributes),
-                ]
-            ).lower()
+    def rebuild(self) -> SearchIndexStatus:
+        objects = list(self.store.knowledge_objects.values())
+        status = self.index.rebuild(approved_documents(objects))
+        self._sync_key = self._key(objects)
+        return status
 
-            score = self._score(normalized_query, haystack)
-            if score > 0:
-                candidates.append((score, obj))
+    def status(self) -> SearchIndexStatus:
+        return self.index.status()
 
-        candidates.sort(key=lambda item: item[0], reverse=True)
-        return [obj for _, obj in candidates[:limit]]
+    def close(self) -> None:
+        self.index.close()
 
-    def _score(self, query: str, haystack: str) -> int:
-        terms = [term for term in query.split() if len(term) > 2]
-        return sum(1 for term in terms if term in haystack)
+    def _ensure_synced(self) -> None:
+        if not self.settings.search_sync_on_query:
+            return
+        objects = list(self.store.knowledge_objects.values())
+        key = self._key(objects)
+        if key != self._sync_key:
+            self.index.rebuild(approved_documents(objects))
+            self._sync_key = key
+
+    def _key(self, objects: list[KnowledgeObject]) -> tuple[tuple[str, str], ...]:
+        return tuple(sorted((obj.id, obj.updated_at.isoformat()) for obj in objects))

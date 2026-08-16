@@ -9,7 +9,7 @@ COPY pyproject.toml README.md alembic.ini ./
 COPY src ./src
 COPY migrations ./migrations
 
-RUN pip install --no-cache-dir -e ".[mcp]"
+RUN pip install --no-cache-dir -e ".[mcp,search]"
 
 EXPOSE 8000
 
