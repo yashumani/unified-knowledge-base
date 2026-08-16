@@ -12,6 +12,13 @@
   .editorial-ticker { overflow-x: hidden; }
 }
 
+.activity-story .section-shell,
+.activity-story .section-heading,
+.activity-story .section-heading > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
 @media (max-width: 680px) {
   .ticker-track {
     display: grid;
@@ -37,4 +44,9 @@
   .ticker-track span:nth-child(2n) { border-right: 0; }
   .ticker-track span:nth-child(n + 8) { display: none; }
   .ticker-track span:nth-child(7) { grid-column: 1 / -1; border-right: 0; }
+
+  .activity-story .section-heading > * {
+    width: 100%;
+    overflow-wrap: anywhere;
+  }
 }
