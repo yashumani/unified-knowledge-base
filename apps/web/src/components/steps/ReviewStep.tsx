@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ConfirmAction } from "../common/ConfirmAction";
 import { ReviewSignal } from "../common/ReviewSignal";
 import { StatusPill } from "../common/StatusPill";
@@ -22,14 +22,27 @@ export function ReviewStep({
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(items[0]?.id ?? null);
   const [comment, setComment] = useState("");
+  const previousNewestId = useRef<string | null>(items[0]?.id ?? null);
 
   useEffect(() => {
-    if (!items.length) {
+    const newestId = items[0]?.id ?? null;
+    if (!newestId) {
+      previousNewestId.current = null;
       setSelectedId(null);
       return;
     }
+
+    // Keep the end-to-end thread intact: when submission inserts a new item at
+    // the front of the queue, review that item instead of retaining an older
+    // seeded selection.
+    if (newestId !== previousNewestId.current) {
+      previousNewestId.current = newestId;
+      setSelectedId(newestId);
+      return;
+    }
+
     if (!selectedId || !items.some((item) => item.id === selectedId)) {
-      setSelectedId(items[0].id);
+      setSelectedId(newestId);
     }
   }, [items, selectedId]);
 
