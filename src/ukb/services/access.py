@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Protocol, runtime_checkable
+
 from ukb.models import KnowledgeObject, Sensitivity
 
 SENSITIVITY_ORDER: dict[Sensitivity, int] = {
@@ -10,9 +12,13 @@ SENSITIVITY_ORDER: dict[Sensitivity, int] = {
 }
 
 
-class AccessDecisionDetail:
-    """Result of applying the access policy to a candidate object set."""
+@runtime_checkable
+class PrincipalLike(Protocol):
+    subject: str
+    clearance: Sensitivity
 
+
+class AccessDecisionDetail:
     def __init__(
         self,
         *,
@@ -26,13 +32,6 @@ class AccessDecisionDetail:
 
     @property
     def decision(self) -> str:
-        """Deny only when the policy blocked every object that actually matched.
-
-        An empty result with nothing blocked is not a denial: the brain simply
-        has no context. Distinguishing those two cases matters, because
-        "denied" must mean a policy stopped something.
-        """
-
         if self.denied_count and not self.allowed_objects:
             return "denied"
         return "allowed"
@@ -43,16 +42,7 @@ class AccessDecisionDetail:
 
 
 class AccessPolicyService:
-    """Sensitivity-based filtering applied before context is composed.
-
-    Security filtering happens at retrieval time. The runtime never retrieves
-    everything and then asks a model to keep a secret.
-
-    This scaffold has no identity provider, so callers receive the configured
-    default clearance unless an explicit per-user clearance is set. Wire
-    ``clearance_for`` to SSO/OIDC group claims before pointing this at real
-    data; the filtering seam below is the place production ACLs plug into.
-    """
+    """Apply clearance before retrieval results reach any model or adapter."""
 
     def __init__(
         self,
@@ -70,29 +60,41 @@ class AccessPolicyService:
             user_clearances=cls._parse_clearance_map(settings.user_clearances),
         )
 
-    def clearance_for(self, user_id: str) -> Sensitivity:
-        return self.user_clearances.get(user_id, self.default_clearance)
+    def subject(self, principal: str | PrincipalLike) -> str:
+        return principal if isinstance(principal, str) else principal.subject
 
-    def can_access(self, user_id: str, obj: KnowledgeObject) -> bool:
-        clearance = self.clearance_for(user_id)
+    def clearance_for(self, principal: str | PrincipalLike) -> Sensitivity:
+        if not isinstance(principal, str):
+            return principal.clearance
+        return self.user_clearances.get(principal, self.default_clearance)
+
+    def can_access(self, principal: str | PrincipalLike, obj: KnowledgeObject) -> bool:
+        clearance = self.clearance_for(principal)
         return SENSITIVITY_ORDER[obj.sensitivity] <= SENSITIVITY_ORDER[clearance]
+
+    def can_access_sensitivity(
+        self,
+        principal: str | PrincipalLike,
+        sensitivity: Sensitivity,
+    ) -> bool:
+        return SENSITIVITY_ORDER[sensitivity] <= SENSITIVITY_ORDER[self.clearance_for(principal)]
 
     def filter_objects(
         self,
-        user_id: str,
+        principal: str | PrincipalLike,
         objects: list[KnowledgeObject],
     ) -> AccessDecisionDetail:
         allowed: list[KnowledgeObject] = []
         denied = 0
         for obj in objects:
-            if self.can_access(user_id, obj):
+            if self.can_access(principal, obj):
                 allowed.append(obj)
             else:
                 denied += 1
         return AccessDecisionDetail(
             allowed_objects=allowed,
             denied_count=denied,
-            clearance=self.clearance_for(user_id),
+            clearance=self.clearance_for(principal),
         )
 
     @staticmethod
@@ -104,11 +106,6 @@ class AccessPolicyService:
 
     @classmethod
     def _parse_clearance_map(cls, raw: str) -> dict[str, Sensitivity]:
-        """Parse ``user:level,user2:level`` into a clearance map.
-
-        Malformed entries are skipped rather than silently widening access.
-        """
-
         clearances: dict[str, Sensitivity] = {}
         for entry in raw.split(","):
             entry = entry.strip()
@@ -116,11 +113,10 @@ class AccessPolicyService:
                 continue
             user_id, _, level = entry.partition(":")
             user_id = user_id.strip()
-            level = level.strip().lower()
             if not user_id:
                 continue
             try:
-                clearances[user_id] = Sensitivity(level)
+                clearances[user_id] = Sensitivity(level.strip().lower())
             except ValueError:
                 continue
         return clearances
