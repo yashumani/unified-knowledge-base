@@ -13,6 +13,7 @@ import "./styles/editorial-fixes.css";
 // The guided layer is scoped and loaded after the advanced design so its
 // three-step wrapper can coexist with the complete console.
 import "./styles/guided-demo.css";
+import "./styles/guided-polish.css";
 
 createRoot(document.getElementById("root") as HTMLElement).render(
   <StrictMode>
