@@ -1,0 +1,15 @@
+/* Final guided-experience polish discovered during screenshot review. */
+
+.guided-page textarea,
+.guided-page input {
+  font-weight: 400;
+}
+
+/* A missing public backend is expected on GitHub Pages. Keep the diagnostic
+   visible, but present it as a runtime note rather than a product failure. */
+.guided-demo-notice + .guided-error {
+  border-style: dashed;
+  background: var(--paper-deep);
+  color: var(--black-soft);
+  font-size: 0.85rem;
+}

@@ -13,23 +13,27 @@ import type {
   ReviewDecision,
   ReviewItem
 } from "../types";
+import type {
+  BatchIngestionResult,
+  ConnectorIngestionRequest,
+  CrawlIngestionRequest,
+  DriveIngestionRequest,
+  IngestionCapabilities,
+  IngestionPreview
+} from "../ingestionTypes";
 
 const configuredApiBase = import.meta.env.VITE_UKB_API_BASE_URL;
 export const API_BASE = configuredApiBase && configuredApiBase.trim().length > 0
   ? configuredApiBase.replace(/\/$/, "")
   : "http://localhost:8000";
 
-// The API requires a token on every route except /health. This is a
-// single-tenant development convenience: a Vite env var is baked into the
-// client bundle at build time, so it is only ever safe for a local or
-// trusted-network deployment. A public deployment must move to per-user
-// sessions (SSO/OIDC) rather than shipping a shared secret to the browser.
 const configuredApiToken = import.meta.env.VITE_UKB_API_TOKEN;
 export const API_TOKEN = configuredApiToken?.trim() ?? "";
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
-  if (!headers.has("Content-Type") && init.body) {
+  const isFormData = typeof FormData !== "undefined" && init.body instanceof FormData;
+  if (!headers.has("Content-Type") && init.body && !isFormData) {
     headers.set("Content-Type", "application/json");
   }
   if (API_TOKEN && !headers.has("Authorization")) {
@@ -66,6 +70,48 @@ export const brainClient = {
     }),
   submitContext: (payload: IngestionPayload) =>
     request<ReviewItem>("/ingestion/submissions", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  getIngestionCapabilities: () =>
+    request<IngestionCapabilities>("/ingestion/capabilities"),
+  previewFiles: (form: FormData) =>
+    request<IngestionPreview>("/ingestion/files/preview", {
+      method: "POST",
+      body: form
+    }),
+  submitFiles: (form: FormData) =>
+    request<BatchIngestionResult>("/ingestion/files/submit", {
+      method: "POST",
+      body: form
+    }),
+  previewDriveFolder: (payload: DriveIngestionRequest) =>
+    request<IngestionPreview>("/ingestion/google-drive/preview", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  submitDriveFolder: (payload: DriveIngestionRequest) =>
+    request<BatchIngestionResult>("/ingestion/google-drive/submit", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  previewCrawl: (payload: CrawlIngestionRequest) =>
+    request<IngestionPreview>("/ingestion/crawl4ai/preview", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  submitCrawl: (payload: CrawlIngestionRequest) =>
+    request<BatchIngestionResult>("/ingestion/crawl4ai/submit", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  previewConnector: (payload: ConnectorIngestionRequest) =>
+    request<IngestionPreview>("/ingestion/connectors/preview", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  submitConnector: (payload: ConnectorIngestionRequest) =>
+    request<BatchIngestionResult>("/ingestion/connectors/submit", {
       method: "POST",
       body: JSON.stringify(payload)
     }),
