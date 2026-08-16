@@ -37,3 +37,11 @@ jobs:
         env:
           GITHUB_PAGES: "true"
         run: npm run web:build
+
+      - name: Upload rendered bundle for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: ukb-editorial-ui
+          path: apps/web/dist
+          if-no-files-found: error
+          retention-days: 7
