@@ -1,0 +1,27 @@
+name: Export foundation source
+
+on:
+  push:
+    branches: ["agent/search-route-registration-fix"]
+    paths:
+      - ".github/workflows/export-foundation-source.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/search-route-registration-fix
+          fetch-depth: 0
+      - name: Create source archive
+        run: git archive --format=zip --output=/tmp/ukb-foundation-source.zip HEAD
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ukb-foundation-source
+          path: /tmp/ukb-foundation-source.zip
+          retention-days: 1
