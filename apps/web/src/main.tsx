@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import App from "./App";
+import RootApp from "./RootApp";
 import "./styles/tokens.css";
 import "./styles/base.css";
 import "./styles/pipeline.css";
@@ -10,9 +10,12 @@ import "./styles/ai-enrichment.css";
 // into the editorial one-page system without duplicating feature components.
 import "./styles/editorial.css";
 import "./styles/editorial-fixes.css";
+// The guided layer is scoped and loaded after the advanced design so its
+// three-step wrapper can coexist with the complete console.
+import "./styles/guided-demo.css";
 
 createRoot(document.getElementById("root") as HTMLElement).render(
   <StrictMode>
-    <App />
+    <RootApp />
   </StrictMode>
 );
