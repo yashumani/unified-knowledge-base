@@ -9,6 +9,7 @@ import "./styles/ai-enrichment.css";
 // Loaded last because it deliberately re-themes every existing console surface
 // into the editorial one-page system without duplicating feature components.
 import "./styles/editorial.css";
+import "./styles/editorial-fixes.css";
 
 createRoot(document.getElementById("root") as HTMLElement).render(
   <StrictMode>
