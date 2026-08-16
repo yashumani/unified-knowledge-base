@@ -1,0 +1,13 @@
+/* Responsive safeguards discovered by browser-rendered PR validation. */
+
+.editorial-ticker {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: clip;
+  contain: layout paint;
+  isolation: isolate;
+}
+
+@supports not (overflow: clip) {
+  .editorial-ticker { overflow-x: hidden; }
+}
