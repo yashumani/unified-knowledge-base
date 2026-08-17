@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from ukb.models import utc_now
 from ukb.search.base import SearchDocument, SearchHit, SearchIndexStatus, SearchRequest
@@ -23,7 +23,7 @@ class ZvecSearchIndex:
             import zvec  # type: ignore[import-not-found]
         except ImportError as exc:
             raise ZvecUnavailableError("Install the UKB search extra to enable Zvec.") from exc
-        self.zvec = zvec
+        self.zvec: Any = zvec
         self.path = Path(path).expanduser().resolve()
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.collection_name = collection_name
@@ -31,7 +31,7 @@ class ZvecSearchIndex:
         self.indexed_ids: set[str] = set()
         self.last_synced_at: datetime | None = None
         self.last_error: str | None = None
-        self.collection = self._open_or_create()
+        self.collection: Any = self._open_or_create()
 
     def rebuild(self, documents: list[SearchDocument]) -> SearchIndexStatus:
         current_ids = {document.id for document in documents}
@@ -53,7 +53,7 @@ class ZvecSearchIndex:
 
     def search(self, request: SearchRequest) -> list[SearchHit]:
         try:
-            results = self.collection.query(
+            raw_results: Any = self.collection.query(
                 queries=self.zvec.Query(
                     field_name="search_text",
                     fts=self.zvec.Fts(match_string=request.query),
@@ -62,6 +62,7 @@ class ZvecSearchIndex:
                 topk=min(request.limit * 8, 300),
                 output_fields=["title", "object_id", "chunk_id", "document_kind", "authority_tier"],
             )
+            results = cast(list[Any], list(raw_results))
         except Exception as exc:
             self.last_error = str(exc)
             raise ZvecUnavailableError(f"Zvec query failed: {exc}") from exc
@@ -69,7 +70,8 @@ class ZvecSearchIndex:
         query = self._normalize(request.query)
         hits: list[SearchHit] = []
         for result in results:
-            fields = dict(result.fields or {})
+            raw_fields: Any = getattr(result, "fields", None)
+            fields: dict[str, Any] = dict(raw_fields or {})
             title = self._normalize(str(fields.get("title", "")))
             object_id = str(fields.get("object_id", ""))
             chunk_id = str(fields.get("chunk_id", "")).strip() or None
@@ -79,10 +81,10 @@ class ZvecSearchIndex:
             if str(fields.get("document_kind", "")) == "evidence_chunk":
                 reasons.append("evidence_chunk")
             authority = int(fields.get("authority_tier", 3) or 3)
-            score = float(result.score or 0.0) + max(0, 6 - authority) * 0.02
+            score = float(getattr(result, "score", 0.0) or 0.0) + max(0, 6 - authority) * 0.02
             hits.append(
                 SearchHit(
-                    document_id=str(result.id),
+                    document_id=str(getattr(result, "id", "")),
                     object_id=object_id,
                     chunk_id=chunk_id,
                     score=score,
