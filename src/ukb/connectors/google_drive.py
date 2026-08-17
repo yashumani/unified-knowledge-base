@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from collections import deque
 from dataclasses import dataclass
+from typing import Any
 from urllib.parse import quote, urlparse
 
 import httpx
@@ -95,7 +96,10 @@ class GoogleDriveConnector:
                             path=f"{parent_path}/{name}",
                             data=data,
                             content_type=output_type,
-                            source_uri=str(metadata.get("webViewLink") or f"https://drive.google.com/open?id={file_id}"),
+                            source_uri=str(
+                                metadata.get("webViewLink")
+                                or f"https://drive.google.com/open?id={file_id}"
+                            ),
                         )
                     )
         if queue:
@@ -119,11 +123,11 @@ class GoogleDriveConnector:
             return value
         raise GoogleDriveConnectorError("The Google Drive folder URL does not contain a folder ID.")
 
-    def _list_children(self, client: httpx.Client, folder_id: str) -> list[dict]:
-        files: list[dict] = []
+    def _list_children(self, client: httpx.Client, folder_id: str) -> list[dict[str, Any]]:
+        files: list[dict[str, Any]] = []
         page_token: str | None = None
         while True:
-            params = {
+            params: dict[str, str | int] = {
                 "q": f"'{folder_id}' in parents and trashed = false",
                 "fields": "nextPageToken,files(id,name,mimeType,size,modifiedTime,webViewLink)",
                 "pageSize": 100,
@@ -137,11 +141,15 @@ class GoogleDriveConnector:
                 raise GoogleDriveConnectorError(
                     f"Drive list request failed ({response.status_code}): {response.text[:300]}"
                 )
-            payload = response.json()
+            raw_payload: Any = response.json()
+            if not isinstance(raw_payload, dict):
+                raise GoogleDriveConnectorError("Drive list response was not an object.")
+            payload: dict[str, Any] = raw_payload
             raw_files = payload.get("files", [])
             if isinstance(raw_files, list):
                 files.extend(item for item in raw_files if isinstance(item, dict))
-            page_token = payload.get("nextPageToken")
+            raw_page_token = payload.get("nextPageToken")
+            page_token = str(raw_page_token) if raw_page_token else None
             if not page_token:
                 return files
 
