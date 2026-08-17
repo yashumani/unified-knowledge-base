@@ -46,21 +46,28 @@ class GovernanceService:
             statuses={ReviewStatus.approved, ReviewStatus.publication_pending}
         )
 
-    def approve(self, review_item_id: str, decision: ReviewDecision, *, actor: str) -> ReviewItem:
+    def approve(
+        self,
+        review_item_id: str,
+        decision: ReviewDecision,
+        *,
+        actor: str | None = None,
+    ) -> ReviewItem:
+        resolved_actor = actor or decision.reviewed_by or "unknown-reviewer"
         item = self._get(review_item_id)
         self._check_revision(item, decision.expected_revision)
         self._require_state(item, {ReviewStatus.human_review_required})
         item.status = ReviewStatus.approved
         item.candidate_object.status = ReviewStatus.approved
-        item.reviewer = actor
-        item.approved_by = actor
+        item.reviewer = resolved_actor
+        item.approved_by = resolved_actor
         item.approved_at = utc_now()
         item.review_comment = decision.comment
         self._touch(item)
         self.store.update_review_item(item)
         self._audit(
             "review_approved",
-            actor,
+            resolved_actor,
             item.id,
             {"comment": decision.comment, "revision": item.revision},
         )
@@ -71,8 +78,9 @@ class GovernanceService:
         review_item_id: str,
         decision: PublishDecision,
         *,
-        actor: str,
+        actor: str | None = None,
     ) -> GovernanceTransition:
+        resolved_actor = actor or decision.published_by or "unknown-publisher"
         item = self._get(review_item_id)
         self._check_revision(item, decision.expected_revision)
         self._require_state(item, {ReviewStatus.approved, ReviewStatus.publication_pending})
@@ -81,7 +89,7 @@ class GovernanceService:
 
         item.status = ReviewStatus.published
         item.candidate_object.status = ReviewStatus.published
-        item.candidate_object.published_by = actor
+        item.candidate_object.published_by = resolved_actor
         item.candidate_object.published_at = utc_now()
         item.candidate_object.updated_at = utc_now()
         self._touch(item)
@@ -96,13 +104,13 @@ class GovernanceService:
                     relationship_type=relationship.type,
                     confidence=relationship.confidence,
                     status=ReviewStatus.published,
-                    approved_by=actor,
+                    approved_by=resolved_actor,
                 )
             )
 
         self._audit(
             "knowledge_published",
-            actor,
+            resolved_actor,
             item.id,
             {
                 "published_object_id": published.id,
@@ -113,7 +121,14 @@ class GovernanceService:
         )
         return GovernanceTransition(item=item, published_object=published)
 
-    def reject(self, review_item_id: str, decision: ReviewDecision, *, actor: str) -> ReviewItem:
+    def reject(
+        self,
+        review_item_id: str,
+        decision: ReviewDecision,
+        *,
+        actor: str | None = None,
+    ) -> ReviewItem:
+        resolved_actor = actor or decision.reviewed_by or "unknown-reviewer"
         item = self._get(review_item_id)
         self._check_revision(item, decision.expected_revision)
         self._require_state(
@@ -124,13 +139,13 @@ class GovernanceService:
             raise GovernanceValidationError("A rejection comment is required.")
         item.status = ReviewStatus.rejected
         item.candidate_object.status = ReviewStatus.rejected
-        item.reviewer = actor
+        item.reviewer = resolved_actor
         item.review_comment = decision.comment
         self._touch(item)
         self.store.update_review_item(item)
         self._audit(
             "review_rejected",
-            actor,
+            resolved_actor,
             item.id,
             {"comment": decision.comment, "revision": item.revision},
         )
@@ -141,8 +156,9 @@ class GovernanceService:
         review_item_id: str,
         decision: ReviewDecision,
         *,
-        actor: str,
+        actor: str | None = None,
     ) -> ReviewItem:
+        resolved_actor = actor or decision.reviewed_by or "unknown-reviewer"
         item = self._get(review_item_id)
         self._check_revision(item, decision.expected_revision)
         self._require_state(item, {ReviewStatus.human_review_required})
@@ -150,13 +166,13 @@ class GovernanceService:
             raise GovernanceValidationError("A change-request comment is required.")
         item.status = ReviewStatus.changes_requested
         item.candidate_object.status = ReviewStatus.changes_requested
-        item.reviewer = actor
+        item.reviewer = resolved_actor
         item.review_comment = decision.comment
         self._touch(item)
         self.store.update_review_item(item)
         self._audit(
             "review_changes_requested",
-            actor,
+            resolved_actor,
             item.id,
             {"comment": decision.comment, "revision": item.revision},
         )
@@ -167,11 +183,15 @@ class GovernanceService:
         review_item_id: str,
         request: ReviewRevisionRequest,
         *,
-        actor: str,
+        actor: str | None = None,
     ) -> ReviewItem:
+        resolved_actor = actor or "unknown-editor"
         item = self._get(review_item_id)
         self._check_revision(item, request.expected_revision)
-        self._require_state(item, {ReviewStatus.changes_requested})
+        self._require_state(
+            item,
+            {ReviewStatus.changes_requested, ReviewStatus.human_review_required},
+        )
         candidate = item.candidate_object
         if request.title is not None:
             candidate.title = request.title
@@ -190,7 +210,7 @@ class GovernanceService:
         self.store.update_review_item(item)
         self._audit(
             "review_resubmitted",
-            actor,
+            resolved_actor,
             item.id,
             {"comment": request.comment, "revision": item.revision},
         )

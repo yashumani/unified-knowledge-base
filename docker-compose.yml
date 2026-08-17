@@ -1,22 +1,76 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: unified-knowledge-base-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ukb
+      POSTGRES_USER: ukb
+      POSTGRES_PASSWORD: ${UKB_POSTGRES_PASSWORD:-ukb-local-change-me}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ukb -d ukb"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [ukb_internal]
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: unified-knowledge-base-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    networks: [ukb_internal]
+
+  crawl4ai:
+    image: unclecode/crawl4ai:0.8.8
+    container_name: unified-knowledge-base-crawl4ai
+    restart: unless-stopped
+    expose:
+      - "11235"
+    shm_size: "1gb"
+    networks: [ukb_internal]
+
   api:
     build: .
     container_name: unified-knowledge-base-api
+    restart: unless-stopped
     ports:
       - "8000:8000"
     env_file:
       - .env
     environment:
-      # Inside Docker Compose, the API reaches Ollama by service name.
-      - UKB_AI_PROVIDER=ollama
-      - UKB_AI_MODE=local_ai
-      - UKB_AI_BASE_URL=http://ollama:11434
-      - UKB_AI_CHAT_MODEL=${UKB_AI_CHAT_MODEL:-llama3.1}
-      - UKB_AI_EMBEDDING_MODEL=${UKB_AI_EMBEDDING_MODEL:-embeddinggemma}
+      UKB_ENVIRONMENT: local
+      UKB_STORE_BACKEND: sqlalchemy
+      UKB_DATABASE_URL: postgresql+psycopg://ukb:${UKB_POSTGRES_PASSWORD:-ukb-local-change-me}@postgres:5432/ukb
+      UKB_OBJECT_STORE_URL: file:///app/.ukb/object-store
+      UKB_CREATE_SCHEMA_ON_STARTUP: "true"
+      UKB_SEARCH_BACKEND: ${UKB_SEARCH_BACKEND:-zvec}
+      UKB_ZVEC_PATH: /app/.ukb/zvec/approved-knowledge-v2
+      UKB_AI_PROVIDER: ollama
+      UKB_AI_MODE: local_ai
+      UKB_AI_BASE_URL: http://ollama:11434
+      UKB_AI_CHAT_MODEL: ${UKB_AI_CHAT_MODEL:-llama3.1}
+      UKB_AI_EMBEDDING_MODEL: ${UKB_AI_EMBEDDING_MODEL:-embeddinggemma}
+      UKB_CRAWL4AI_BASE_URL: http://crawl4ai:11235
+      UKB_CRAWL4AI_ENABLED: ${UKB_CRAWL4AI_ENABLED:-false}
+      UKB_WEB_ALLOWED_HOSTS: ${UKB_WEB_ALLOWED_HOSTS:-}
+      UKB_GOOGLE_DRIVE_ENABLED: ${UKB_GOOGLE_DRIVE_ENABLED:-false}
+      UKB_GOOGLE_DRIVE_ACCESS_TOKEN: ${UKB_GOOGLE_DRIVE_ACCESS_TOKEN:-}
     volumes:
-      - ./.ukb:/app/.ukb
+      - ukb-runtime:/app/.ukb
     depends_on:
-      - ollama
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+      crawl4ai:
+        condition: service_started
+    networks: [ukb_internal]
 
   web:
     build:
@@ -26,28 +80,18 @@ services:
     ports:
       - "5173:5173"
     environment:
-      - VITE_UKB_API_BASE_URL=http://localhost:8000
+      VITE_UKB_API_BASE_URL: http://localhost:8000
+      VITE_UKB_API_TOKEN: ${UKB_API_TOKEN:-dev-token-change-me}
     depends_on:
-      - api
-
-  ollama:
-    image: ollama/ollama:latest
-    container_name: unified-knowledge-base-ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama-models:/root/.ollama
+      api:
+        condition: service_healthy
+    networks: [ukb_internal]
 
 volumes:
+  postgres-data:
   ollama-models:
+  ukb-runtime:
 
-# Future production services:
-# postgres:
-#   image: postgres:16
-#   environment:
-#     POSTGRES_DB: ukb
-#     POSTGRES_USER: ukb
-#     POSTGRES_PASSWORD: change-me
-#
-# redis:
-#   image: redis:7
+networks:
+  ukb_internal:
+    name: ukb_internal

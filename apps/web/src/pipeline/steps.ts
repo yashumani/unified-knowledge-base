@@ -1,24 +1,16 @@
 import { GOVERNANCE_MEANING, LOCKED_REASON } from "./copy";
 import type { PipelineSnapshot, StepDefinition } from "./types";
 
-/** Candidates a human still has to decide on. */
 export const pendingItems = (s: PipelineSnapshot) =>
   s.reviewItems.filter((item) => item.status === "human_review_required");
-
-/** Candidates sent back for rework; still live, not yet decided. */
 export const changesRequestedItems = (s: PipelineSnapshot) =>
   s.reviewItems.filter((item) => item.status === "changes_requested");
-
+export const allCandidates = (s: PipelineSnapshot) => [...s.reviewItems, ...s.approvedItems];
 export const unenrichedItems = (s: PipelineSnapshot) =>
-  s.reviewItems.filter((item) => !item.ai_enrichment);
+  allCandidates(s).filter((item) => !item.ai_enrichment);
 
 const plural = (n: number, one: string, many = `${one}s`) => (n === 1 ? one : many);
 
-/**
- * The five stages of the governed pipeline, and the only place their order,
- * naming and anchors are defined. The stepper, the side navigation and every
- * section header render from this array, so they cannot drift apart.
- */
 export const STEPS: readonly StepDefinition[] = [
   {
     id: "submit",
@@ -28,24 +20,23 @@ export const STEPS: readonly StepDefinition[] = [
     category: "Context ingestion",
     sectionId: "context-ingestion",
     governanceMeaning: GOVERNANCE_MEANING.submit,
-    // Never locked: this is how anything enters the pipeline at all.
     progress: (s) =>
-      s.reviewItems.length > 0 || s.objects.length > 0 || s.ledger.length > 0
+      allCandidates(s).length > 0 || s.objects.length > 0 || s.ledger.length > 0
         ? "complete"
         : "available",
     whatHappens: (s) => {
       if (s.session.submitted.length > 0) {
         const n = s.session.submitted.length;
-        return `You submitted ${n} ${plural(n, "source")}. The compiler turned it into candidate knowledge — not published truth.`;
+        return `You submitted ${n} ${plural(n, "source")}. The compiler created candidate knowledge and preserved evidence — not published truth.`;
       }
-      if (s.reviewItems.length > 0 || s.objects.length > 0) {
-        return "This brain was seeded with example context so you can walk the workflow. Submit your own to see the compiler run.";
+      if (allCandidates(s).length > 0 || s.objects.length > 0) {
+        return "This brain contains example context. Submit your own to see evidence versioning and compilation run.";
       }
-      return "Nothing has entered the brain yet. Submit some context to create the first candidate.";
+      return "Nothing has entered the brain yet. Submit source evidence to create the first candidate.";
     },
     count: (s) => (s.session.submitted.length ? { value: s.session.submitted.length, noun: "submitted" } : null),
     nextAction: (s) =>
-      s.reviewItems.length === 0 && s.objects.length === 0
+      allCandidates(s).length === 0 && s.objects.length === 0
         ? { label: "Submit your first source", targetStepId: "submit" }
         : null
   },
@@ -58,37 +49,28 @@ export const STEPS: readonly StepDefinition[] = [
     sectionId: "enrichment-lab",
     governanceMeaning: GOVERNANCE_MEANING.enrich,
     progress: (s) => {
-      // Enrichment counts as witnessed if this viewer ran it, or if a decision
-      // was taken on a candidate that carried a brief. Without the second
-      // clause the step regresses from complete to locked the moment an
-      // already-enriched queue drains, which reads as the page breaking.
       const witnessed =
         s.session.enriched.length > 0 || s.ledger.some((record) => record.hadAIBrief);
-      if (s.reviewItems.length === 0 && !witnessed) return "locked";
-      // A disabled provider has not done anything, so it can never read as done.
+      if (allCandidates(s).length === 0 && !witnessed) return "locked";
       if (s.aiStatus && s.aiStatus.enabled === false) return "available";
-      if (witnessed) return "complete";
-      if (s.reviewItems.length > 0 && unenrichedItems(s).length === 0) return "complete";
+      if (witnessed || (allCandidates(s).length > 0 && unenrichedItems(s).length === 0)) {
+        return "complete";
+      }
       return "available";
     },
     lockedReason: () => LOCKED_REASON.enrich,
     whatHappens: (s) => {
       if (s.aiStatus && s.aiStatus.enabled === false) {
-        return "Enrichment is disabled by server configuration. Reviewers work from the source evidence alone — the workflow still runs.";
+        return "AI enrichment is disabled. Reviewers continue from deterministic parsing and source evidence.";
       }
       if (s.session.enriched.length > 0) {
         const n = s.session.enriched.length;
-        return `You generated ${n} ${plural(n, "brief")}. Each one is advisory: it flags what to check, and decides nothing.`;
-      }
-      const approvedWithoutBrief = s.ledger.filter((record) => !record.hadAIBrief).length;
-      if (approvedWithoutBrief > 0 && s.reviewItems.length === 0) {
-        return `${approvedWithoutBrief} ${plural(approvedWithoutBrief, "decision")} were taken without an AI brief. That is permitted — the activity log records it.`;
+        return `You generated ${n} advisory ${plural(n, "brief")}. Each one is schema-validated and decides nothing.`;
       }
       const waiting = unenrichedItems(s).length;
-      if (waiting > 0) {
-        return `${waiting} ${plural(waiting, "candidate")} ${waiting === 1 ? "has" : "have"} no brief yet. Enrichment is optional — approving without one is allowed, and recorded.`;
-      }
-      return "Every candidate already carries a brief.";
+      return waiting
+        ? `${waiting} ${plural(waiting, "candidate")} ${waiting === 1 ? "has" : "have"} no AI brief yet.`
+        : "Every current candidate carries a review brief.";
     },
     count: (s) => {
       const waiting = unenrichedItems(s).length;
@@ -97,11 +79,9 @@ export const STEPS: readonly StepDefinition[] = [
     nextAction: (s) => {
       if (s.aiStatus && s.aiStatus.enabled === false) return null;
       const waiting = unenrichedItems(s);
-      if (!waiting.length) return null;
-      return {
-        label: `Run enrichment on ${waiting[0].candidate_object.title}`,
-        targetStepId: "enrich"
-      };
+      return waiting.length
+        ? { label: `Run enrichment on ${waiting[0].candidate_object.title}`, targetStepId: "enrich" }
+        : null;
     }
   },
   {
@@ -113,10 +93,8 @@ export const STEPS: readonly StepDefinition[] = [
     sectionId: "review-queue",
     governanceMeaning: GOVERNANCE_MEANING.review,
     progress: (s) => {
-      if (s.reviewItems.length === 0 && s.ledger.length === 0) return "locked";
-      // Rejecting counts. The step's job is "a human decided", not "something
-      // got published" — publication is step 4's job to represent.
-      if (s.ledger.length > 0) return "complete";
+      if (s.reviewItems.length === 0 && s.approvedItems.length === 0 && s.ledger.length === 0) return "locked";
+      if (s.approvedItems.length > 0 || s.ledger.some((record) => record.action === "approved")) return "complete";
       return "available";
     },
     lockedReason: () => LOCKED_REASON.review,
@@ -124,18 +102,18 @@ export const STEPS: readonly StepDefinition[] = [
       if (s.ledger.length === 0) {
         const n = pendingItems(s).length;
         return n > 0
-          ? `${n} ${plural(n, "candidate")} waiting on a human. Nothing reaches an AI app until one of them is approved.`
-          : "No decisions have been made yet.";
+          ? `${n} ${plural(n, "candidate")} waiting on a human. Approval moves it to a separate publication queue.`
+          : "No human decision has been made yet.";
       }
-      const approved = s.ledger.filter((r) => r.action === "approved").length;
-      const rejected = s.ledger.filter((r) => r.action === "rejected").length;
-      const changes = s.ledger.filter((r) => r.action === "changes_requested").length;
+      const approved = s.ledger.filter((record) => record.action === "approved").length;
+      const rejected = s.ledger.filter((record) => record.action === "rejected").length;
+      const changes = s.ledger.filter((record) => record.action === "changes_requested").length;
       const parts = [
         approved ? `${approved} approved` : null,
         rejected ? `${rejected} rejected` : null,
         changes ? `${changes} sent back` : null
       ].filter(Boolean);
-      return `You made ${s.ledger.length} governed ${plural(s.ledger.length, "decision")} — ${parts.join(", ")}. Every one is recorded in the activity log.`;
+      return `Human decisions recorded: ${parts.join(", ") || "none"}. Approval alone does not publish.`;
     },
     count: (s) => {
       const n = pendingItems(s).length + changesRequestedItems(s).length;
@@ -143,35 +121,45 @@ export const STEPS: readonly StepDefinition[] = [
     },
     nextAction: (s) => {
       const next = pendingItems(s)[0];
-      if (!next) return null;
-      return { label: `Review ${next.candidate_object.title}`, targetStepId: "review" };
+      return next ? { label: `Review ${next.candidate_object.title}`, targetStepId: "review" } : null;
     }
   },
   {
     id: "publish",
     number: 4,
     label: "Publish",
-    verb: "Inspect the approved brain",
+    verb: "Publish approved memory",
     category: "Governed knowledge",
     sectionId: "published-objects",
     governanceMeaning: GOVERNANCE_MEANING.publish,
     progress: (s) => {
-      const approvedInLedger = s.ledger.some((record) => record.action === "approved");
-      if (s.objects.length === 0 && !approvedInLedger) return "locked";
-      if (s.objects.length > 0) return "complete";
-      return "available";
+      if (s.objects.length > 0 || s.session.published.length > 0) return "complete";
+      if (s.approvedItems.length > 0) return "available";
+      return "locked";
     },
     lockedReason: () => LOCKED_REASON.publish,
     whatHappens: (s) => {
-      if (s.objects.length === 0) return "Nothing is published yet.";
+      if (s.approvedItems.length > 0) {
+        return `${s.approvedItems.length} approved ${plural(s.approvedItems.length, "candidate")} await an explicit publication decision.`;
+      }
       if (s.session.published.length > 0) {
         const n = s.session.published.length;
-        return `You published ${n} ${plural(n, "object")}. ${plural(n, "It is", "They are")} now official context an AI app may draw on.`;
+        return `You published ${n} ${plural(n, "object")}. ${plural(n, "It is", "They are")} now eligible for governed retrieval.`;
       }
-      return `${s.objects.length} approved ${plural(s.objects.length, "object")} were seeded as examples. Approve a candidate to add your own.`;
+      return s.objects.length
+        ? `${s.objects.length} published ${plural(s.objects.length, "object")} are available to retrieval.`
+        : "Nothing is published yet.";
     },
-    count: (s) => (s.objects.length ? { value: s.objects.length, noun: "published" } : null),
-    nextAction: () => null
+    count: (s) =>
+      s.approvedItems.length
+        ? { value: s.approvedItems.length, noun: "awaiting publication" }
+        : s.objects.length
+          ? { value: s.objects.length, noun: "published" }
+          : null,
+    nextAction: (s) =>
+      s.approvedItems.length
+        ? { label: `Publish ${s.approvedItems[0].candidate_object.title}`, targetStepId: "publish" }
+        : null
   },
   {
     id: "compose",
@@ -183,24 +171,22 @@ export const STEPS: readonly StepDefinition[] = [
     governanceMeaning: GOVERNANCE_MEANING.compose,
     progress: (s) => {
       if (s.objects.length === 0) return "locked";
-      if (s.contextPack) return "complete";
-      return "available";
+      return s.contextPack ? "complete" : "available";
     },
-    // The one lock that teaches the rule rather than merely gating.
     lockedReason: () => LOCKED_REASON.compose,
     whatHappens: (s) => {
       if (!s.contextPack) {
         return s.objects.length === 0
-          ? "There is no approved knowledge to compose from yet."
-          : "Ask a question to see exactly what an AI app would receive.";
+          ? "There is no published knowledge to retrieve yet."
+          : "Ask a question to inspect the exact context, citations, confidence factors, and constraints an AI receives.";
       }
       if (s.contextPack.access_decision === "denied") {
-        return "Access was denied by policy. Matching context exists but sits above this user's clearance, so the pack withholds it rather than leaking it.";
+        return "Access policy withheld every matching object. The pack refuses to speculate."
       }
-      const objectCount = s.contextPack.knowledge_objects.length;
-      return objectCount === 0
-        ? "The pack came back empty and says so. An honest gap beats a confident guess."
-        : `The pack drew on ${objectCount} approved ${plural(objectCount, "object")} plus their source evidence. No unapproved content is reachable.`;
+      const count = s.contextPack.knowledge_objects.length;
+      return count
+        ? `The pack used ${count} published ${plural(count, "object")}, ${s.contextPack.citations?.length ?? 0} citation(s), and the ${s.contextPack.retrieval_engine ?? "configured"} retrieval engine.`
+        : "The pack reports an evidence gap rather than inventing an answer.";
     },
     count: (s) => (s.session.packsBuilt ? { value: s.session.packsBuilt, noun: "composed" } : null),
     nextAction: (s) =>
@@ -211,5 +197,4 @@ export const STEPS: readonly StepDefinition[] = [
 ];
 
 export const stepById = (id: string) => STEPS.find((step) => step.id === id);
-export const stepBySectionId = (sectionId: string) =>
-  STEPS.find((step) => step.sectionId === sectionId);
+export const stepBySectionId = (sectionId: string) => STEPS.find((step) => step.sectionId === sectionId);
