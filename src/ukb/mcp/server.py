@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from ukb.api.security import Principal
 from ukb.models import (
     ContextPackRequest,
@@ -15,6 +17,15 @@ try:
     from mcp.server.fastmcp import FastMCP
 except ImportError as exc:  # pragma: no cover
     raise SystemExit("The MCP extra is not installed. Run: pip install -e '.[mcp]'") from exc
+
+ContextMode = Literal[
+    "default",
+    "executive_insight",
+    "metric_definition",
+    "lineage",
+    "governance_review",
+    "debug",
+]
 
 mcp = FastMCP(settings.mcp_server_name)
 MCP_PRINCIPAL = Principal(
@@ -130,7 +141,7 @@ def get_context_pack(
     question: str,
     user_id: str = "mcp-user",
     domain: str | None = None,
-    mode: str = "default",
+    mode: ContextMode = "default",
 ) -> dict:
     """Build the same governed context pack served by REST and the Python runtime."""
 
