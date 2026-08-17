@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy import create_engine, delete, select
-from sqlalchemy.engine import Engine, make_url
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from ukb.models import (
@@ -49,62 +50,81 @@ class SqlAlchemyBrainStore(BrainStore):
             Base.metadata.create_all(self.engine)
         self.reload()
 
+    @staticmethod
+    def _is_sqlite(database_url: str) -> bool:
+        return database_url.casefold().startswith("sqlite")
+
     def _build_engine(self, database_url: str) -> Engine:
-        url = make_url(database_url)
         connect_args: dict[str, object] = {}
-        if url.get_backend_name() == "sqlite":
+        if self._is_sqlite(database_url):
             connect_args["check_same_thread"] = False
         return create_engine(database_url, pool_pre_ping=True, connect_args=connect_args)
 
     def _prepare_sqlite_directory(self, database_url: str) -> None:
-        url = make_url(database_url)
-        if url.get_backend_name() != "sqlite":
+        if not self._is_sqlite(database_url) or database_url.endswith(":memory:"):
             return
-        database = url.database
-        if not database or database == ":memory:":
+        marker = ":///"
+        if marker not in database_url:
+            return
+        database = database_url.split(marker, 1)[1].split("?", 1)[0]
+        if not database:
             return
         Path(database).expanduser().resolve().parent.mkdir(parents=True, exist_ok=True)
 
+    @staticmethod
+    def _rows(session: Session, statement: Any) -> list[Any]:
+        return list(session.scalars(statement))
+
     def reload(self) -> None:
         with self.session_factory() as session:
-            self.sources = {
-                row.source_id: SourceEvidence.model_validate_json(row.payload)
-                for row in session.scalars(select(SourceRow))
-            }
-            self.source_versions = {
-                row.id: SourceVersion.model_validate_json(row.payload)
-                for row in session.scalars(select(SourceVersionRow))
-            }
-            self.evidence_chunks = {
-                row.id: EvidenceChunk.model_validate_json(row.payload)
-                for row in session.scalars(select(EvidenceChunkRow))
-            }
-            self.review_items = {
-                row.id: ReviewItem.model_validate_json(row.payload)
-                for row in session.scalars(select(ReviewItemRow))
-            }
-            self.knowledge_objects = {
-                row.id: KnowledgeObject.model_validate_json(row.payload)
-                for row in session.scalars(select(KnowledgeObjectRow))
-            }
-            self.relationships = {
-                row.id: RelationshipRecord.model_validate_json(row.payload)
-                for row in session.scalars(select(RelationshipRow))
-            }
-            self.ai_task_runs = {
-                row.id: AITaskRun.model_validate_json(row.payload)
-                for row in session.scalars(select(AITaskRunRow))
-            }
-            self.context_packs = {
-                row.id: ContextPack.model_validate_json(row.payload)
-                for row in session.scalars(select(ContextPackRow))
-            }
-            self.audit_events = [
-                AuditEvent.model_validate_json(row.payload)
-                for row in session.scalars(
-                    select(AuditEventRow).order_by(AuditEventRow.created_at, AuditEventRow.id)
-                )
-            ]
+            source_rows = self._rows(session, select(SourceRow))
+            version_rows = self._rows(session, select(SourceVersionRow))
+            chunk_rows = self._rows(session, select(EvidenceChunkRow))
+            review_rows = self._rows(session, select(ReviewItemRow))
+            object_rows = self._rows(session, select(KnowledgeObjectRow))
+            relationship_rows = self._rows(session, select(RelationshipRow))
+            ai_rows = self._rows(session, select(AITaskRunRow))
+            pack_rows = self._rows(session, select(ContextPackRow))
+            audit_rows = self._rows(
+                session,
+                select(AuditEventRow).order_by(AuditEventRow.created_at, AuditEventRow.id),
+            )
+
+        self.sources = {
+            str(row.source_id): SourceEvidence.model_validate_json(str(row.payload))
+            for row in source_rows
+        }
+        self.source_versions = {
+            str(row.id): SourceVersion.model_validate_json(str(row.payload))
+            for row in version_rows
+        }
+        self.evidence_chunks = {
+            str(row.id): EvidenceChunk.model_validate_json(str(row.payload))
+            for row in chunk_rows
+        }
+        self.review_items = {
+            str(row.id): ReviewItem.model_validate_json(str(row.payload))
+            for row in review_rows
+        }
+        self.knowledge_objects = {
+            str(row.id): KnowledgeObject.model_validate_json(str(row.payload))
+            for row in object_rows
+        }
+        self.relationships = {
+            str(row.id): RelationshipRecord.model_validate_json(str(row.payload))
+            for row in relationship_rows
+        }
+        self.ai_task_runs = {
+            str(row.id): AITaskRun.model_validate_json(str(row.payload))
+            for row in ai_rows
+        }
+        self.context_packs = {
+            str(row.id): ContextPack.model_validate_json(str(row.payload))
+            for row in pack_rows
+        }
+        self.audit_events = [
+            AuditEvent.model_validate_json(str(row.payload)) for row in audit_rows
+        ]
 
     def add_source(self, source: SourceEvidence) -> SourceEvidence:
         super().add_source(source)
