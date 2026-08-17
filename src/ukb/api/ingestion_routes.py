@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 
@@ -20,6 +20,7 @@ from ukb.ingestion_models import (
     IngestionSourceMode,
 )
 from ukb.models import EvidenceChunk, Sensitivity, SourceEvidence, SourceVersion
+from ukb.plugins.registry import registry
 from ukb.services.ingestion import SUPPORTED_EXTENSIONS, IngestionParserService, RawIngestionItem
 from ukb.services.runtime import application, settings
 
@@ -38,12 +39,24 @@ def _formats() -> list[str]:
     return sorted({extension.lstrip(".").upper() for extension in SUPPORTED_EXTENSIONS})
 
 
+def _plugin_configured(source_type: str) -> bool:
+    for plugin in registry.source_connectors.values():
+        try:
+            if plugin.can_handle(source_type=source_type, source_uri=None):
+                return True
+        except Exception:
+            continue
+    return False
+
+
 @router.get("/ingestion/capabilities", response_model=IngestionCapabilities)
 def ingestion_capabilities(
     principal: Principal = Depends(require_principal),
 ) -> IngestionCapabilities:
     require_roles(principal, {"submitter", "reviewer", "governance_admin"})
     formats = _formats()
+    git_ready = _plugin_configured("git")
+    object_store_ready = _plugin_configured("object_store")
     return IngestionCapabilities(
         capabilities=[
             IngestionCapability(
@@ -98,17 +111,25 @@ def ingestion_capabilities(
             ),
             IngestionCapability(
                 id=IngestionSourceMode.git,
-                enabled=False,
-                configured=False,
-                formats=[],
-                message="Git connector plugin is not installed in this release.",
+                enabled=git_ready,
+                configured=git_ready,
+                formats=formats,
+                message=(
+                    "An installed UKB connector plugin handles Git repositories."
+                    if git_ready
+                    else "Install a source-connector plugin that declares Git support."
+                ),
             ),
             IngestionCapability(
                 id=IngestionSourceMode.object_store,
-                enabled=False,
-                configured=False,
-                formats=[],
-                message="Object-container connector plugin is not installed in this release.",
+                enabled=object_store_ready,
+                configured=object_store_ready,
+                formats=formats,
+                message=(
+                    "An installed UKB connector plugin handles object containers."
+                    if object_store_ready
+                    else "Install a source-connector plugin that declares object-store support."
+                ),
             ),
         ],
         max_batch_files=settings.max_batch_files,
@@ -287,13 +308,11 @@ def preview_connector(
     principal: Principal = Depends(require_principal),
 ) -> IngestionPreview:
     require_roles(principal, {"submitter", "reviewer", "governance_admin"})
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail=(
-            f"The {request.connector_type} connector profile is not installed. "
-            "Install a governed source-connector plugin before use."
-        ),
-    )
+    items, warnings, plugin_name = _plugin_items(request)
+    mode = IngestionSourceMode(request.connector_type)
+    preview, _ = parser.preview(items, source_mode=mode, connector=f"plugin:{plugin_name}")
+    preview.warnings.extend(warnings)
+    return preview
 
 
 @router.post("/ingestion/connectors/submit", response_model=BatchIngestionResult)
@@ -302,12 +321,22 @@ def submit_connector(
     principal: Principal = Depends(require_principal),
 ) -> BatchIngestionResult:
     require_roles(principal, {"submitter", "reviewer", "governance_admin"})
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail=(
-            f"The {request.connector_type} connector profile is not installed. "
-            "No memory was created."
-        ),
+    items, warnings, plugin_name = _plugin_items(request)
+    mode = IngestionSourceMode(request.connector_type)
+    preview, parsed = parser.preview(items, source_mode=mode, connector=f"plugin:{plugin_name}")
+    preview.warnings.extend(warnings)
+    batch = application.submit_parsed_batch(
+        governance=request,
+        source_mode=mode,
+        parsed_items=parsed,
+        principal=principal,
+    )
+    return BatchIngestionResult(
+        status="review_created" if batch.review_items else "blocked",
+        source_mode=mode,
+        preview=preview,
+        review_items=batch.review_items,
+        message=f"Created {len(batch.review_items)} plugin-backed review candidate(s).",
     )
 
 
@@ -411,3 +440,54 @@ def _crawl_collection(request: CrawlIngestionRequest):
         return crawl_connector.collect(request)
     except Crawl4AIConnectorError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+def _plugin_items(request: ConnectorIngestionRequest) -> tuple[list[RawIngestionItem], list[str], str]:
+    plugin = registry.find_source_connector(request.connector_type, request.location)
+    if plugin is None:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail=(
+                f"No installed source-connector plugin handles {request.connector_type!r} at "
+                f"{request.location!r}. No memory was created."
+            ),
+        )
+    try:
+        result = plugin.ingest(request.model_dump(mode="json"))
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Connector plugin {plugin.manifest.name!r} failed: {type(exc).__name__}: {exc}",
+        ) from exc
+
+    candidates: list[dict[str, Any]] = []
+    candidates.extend(item for item in result.evidence if isinstance(item, dict))
+    candidates.extend(item for item in result.items if isinstance(item, dict))
+    items: list[RawIngestionItem] = []
+    warnings = list(result.warnings)
+    for index, candidate in enumerate(candidates):
+        raw_content = candidate.get("content") or candidate.get("text") or candidate.get("body")
+        if isinstance(raw_content, str):
+            data = raw_content.encode("utf-8")
+        elif isinstance(raw_content, bytes):
+            data = raw_content
+        else:
+            warnings.append(f"Plugin item {index + 1} had no text or byte content and was skipped.")
+            continue
+        name = str(candidate.get("name") or candidate.get("title") or f"plugin-item-{index + 1}.txt")
+        path = str(candidate.get("path") or name)
+        items.append(
+            RawIngestionItem(
+                name=name,
+                path=path,
+                data=data,
+                content_type=str(candidate.get("content_type") or "text/plain"),
+                source_uri=str(candidate.get("source_uri") or request.location),
+            )
+        )
+    if not items:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Connector plugin {plugin.manifest.name!r} returned no parsable evidence.",
+        )
+    return items, warnings, plugin.manifest.name
