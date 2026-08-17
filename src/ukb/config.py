@@ -7,12 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Unified Knowledge Base runtime configuration.
-
-    Code defaults remain safe for tests and offline exploration. Environment
-    files opt local and production runtimes into durable SQL storage, private
-    object storage, local Ollama, Crawl4AI, Google Drive and Zvec.
-    """
+    """Unified Knowledge Base runtime configuration."""
 
     model_config = SettingsConfigDict(env_file=".env", env_prefix="UKB_", extra="ignore")
 
@@ -20,9 +15,6 @@ class Settings(BaseSettings):
     environment: str = Field(default="local", description="local, dev, stage, prod")
     log_level: str = "INFO"
 
-    # Authentication. api_token preserves the local quick-start. api_tokens_json
-    # maps additional tokens to stable subjects/roles/clearance without trusting
-    # user-supplied audit fields. Production should replace this with OIDC/JWT.
     api_token: str = "dev-token-change-me"
     api_tokens_json: str = "{}"
     require_auth: bool = True
@@ -41,7 +33,6 @@ class Settings(BaseSettings):
         "http://localhost:4173,http://127.0.0.1:4173"
     )
 
-    # Local Ollama remains the default enrichment provider. It is advisory only.
     ai_enrichment_enabled: bool = True
     ai_mode: str = "local_ai"
     ai_provider: str = "ollama"
@@ -50,7 +41,7 @@ class Settings(BaseSettings):
     ai_embedding_model: str = "embeddinggemma"
     ai_max_input_chars: int = 100000
     ai_timeout_seconds: int = 45
-    ai_schema_version: str = "1.0"
+    ai_schema_version: str = "2.0"
     allow_hosted_ai_for_restricted: bool = False
     store_ai_prompts: bool = False
     store_ai_outputs: bool = True
@@ -59,14 +50,11 @@ class Settings(BaseSettings):
     openai_base_url: str = "https://api.openai.com"
     openai_model: str = "gpt-4o-mini"
 
-    # Authoritative store. Environment files use SQLAlchemy; memory remains a
-    # deterministic test backend.
     store_backend: str = "memory"
     database_url: str = "sqlite+pysqlite:///./.ukb/ukb.db"
     object_store_url: str = "file://./.ukb/object-store"
     create_schema_on_startup: bool = True
 
-    # Ingestion and evidence limits.
     max_upload_bytes: int = 25 * 1024 * 1024
     max_batch_files: int = 250
     max_archive_bytes: int = 50 * 1024 * 1024
@@ -76,13 +64,11 @@ class Settings(BaseSettings):
     evidence_chunk_overlap: int = 200
     require_owner_for_publish: bool = True
 
-    # Zvec is a derived and rebuildable index; SQL remains authoritative.
     search_backend: str = "memory"
     search_sync_on_query: bool = True
-    zvec_path: str = "./.ukb/zvec/approved-knowledge"
-    zvec_collection_name: str = "ukb_approved_knowledge"
+    zvec_path: str = "./.ukb/zvec/approved-knowledge-v2"
+    zvec_collection_name: str = "ukb_approved_knowledge_v2"
 
-    # Governed static web connector.
     web_connector_enabled: bool = False
     web_allowed_hosts: str = ""
     web_allowed_ports: str = "80,443"
@@ -94,15 +80,12 @@ class Settings(BaseSettings):
     web_max_response_bytes: int = 5 * 1024 * 1024
     web_max_redirects: int = 5
 
-    # Crawl4AI runs as a private sidecar. The UKB backend remains the policy and
-    # provenance boundary.
     crawl4ai_enabled: bool = False
     crawl4ai_base_url: str = "http://crawl4ai:11235"
     crawl4ai_api_token: str | None = None
     crawl4ai_timeout_seconds: int = 90
     crawl4ai_max_pages: int = 25
 
-    # Google Drive credentials stay server-side. The UI only submits a folder URL.
     google_drive_enabled: bool = False
     google_drive_access_token: str | None = None
     google_drive_timeout_seconds: int = 30

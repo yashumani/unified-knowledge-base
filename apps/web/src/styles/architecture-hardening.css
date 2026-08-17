@@ -1,0 +1,135 @@
+.publish-layout {
+  display: grid;
+  gap: 24px;
+}
+
+.publication-queue,
+.publish-layout > section {
+  min-width: 0;
+}
+
+.publication-queue > header,
+.published-memory-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.publication-queue h3,
+.published-memory-heading h3 {
+  margin: 6px 0 0;
+}
+
+.publication-queue > header > strong,
+.published-memory-heading > strong {
+  font-size: clamp(2rem, 4vw, 4rem);
+  line-height: 0.9;
+}
+
+.publication-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 16px;
+}
+
+.publication-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 2px solid var(--ink, #111);
+  background: var(--paper, #fffdf6);
+}
+
+.publication-card h4,
+.publication-card p {
+  margin: 0;
+}
+
+.publication-card textarea,
+.candidate-edit-form textarea,
+.candidate-edit-form input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.candidate-edit-form {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 2px solid currentColor;
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.review-evidence-list {
+  display: grid;
+  gap: 10px;
+}
+
+.review-evidence-list blockquote {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 12px 14px;
+  border-left: 4px solid currentColor;
+  background: rgba(0, 0, 0, 0.05);
+  font-size: 0.92rem;
+}
+
+.review-evidence-list blockquote span {
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.confidence-factor-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.confidence-factor-grid div {
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+  border: 1px solid currentColor;
+}
+
+.confidence-factor-grid span {
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.confidence-factor-grid strong {
+  font-size: 1.15rem;
+}
+
+.context-pack .pack-grid li p {
+  margin: 5px 0 0;
+}
+
+.ledger-entry.is-published {
+  border-left-color: #1f6f43;
+}
+
+@media (max-width: 900px) {
+  .confidence-factor-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .confidence-factor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .publication-queue > header,
+  .published-memory-heading {
+    align-items: center;
+  }
+}

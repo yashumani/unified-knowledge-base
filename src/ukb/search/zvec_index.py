@@ -122,7 +122,12 @@ class ZvecSearchIndex:
         fields = [
             self.zvec.FieldSchema("object_id", self.zvec.DataType.STRING, nullable=False),
             self.zvec.FieldSchema("chunk_id", self.zvec.DataType.STRING, nullable=False),
-            self.zvec.FieldSchema("document_kind", self.zvec.DataType.STRING, nullable=False),
+            self.zvec.FieldSchema(
+                "document_kind",
+                self.zvec.DataType.STRING,
+                nullable=False,
+                index_param=self.zvec.InvertIndexParam(),
+            ),
             self.zvec.FieldSchema("title", self.zvec.DataType.STRING, nullable=False),
             self.zvec.FieldSchema("summary", self.zvec.DataType.STRING, nullable=False),
             self.zvec.FieldSchema(
@@ -135,7 +140,7 @@ class ZvecSearchIndex:
                 ),
             ),
         ]
-        for name in ["domain", "object_type", "sensitivity", "review_status", "document_kind"]:
+        for name in ["domain", "object_type", "sensitivity", "review_status"]:
             fields.append(
                 self.zvec.FieldSchema(
                     name,
