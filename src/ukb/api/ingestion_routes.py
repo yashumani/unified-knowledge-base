@@ -20,12 +20,7 @@ from ukb.ingestion_models import (
     IngestionSourceMode,
 )
 from ukb.models import EvidenceChunk, Sensitivity, SourceEvidence, SourceVersion
-from ukb.services.ingestion import (
-    BINARY_EXTENSIONS,
-    SUPPORTED_EXTENSIONS,
-    IngestionParserService,
-    RawIngestionItem,
-)
+from ukb.services.ingestion import SUPPORTED_EXTENSIONS, IngestionParserService, RawIngestionItem
 from ukb.services.runtime import application, settings
 
 router = APIRouter(tags=["ingestion"])
