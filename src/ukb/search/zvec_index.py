@@ -14,11 +14,11 @@ class ZvecUnavailableError(RuntimeError):
 
 
 class ZvecSearchIndex:
-    """Local Zvec FTS projection. PostgreSQL remains authoritative."""
+    """Local Zvec FTS projection. SQL and object storage remain authoritative."""
 
     name = "zvec"
 
-    def __init__(self, *, path: str, collection_name: str = "ukb_approved_knowledge"):
+    def __init__(self, *, path: str, collection_name: str = "ukb_approved_knowledge_v2"):
         try:
             import zvec  # type: ignore[import-not-found]
         except ImportError as exc:
@@ -59,29 +59,38 @@ class ZvecSearchIndex:
                     fts=self.zvec.Fts(match_string=request.query),
                 ),
                 filter=self._filter(request),
-                topk=min(request.limit * 4, 200),
-                output_fields=["title"],
+                topk=min(request.limit * 8, 300),
+                output_fields=["title", "object_id", "chunk_id", "document_kind", "authority_tier"],
             )
         except Exception as exc:
             self.last_error = str(exc)
             raise ZvecUnavailableError(f"Zvec query failed: {exc}") from exc
+
         query = self._normalize(request.query)
         hits: list[SearchHit] = []
         for result in results:
             fields = dict(result.fields or {})
             title = self._normalize(str(fields.get("title", "")))
+            object_id = str(fields.get("object_id", ""))
+            chunk_id = str(fields.get("chunk_id", "")).strip() or None
             reasons = ["zvec_fts"]
             if query == title:
                 reasons.append("exact_title")
+            if str(fields.get("document_kind", "")) == "evidence_chunk":
+                reasons.append("evidence_chunk")
+            authority = int(fields.get("authority_tier", 3) or 3)
+            score = float(result.score or 0.0) + max(0, 6 - authority) * 0.02
             hits.append(
                 SearchHit(
-                    object_id=str(result.id),
-                    score=float(result.score or 0.0),
+                    document_id=str(result.id),
+                    object_id=object_id,
+                    chunk_id=chunk_id,
+                    score=score,
                     engine=self.name,
                     reasons=reasons,
                 )
             )
-        return hits[: request.limit]
+        return hits[: min(request.limit * 6, 300)]
 
     def status(self) -> SearchIndexStatus:
         return SearchIndexStatus(
@@ -92,7 +101,7 @@ class ZvecSearchIndex:
             path=str(self.path),
             last_error=self.last_error,
             last_synced_at=self.last_synced_at,
-            details={"mode": "full_text_only"},
+            details={"mode": "full_text_and_scalar_filters", "schema_version": "2"},
         )
 
     def close(self) -> None:
@@ -103,8 +112,17 @@ class ZvecSearchIndex:
     def _open_or_create(self) -> Any:
         option = self.zvec.CollectionOption(read_only=False, enable_mmap=True)
         if self.path.exists() and self.path.is_dir() and any(self.path.iterdir()):
-            return self.zvec.open(path=str(self.path), option=option)
+            try:
+                return self.zvec.open(path=str(self.path), option=option)
+            except Exception as exc:
+                raise ZvecUnavailableError(
+                    "Existing Zvec collection cannot be opened with schema v2; move it aside and rebuild."
+                ) from exc
+
         fields = [
+            self.zvec.FieldSchema("object_id", self.zvec.DataType.STRING, nullable=False),
+            self.zvec.FieldSchema("chunk_id", self.zvec.DataType.STRING, nullable=False),
+            self.zvec.FieldSchema("document_kind", self.zvec.DataType.STRING, nullable=False),
             self.zvec.FieldSchema("title", self.zvec.DataType.STRING, nullable=False),
             self.zvec.FieldSchema("summary", self.zvec.DataType.STRING, nullable=False),
             self.zvec.FieldSchema(
@@ -112,11 +130,12 @@ class ZvecSearchIndex:
                 self.zvec.DataType.STRING,
                 nullable=False,
                 index_param=self.zvec.FtsIndexParam(
-                    tokenizer_name="standard", filters=["lowercase", "ascii_folding"]
+                    tokenizer_name="standard",
+                    filters=["lowercase", "ascii_folding"],
                 ),
             ),
         ]
-        for name in ["domain", "object_type", "sensitivity", "review_status"]:
+        for name in ["domain", "object_type", "sensitivity", "review_status", "document_kind"]:
             fields.append(
                 self.zvec.FieldSchema(
                     name,
@@ -127,6 +146,7 @@ class ZvecSearchIndex:
             )
         fields.extend(
             [
+                self.zvec.FieldSchema("authority_tier", self.zvec.DataType.INT32, nullable=False),
                 self.zvec.FieldSchema("source_ids_json", self.zvec.DataType.STRING, nullable=False),
                 self.zvec.FieldSchema("aliases_json", self.zvec.DataType.STRING, nullable=False),
                 self.zvec.FieldSchema("updated_at", self.zvec.DataType.STRING, nullable=False),
@@ -139,6 +159,9 @@ class ZvecSearchIndex:
         return self.zvec.Doc(
             id=document.id,
             fields={
+                "object_id": document.object_id,
+                "chunk_id": document.chunk_id or "",
+                "document_kind": document.document_kind,
                 "title": document.title,
                 "summary": document.summary,
                 "search_text": document.search_text,
@@ -146,13 +169,15 @@ class ZvecSearchIndex:
                 "object_type": document.object_type,
                 "sensitivity": document.sensitivity,
                 "review_status": document.status,
+                "authority_tier": document.authority_tier,
                 "source_ids_json": json.dumps(document.source_ids),
                 "aliases_json": json.dumps(document.aliases),
                 "updated_at": document.updated_at.isoformat(),
             },
         )
 
-    def _filter(self, request: SearchRequest) -> str:
+    @staticmethod
+    def _filter(request: SearchRequest) -> str:
         clauses = ["review_status = 'published'"]
         for name, values in [
             ("domain", request.domains),
@@ -164,5 +189,6 @@ class ZvecSearchIndex:
                 clauses.append(f"{name} in ({quoted})")
         return " and ".join(clauses)
 
-    def _normalize(self, value: str) -> str:
+    @staticmethod
+    def _normalize(value: str) -> str:
         return " ".join(value.casefold().split())

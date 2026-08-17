@@ -1,21 +1,12 @@
 from __future__ import annotations
 
-from ukb.models import BrainGraph, GraphEdge, GraphNode, KnowledgeObject, ReviewItem
-from ukb.services.access import SENSITIVITY_ORDER, AccessPolicyService
-from ukb.store import BrainStore
+from ukb.models import BrainGraph, GraphEdge, GraphNode, KnowledgeObject, ReviewItem, ReviewStatus
+from ukb.services.access import AccessPolicyService, PrincipalLike, SENSITIVITY_ORDER
+from ukb.storage.memory import BrainStore
 
 
 class BrainGraphService:
-    """Build an Obsidian-style graph projection from the governed brain store.
-
-    This projection is UI-oriented. It does not replace graph persistence or
-    lineage storage; it gives the React app a single endpoint for visualizing
-    sources, review items, published objects, AI enrichment state, and relationships.
-
-    Node metadata carries source excerpts and unapproved candidate content, so
-    the same clearance check that guards context packs is applied here. Without
-    it the graph endpoint would be a way around retrieval filtering.
-    """
+    """Build a permission-aware projection from authoritative UKB records."""
 
     def __init__(self, store: BrainStore):
         self.store = store
@@ -24,25 +15,23 @@ class BrainGraphService:
         self,
         include_review_items: bool = True,
         access_policy: AccessPolicyService | None = None,
-        principal: str = "anonymous",
+        principal: str | PrincipalLike = "anonymous",
     ) -> BrainGraph:
         nodes: dict[str, GraphNode] = {}
         edges: dict[str, GraphEdge] = {}
-
-        clearance = (
-            access_policy.clearance_for(principal) if access_policy is not None else None
-        )
-        # IDs withheld by clearance. Edges touching them are pruned at the end,
-        # because an edge pointing at a missing node still discloses that the
-        # node exists.
+        clearance = access_policy.clearance_for(principal) if access_policy else None
         hidden: set[str] = set()
 
         def visible(sensitivity) -> bool:
-            if clearance is None:
-                return True
-            return SENSITIVITY_ORDER[sensitivity] <= SENSITIVITY_ORDER[clearance]
+            return clearance is None or SENSITIVITY_ORDER[sensitivity] <= SENSITIVITY_ORDER[clearance]
 
-        def add_edge(source: str | None, target: str | None, edge_type: str, confidence: float = 0.5) -> None:
+        def add_edge(
+            source: str | None,
+            target: str | None,
+            edge_type: str,
+            confidence: float = 0.5,
+            metadata: dict | None = None,
+        ) -> None:
             if not source or not target or source == target:
                 return
             edge_id = f"{source}::{edge_type}::{target}"
@@ -52,78 +41,87 @@ class BrainGraphService:
                 target=target,
                 type=edge_type,
                 confidence=confidence,
+                metadata=metadata or {},
             )
 
-        def add_object_node(obj: KnowledgeObject, node_type: str = "knowledge_object") -> None:
+        def add_object_node(obj: KnowledgeObject, node_type: str | None = None) -> None:
             if not visible(obj.sensitivity):
                 hidden.add(obj.id)
                 return
-            if obj.id not in nodes:
-                nodes[obj.id] = GraphNode(
-                    id=obj.id,
-                    label=obj.title,
-                    type=node_type if node_type != "knowledge_object" else obj.type.value,
-                    domain=obj.domain,
-                    status=obj.status.value,
-                    sensitivity=obj.sensitivity.value,
-                    confidence=obj.confidence,
-                    metadata={
-                        "summary": obj.summary,
-                        "owner": obj.owner,
-                        "source_ids": obj.source_ids,
-                        "attributes": obj.attributes,
-                    },
-                )
-            for source_id in obj.source_ids:
-                add_edge(source_id, obj.id, "evidence_for", confidence=obj.confidence)
-            for relationship in obj.relationships:
-                add_edge(obj.id, relationship.target_id, relationship.type, relationship.confidence)
-
-        def add_review_node(review_item: ReviewItem) -> None:
-            if not visible(review_item.candidate_object.sensitivity):
-                hidden.add(review_item.id)
-                if review_item.ai_enrichment:
-                    hidden.add(f"ai:{review_item.ai_enrichment.id}")
-                return
-            ai = review_item.ai_enrichment
-            nodes[review_item.id] = GraphNode(
-                id=review_item.id,
-                label=f"Review: {review_item.candidate_object.title}",
-                type="review_item",
-                domain=review_item.candidate_object.domain,
-                status=review_item.status.value,
-                sensitivity=review_item.candidate_object.sensitivity.value,
-                confidence=review_item.candidate_object.confidence,
+            nodes[obj.id] = GraphNode(
+                id=obj.id,
+                label=obj.title,
+                type=node_type or obj.type.value,
+                domain=obj.domain,
+                status=obj.status.value,
+                sensitivity=obj.sensitivity.value,
+                confidence=obj.confidence,
                 metadata={
-                    "reviewer": review_item.reviewer,
-                    "review_comment": review_item.review_comment,
-                    "candidate_object_id": review_item.candidate_object.id,
-                    "ai_enrichment_id": ai.id if ai else None,
-                    "ai_provider": ai.provider.value if ai else None,
-                    "ai_review_brief": ai.review_brief.summary if ai else None,
-                    "ai_validation_findings": [finding.model_dump(mode="json") for finding in ai.validation_findings] if ai else [],
+                    "summary": obj.summary,
+                    "owner": obj.owner,
+                    "source_ids": obj.source_ids,
+                    "evidence_refs": [reference.model_dump(mode="json") for reference in obj.evidence_refs],
+                    "aliases": obj.aliases,
+                    "version": obj.version,
+                    "authority_tier": obj.authority_tier,
+                    "published_by": obj.published_by,
+                    "published_at": obj.published_at.isoformat() if obj.published_at else None,
+                    "attributes": obj.attributes,
                 },
             )
-            add_edge(review_item.source_id, review_item.id, "submitted_as")
-            add_edge(review_item.id, review_item.candidate_object.id, "reviews")
+            for source_id in obj.source_ids:
+                add_edge(source_id, obj.id, "evidence_for", obj.confidence)
+
+        def add_review_node(item: ReviewItem) -> None:
+            if not visible(item.candidate_object.sensitivity):
+                hidden.add(item.id)
+                return
+            ai = item.ai_enrichment
+            nodes[item.id] = GraphNode(
+                id=item.id,
+                label=f"Review: {item.candidate_object.title}",
+                type="review_item",
+                domain=item.candidate_object.domain,
+                status=item.status.value,
+                sensitivity=item.candidate_object.sensitivity.value,
+                confidence=item.candidate_object.confidence,
+                metadata={
+                    "revision": item.revision,
+                    "reviewer": item.reviewer,
+                    "review_comment": item.review_comment,
+                    "approved_by": item.approved_by,
+                    "candidate_object_id": item.candidate_object.id,
+                },
+            )
+            add_edge(item.source_id, item.id, "submitted_as")
+            add_edge(item.id, item.candidate_object.id, "reviews")
             if ai:
-                ai_node_id = f"ai:{ai.id}"
-                nodes[ai_node_id] = GraphNode(
-                    id=ai_node_id,
-                    label=f"AI brief: {review_item.candidate_object.title}",
+                ai_id = f"ai:{ai.id}"
+                nodes[ai_id] = GraphNode(
+                    id=ai_id,
+                    label=f"AI brief: {item.candidate_object.title}",
                     type="ai_enrichment",
-                    domain=review_item.candidate_object.domain,
+                    domain=item.candidate_object.domain,
                     status=ai.status.value,
-                    sensitivity=review_item.candidate_object.sensitivity.value,
+                    sensitivity=item.candidate_object.sensitivity.value,
                     confidence=ai.confidence,
-                    metadata=ai.model_dump(mode="json"),
+                    metadata={
+                        "provider": ai.provider.value,
+                        "model": ai.model,
+                        "prompt_version": ai.prompt_version,
+                        "schema_version": ai.schema_version,
+                        "review_brief": ai.review_brief.model_dump(mode="json"),
+                        "validation_findings": [finding.model_dump(mode="json") for finding in ai.validation_findings],
+                    },
                 )
-                add_edge(ai_node_id, review_item.id, "enriches_review", ai.confidence)
+                add_edge(ai_id, item.id, "enriches_review", ai.confidence)
 
         for source in self.store.sources.values():
             if not visible(source.sensitivity):
                 hidden.add(source.source_id)
                 continue
+            version_count = len(self.store.list_source_versions(source.source_id))
+            chunk_count = len(self.store.list_evidence_chunks(source_id=source.source_id))
             nodes[source.source_id] = GraphNode(
                 id=source.source_id,
                 label=source.title,
@@ -135,9 +133,13 @@ class BrainGraphService:
                 metadata={
                     "source_type": source.source_type.value,
                     "source_uri": source.source_uri,
+                    "owner": source.owner,
                     "submitted_by": source.submitted_by,
                     "content_excerpt": source.content_excerpt,
-                    "created_at": source.created_at.isoformat(),
+                    "content_hash": source.content_hash,
+                    "current_version_id": source.current_version_id,
+                    "version_count": version_count,
+                    "chunk_count": chunk_count,
                 },
             )
 
@@ -145,9 +147,30 @@ class BrainGraphService:
             add_object_node(obj)
 
         if include_review_items:
-            for review_item in self.store.review_items.values():
-                add_object_node(review_item.candidate_object, node_type="candidate_object")
-                add_review_node(review_item)
+            for item in self.store.review_items.values():
+                add_object_node(item.candidate_object, node_type="candidate_object")
+                add_review_node(item)
+
+        for relationship in self.store.relationships.values():
+            if relationship.status != ReviewStatus.published:
+                continue
+            source_obj = self.store.knowledge_objects.get(relationship.source_object_id)
+            target_obj = self.store.knowledge_objects.get(relationship.target_object_id)
+            if source_obj is not None and not visible(source_obj.sensitivity):
+                continue
+            if target_obj is not None and not visible(target_obj.sensitivity):
+                continue
+            add_edge(
+                relationship.source_object_id,
+                relationship.target_object_id,
+                relationship.relationship_type,
+                relationship.confidence,
+                {
+                    "relationship_id": relationship.id,
+                    "approved_by": relationship.approved_by,
+                    "evidence_refs": [reference.model_dump(mode="json") for reference in relationship.evidence_refs],
+                },
+            )
 
         visible_edges = [
             edge
