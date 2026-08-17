@@ -1,21 +1,37 @@
 from __future__ import annotations
 
-from ukb.services.access import AccessDecisionDetail, AccessPolicyService
-from ukb.store import BrainStore
+from ukb.config import Settings, get_settings
+from ukb.models import KnowledgeObject, ReviewStatus, Sensitivity
+from ukb.search import (
+    SearchHit,
+    SearchIndex,
+    SearchIndexStatus,
+    SearchRequest,
+    SearchResponse,
+    SearchResult,
+    build_search_index,
+)
+from ukb.search.base import approved_documents
+from ukb.services.access import AccessPolicyService, PrincipalLike, SENSITIVITY_ORDER
+from ukb.storage.memory import BrainStore
 
 
 class RetrievalService:
-    """Simple keyword retrieval for the scaffold.
+    """Permission-aware retrieval over a rebuildable local search index."""
 
-    Production should replace this with permission-aware hybrid retrieval:
-    keyword + vector + graph traversal + semantic layer lookups. The access
-    policy already runs here, so the ordering stays correct when the scoring is
-    upgraded: identity -> policy check -> retrieve only allowed content.
-    """
-
-    def __init__(self, store: BrainStore, access_policy: AccessPolicyService | None = None):
+    def __init__(
+        self,
+        store: BrainStore,
+        *,
+        settings: Settings | None = None,
+        index: SearchIndex | None = None,
+        access_policy: AccessPolicyService | None = None,
+    ):
         self.store = store
-        self.access_policy = access_policy or AccessPolicyService()
+        self.settings = settings or get_settings()
+        self.index = index or build_search_index(self.settings)
+        self.access_policy = access_policy or AccessPolicyService.from_settings(self.settings)
+        self._sync_key: tuple[tuple[str, str], ...] | None = None
 
     def search(
         self,
@@ -23,45 +39,138 @@ class RetrievalService:
         domains: list[str] | None = None,
         limit: int = 5,
         user_id: str = "anonymous",
-    ) -> AccessDecisionDetail:
-        """Return matches the caller is cleared to see, plus what was blocked.
+    ) -> list[KnowledgeObject]:
+        response = self.search_response(
+            SearchRequest(query=query, domains=domains or [], limit=limit, user_id=user_id),
+            principal=user_id,
+        )
+        return [result.object for result in response.results]
 
-        The blocked count is reported rather than discarded so the context pack
-        can state that a policy withheld material instead of implying the brain
-        had nothing.
-        """
+    def search_response(
+        self,
+        request: SearchRequest,
+        *,
+        principal: str | PrincipalLike,
+    ) -> SearchResponse:
+        self._ensure_synced()
+        effective = request.model_copy(update={"sensitivities": self._allowed_sensitivities(request, principal)})
 
-        normalized_query = query.lower()
-        domain_filter = set(domains or [])
+        candidates: list[SearchHit] = self._exact_hits(effective)
+        candidates.extend(self.index.search(effective))
+        candidates.sort(key=lambda hit: (-hit.score, hit.document_id))
 
-        candidates = []
-        for obj in self.store.knowledge_objects.values():
-            if domain_filter and obj.domain not in domain_filter:
+        results: list[SearchResult] = []
+        seen_objects: set[str] = set()
+        denied = 0
+        for hit in candidates:
+            if hit.object_id in seen_objects:
                 continue
+            obj = self.store.knowledge_objects.get(hit.object_id)
+            if obj is None or obj.status != ReviewStatus.published:
+                continue
+            if not self.access_policy.can_access(principal, obj):
+                denied += 1
+                continue
+            chunk = self.store.evidence_chunks.get(hit.chunk_id) if hit.chunk_id else None
+            if chunk is not None and not self.access_policy.can_access_sensitivity(principal, chunk.sensitivity):
+                denied += 1
+                continue
+            results.append(SearchResult(hit=hit, object=obj, evidence_chunk=chunk))
+            seen_objects.add(obj.id)
+            if len(results) >= request.limit:
+                break
 
-            haystack = " ".join(
-                [
-                    obj.title,
-                    obj.summary,
-                    obj.type.value,
-                    obj.domain,
-                    str(obj.attributes),
-                ]
-            ).lower()
+        return SearchResponse(
+            query=request.query,
+            results=results,
+            denied_count=denied,
+            index=self.index.status(),
+        )
 
-            score = self._score(normalized_query, haystack)
-            if score > 0:
-                candidates.append((score, obj))
+    def rebuild(self) -> SearchIndexStatus:
+        objects = list(self.store.knowledge_objects.values())
+        chunks = list(self.store.evidence_chunks.values())
+        status = self.index.rebuild(approved_documents(objects, chunks))
+        self._sync_key = self._key(objects, chunks)
+        return status
 
-        candidates.sort(key=lambda item: item[0], reverse=True)
-        matched = [obj for _, obj in candidates]
+    def status(self) -> SearchIndexStatus:
+        return self.index.status()
 
-        # Filter before truncating so a blocked object never consumes a slot
-        # that an allowed object should have occupied.
-        decision = self.access_policy.filter_objects(user_id, matched)
-        decision.allowed_objects = decision.allowed_objects[:limit]
-        return decision
+    def close(self) -> None:
+        self.index.close()
 
-    def _score(self, query: str, haystack: str) -> int:
-        terms = [term for term in query.split() if len(term) > 2]
-        return sum(1 for term in terms if term in haystack)
+    def _ensure_synced(self) -> None:
+        if not self.settings.search_sync_on_query:
+            return
+        objects = list(self.store.knowledge_objects.values())
+        chunks = list(self.store.evidence_chunks.values())
+        key = self._key(objects, chunks)
+        if key != self._sync_key:
+            self.index.rebuild(approved_documents(objects, chunks))
+            self._sync_key = key
+
+    def _exact_hits(self, request: SearchRequest) -> list[SearchHit]:
+        query = " ".join(request.query.casefold().split())
+        hits: list[SearchHit] = []
+        domain_filter = {value.casefold() for value in request.domains}
+        type_filter = {value.casefold() for value in request.object_types}
+        sensitivity_filter = {value.value for value in request.sensitivities}
+        for obj in self.store.knowledge_objects.values():
+            if obj.status != ReviewStatus.published:
+                continue
+            if domain_filter and obj.domain.casefold() not in domain_filter:
+                continue
+            if type_filter and obj.type.value.casefold() not in type_filter:
+                continue
+            if sensitivity_filter and obj.sensitivity.value not in sensitivity_filter:
+                continue
+            title = " ".join(obj.title.casefold().split())
+            aliases = {" ".join(alias.casefold().split()) for alias in obj.aliases}
+            score = 0.0
+            reasons: list[str] = []
+            if query == obj.id.casefold():
+                score = 150.0
+                reasons.append("exact_object_id")
+            elif query == title:
+                score = 130.0
+                reasons.append("exact_title")
+            elif query in aliases:
+                score = 120.0
+                reasons.append("exact_alias")
+            if score:
+                hits.append(
+                    SearchHit(
+                        document_id=f"object:{obj.id}",
+                        object_id=obj.id,
+                        score=score,
+                        engine="authoritative_exact",
+                        reasons=reasons,
+                    )
+                )
+        return hits
+
+    def _allowed_sensitivities(
+        self,
+        request: SearchRequest,
+        principal: str | PrincipalLike,
+    ) -> list[Sensitivity]:
+        clearance = self.access_policy.clearance_for(principal)
+        allowed = [
+            sensitivity
+            for sensitivity in Sensitivity
+            if SENSITIVITY_ORDER[sensitivity] <= SENSITIVITY_ORDER[clearance]
+        ]
+        if not request.sensitivities:
+            return allowed
+        requested = set(request.sensitivities)
+        return [sensitivity for sensitivity in allowed if sensitivity in requested]
+
+    @staticmethod
+    def _key(
+        objects: list[KnowledgeObject],
+        chunks: list,
+    ) -> tuple[tuple[str, str], ...]:
+        object_keys = [(f"obj:{obj.id}", obj.updated_at.isoformat()) for obj in objects]
+        chunk_keys = [(f"chunk:{chunk.id}", chunk.content_hash) for chunk in chunks]
+        return tuple(sorted([*object_keys, *chunk_keys]))
