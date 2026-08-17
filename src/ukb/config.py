@@ -19,9 +19,18 @@ class Settings(BaseSettings):
     api_tokens_json: str = "{}"
     require_auth: bool = True
     default_api_token: str = "dev-token-change-me"
+
+    # Production identity. Local deployments can continue using token-to-principal
+    # mappings; enterprise deployments should validate JWTs from an OIDC issuer.
     oidc_enabled: bool = False
     oidc_issuer: str | None = None
     oidc_audience: str | None = None
+    oidc_jwks_url: str | None = None
+    oidc_algorithms: str = "RS256,ES256"
+    oidc_subject_claim: str = "sub"
+    oidc_roles_claim: str = "roles"
+    oidc_groups_claim: str = "groups"
+    oidc_clearance_claim: str = "clearance"
 
     default_user_clearance: str = "internal"
     user_clearances: str = ""
@@ -105,6 +114,10 @@ class Settings(BaseSettings):
     @property
     def web_ports(self) -> list[int]:
         return [int(port.strip()) for port in self.web_allowed_ports.split(",") if port.strip()]
+
+    @property
+    def oidc_algorithm_list(self) -> list[str]:
+        return [value.strip() for value in self.oidc_algorithms.split(",") if value.strip()]
 
     @property
     def api_token_is_default(self) -> bool:
