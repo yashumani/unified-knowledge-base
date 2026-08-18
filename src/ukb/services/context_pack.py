@@ -74,8 +74,8 @@ class ContextPackService:
                 if source.source_id not in seen_sources:
                     evidence.append(source)
                     seen_sources.add(source.source_id)
-                key = (result.object.id, chunk.id)
-                if key in seen_citations:
+                chunk_key = (result.object.id, chunk.id)
+                if chunk_key in seen_citations:
                     continue
                 citations.append(
                     ContextPackCitation(
@@ -88,7 +88,7 @@ class ContextPackService:
                         locator=chunk.locator,
                     )
                 )
-                seen_citations.add(key)
+                seen_citations.add(chunk_key)
                 object_cited.add(result.object.id)
 
             if result.object.id not in object_cited:
@@ -101,8 +101,8 @@ class ContextPackService:
                     if source.source_id not in seen_sources:
                         evidence.append(source)
                         seen_sources.add(source.source_id)
-                    key = (result.object.id, None)
-                    if key not in seen_citations:
+                    source_key = (result.object.id, None)
+                    if source_key not in seen_citations:
                         citations.append(
                             ContextPackCitation(
                                 object_id=result.object.id,
@@ -113,7 +113,7 @@ class ContextPackService:
                                 locator="source excerpt",
                             )
                         )
-                        seen_citations.add(key)
+                        seen_citations.add(source_key)
                         object_cited.add(result.object.id)
                     break
 
