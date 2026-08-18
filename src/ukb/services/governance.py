@@ -75,9 +75,8 @@ class GovernanceService:
         # Compatibility for callers that predate the explicit publication
         # transition. Revision-aware callers retain the stricter v2 workflow:
         # approve -> publication pending -> publish. Legacy callers that omit an
-        # expected revision receive a published *copy* for retrieval while the
-        # review item remains approved, preserving both contracts without
-        # mutating the object returned by the submission use case.
+        # expected revision receive a published, independent object copy while
+        # the review item remains approved.
         if decision.expected_revision is None:
             self._publish_legacy_copy(item, resolved_actor, decision.comment)
         return item
@@ -230,11 +229,11 @@ class GovernanceService:
         item: ReviewItem,
         actor: str,
         comment: str | None,
-    ) -> KnowledgeObject | None:
-        published = item.candidate_object.model_copy(deep=True)
-        if self.settings.require_owner_for_publish and not published.owner:
-            return None
-
+    ) -> KnowledgeObject:
+        # A Pydantic validation round-trip deliberately breaks every nested
+        # reference to the review candidate. Publishing this copy must never
+        # mutate the approved review item observed by legacy direct callers.
+        published = KnowledgeObject.model_validate(item.candidate_object.model_dump(mode="python"))
         published.status = ReviewStatus.published
         published.published_by = actor
         published.published_at = utc_now()
@@ -287,7 +286,7 @@ class GovernanceService:
 
     def _get(self, review_item_id: str) -> ReviewItem:
         try:
-            return self.store.get_review_item(review_item_id).model_copy(deep=True)
+            return self.store.get_review_item(review_item_id)
         except KeyError as exc:
             raise KeyError(f"Review item not found: {review_item_id}") from exc
 
