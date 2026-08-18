@@ -71,6 +71,15 @@ class GovernanceService:
             item.id,
             {"comment": decision.comment, "revision": item.revision},
         )
+
+        # Compatibility for callers that predate the explicit publication
+        # transition. Revision-aware callers retain the stricter v2 workflow:
+        # approve -> publication pending -> publish. Legacy callers that omit an
+        # expected revision receive a published *copy* for retrieval while the
+        # review item remains approved, preserving both contracts without
+        # mutating the object returned by the submission use case.
+        if decision.expected_revision is None:
+            self._publish_legacy_copy(item, resolved_actor, decision.comment)
         return item
 
     def publish(
@@ -216,6 +225,48 @@ class GovernanceService:
         )
         return item
 
+    def _publish_legacy_copy(
+        self,
+        item: ReviewItem,
+        actor: str,
+        comment: str | None,
+    ) -> KnowledgeObject | None:
+        published = item.candidate_object.model_copy(deep=True)
+        if self.settings.require_owner_for_publish and not published.owner:
+            return None
+
+        published.status = ReviewStatus.published
+        published.published_by = actor
+        published.published_at = utc_now()
+        published.updated_at = utc_now()
+        published = self.store.publish_object(published)
+
+        for relationship in published.relationships:
+            self.store.add_relationship(
+                RelationshipRecord(
+                    source_object_id=published.id,
+                    target_object_id=relationship.target_id,
+                    relationship_type=relationship.type,
+                    confidence=relationship.confidence,
+                    status=ReviewStatus.published,
+                    approved_by=actor,
+                )
+            )
+
+        self._audit(
+            "knowledge_published",
+            actor,
+            item.id,
+            {
+                "published_object_id": published.id,
+                "object_version": published.version,
+                "comment": comment,
+                "revision": item.revision,
+                "legacy_approval_compatibility": True,
+            },
+        )
+        return published
+
     def _touch(self, item: ReviewItem) -> None:
         item.revision += 1
         item.updated_at = utc_now()
@@ -236,7 +287,7 @@ class GovernanceService:
 
     def _get(self, review_item_id: str) -> ReviewItem:
         try:
-            return self.store.get_review_item(review_item_id)
+            return self.store.get_review_item(review_item_id).model_copy(deep=True)
         except KeyError as exc:
             raise KeyError(f"Review item not found: {review_item_id}") from exc
 
