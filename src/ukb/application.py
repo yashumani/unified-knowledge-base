@@ -97,7 +97,10 @@ class BrainApplication:
             content=trusted_submission.content,
             item=item,
         )
-        self.store.add_review_item(item)
+        # The authoritative store owns its own object graph. The detached value
+        # returned to an adapter remains a stable revision snapshot, so later
+        # governance transitions cannot silently rewrite a caller's stale copy.
+        self.store.add_review_item(item.model_copy(deep=True))
         self._audit(
             "submission_created",
             actor,
@@ -149,7 +152,7 @@ class BrainApplication:
             )
             item.candidate_object.evidence_refs = self.evidence.references(chunks, field_name="candidate")
             item.ai_enrichment = self._enrich(source=source, content=parsed.text, item=item)
-            self.store.add_review_item(item)
+            self.store.add_review_item(item.model_copy(deep=True))
             self._audit(
                 "batch_source_created",
                 actor,
@@ -195,11 +198,14 @@ class BrainApplication:
         *,
         principal: str | PrincipalLike,
     ) -> ReviewItem:
-        return self.governance.approve(
+        item = self.governance.approve(
             review_item_id,
             decision,
             actor=self.access_policy.subject(principal),
         )
+        if decision.expected_revision is None:
+            self.retrieval.rebuild()
+        return item
 
     def publish_review(
         self,
