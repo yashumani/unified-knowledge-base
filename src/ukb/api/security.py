@@ -243,7 +243,7 @@ def require_roles(principal: Principal, allowed: set[str]) -> Principal:
 def warn_on_insecure_configuration(settings: Settings) -> list[str]:
     warnings: list[str] = []
     if not settings.require_auth:
-        warnings.append("Unauthenticated access is enabled. Do not run this way with real data.")
+        warnings.append("unauthenticated access is enabled. Do not run this way with real data.")
     elif settings.api_token_is_default and not settings.oidc_enabled:
         warnings.append(
             "UKB_API_TOKEN is still the shipped development default and OIDC is disabled. "
