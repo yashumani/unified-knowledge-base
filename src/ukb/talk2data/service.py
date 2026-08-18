@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Iterable
 
 from ukb.api.security import Principal
-from ukb.models import Sensitivity, utc_now
+from ukb.models import utc_now
 from ukb.services.access import SENSITIVITY_ORDER
 from ukb.talk2data.graph import InMemoryTemporalGraphAdapter, TemporalGraphAdapter
 from ukb.talk2data.models import (
