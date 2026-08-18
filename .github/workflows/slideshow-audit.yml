@@ -1,0 +1,129 @@
+name: Audit slideshow workspace
+
+on:
+  push:
+    branches: ["agent/slideshow-studio-redesign"]
+    paths:
+      - "apps/web/**"
+      - ".github/workflows/slideshow-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build current Pages bundle
+        env:
+          GITHUB_PAGES: "true"
+        run: npm run web:build
+
+      - name: Install Chromium audit runtime
+        run: |
+          npm install --no-save --no-package-lock playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Start preview
+        env:
+          GITHUB_PAGES: "true"
+        run: |
+          nohup npm --workspace apps/web run preview -- --host 127.0.0.1 --port 4173 > /tmp/ukb-preview.log 2>&1 &
+          for attempt in {1..40}; do
+            if curl --fail --silent http://127.0.0.1:4173/unified-knowledge-base/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/ukb-preview.log
+          exit 1
+
+      - name: Capture workspace screenshots and geometry
+        run: |
+          mkdir -p slideshow-audit
+          node <<'NODE'
+          const fs = require('fs');
+          const { chromium } = require('playwright');
+          const base = 'http://127.0.0.1:4173/unified-knowledge-base/';
+          const pages = ['home','ingest','enrich','review','publish','compose','memory','activity','help'];
+          const viewports = [
+            ['desktop', { width: 1440, height: 1000 }],
+            ['laptop', { width: 1280, height: 720 }],
+            ['mobile', { width: 390, height: 844 }]
+          ];
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const report = [];
+            for (const [label, viewport] of viewports) {
+              for (const pageName of pages) {
+                const page = await browser.newPage({ viewport });
+                const errors = [];
+                page.on('pageerror', error => errors.push(error.message));
+                await page.route('http://localhost:8000/**', route => route.abort());
+                await page.route('http://127.0.0.1:8000/**', route => route.abort());
+                const url = pageName === 'home' ? base : `${base}?page=${pageName}`;
+                await page.goto(url, { waitUntil: 'domcontentloaded' });
+                await page.waitForTimeout(1800);
+                const geometry = await page.evaluate(() => {
+                  const shell = document.querySelector('.workspace-shell');
+                  const main = document.querySelector('.workspace-main');
+                  const body = document.querySelector('.workspace-slide-body');
+                  const studio = document.querySelector('.ingestion-studio');
+                  const panels = [...document.querySelectorAll('.ingestion-methods,.ingestion-config,.ingestion-preview')];
+                  const rect = element => element ? (() => {
+                    const r = element.getBoundingClientRect();
+                    return { x: Math.round(r.x), y: Math.round(r.y), width: Math.round(r.width), height: Math.round(r.height), scrollHeight: element.scrollHeight, clientHeight: element.clientHeight };
+                  })() : null;
+                  return {
+                    viewport: { width: innerWidth, height: innerHeight },
+                    document: { width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight },
+                    bodyScroll: { height: document.body.scrollHeight, clientHeight: document.body.clientHeight, overflow: getComputedStyle(document.body).overflow },
+                    shell: rect(shell),
+                    main: rect(main),
+                    slideBody: rect(body),
+                    studio: rect(studio),
+                    studioPanels: panels.map(rect),
+                    visibleButtons: [...document.querySelectorAll('button')].filter(el => {
+                      const r = el.getBoundingClientRect();
+                      return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < innerHeight;
+                    }).length
+                  };
+                });
+                report.push({ label, page: pageName, url, errors, geometry });
+                await page.screenshot({ path: `slideshow-audit/${label}-${pageName}.png`, fullPage: false });
+                if (pageName === 'ingest') {
+                  await page.screenshot({ path: `slideshow-audit/${label}-${pageName}-full.png`, fullPage: true });
+                }
+                await page.close();
+              }
+            }
+            await browser.close();
+            fs.writeFileSync('slideshow-audit/geometry.json', JSON.stringify(report, null, 2));
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Upload audit artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ukb-slideshow-audit
+          path: |
+            apps/web/dist
+            slideshow-audit
+          if-no-files-found: error
+          retention-days: 7
