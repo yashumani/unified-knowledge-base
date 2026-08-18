@@ -6,50 +6,15 @@ on:
     branches: ["main"]
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  fix-access-policy-caveat:
-    name: Apply verified access-policy caveat fix
-    if: github.event_name == 'pull_request' && github.head_ref == 'agent/talk2data-domain-pack-memory'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout development branch
-        uses: actions/checkout@v6
-        with:
-          ref: agent/talk2data-domain-pack-memory
-          fetch-depth: 0
-
-      - name: Apply fix and restore standard CI
-        shell: bash
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-
-          path = Path('src/ukb/services/context_pack.py')
-          text = path.read_text(encoding='utf-8')
-          before = 'matching result(s) were withheld by access policy.'
-          after = 'matching result(s) were withheld by the access policy.'
-          if before not in text:
-              raise SystemExit('Expected access-policy caveat was not found')
-          path.write_text(text.replace(before, after, 1), encoding='utf-8')
-          PY
-          git fetch origin agent/architecture-gap-closure
-          git checkout origin/agent/architecture-gap-closure -- .github/workflows/ci.yml
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "Clarify access-policy withholding caveat"
-          git push origin HEAD:agent/talk2data-domain-pack-memory
-
   python:
     name: Python quality and tests
-    if: github.head_ref != 'agent/talk2data-domain-pack-memory'
     runs-on: ubuntu-latest
     env:
       UKB_AI_ENRICHMENT_ENABLED: "true"
@@ -99,7 +64,6 @@ jobs:
 
   frontend:
     name: Frontend and starter-kit build
-    if: github.head_ref != 'agent/talk2data-domain-pack-memory'
     runs-on: ubuntu-latest
 
     steps:
@@ -131,7 +95,6 @@ jobs:
 
   containers:
     name: Container and Compose validation
-    if: github.head_ref != 'agent/talk2data-domain-pack-memory'
     runs-on: ubuntu-latest
 
     steps:

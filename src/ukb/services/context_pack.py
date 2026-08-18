@@ -300,7 +300,7 @@ class ContextPackService:
     ) -> list[str]:
         caveats: list[str] = []
         if denied_count:
-            caveats.append(f"{denied_count} matching result(s) were withheld by access policy.")
+            caveats.append(f"{denied_count} matching result(s) were withheld by the access policy.")
         if any(not obj.owner for obj in objects):
             caveats.append("At least one returned object has no assigned owner.")
         if conflicts:
