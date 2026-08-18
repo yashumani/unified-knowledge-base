@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     api_tokens_json: str = "{}"
     require_auth: bool = True
     default_api_token: str = "dev-token-change-me"
+    default_tenant_id: str = "default"
 
     # Production identity. Local deployments can continue using token-to-principal
     # mappings; enterprise deployments should validate JWTs from an OIDC issuer.
@@ -31,6 +32,7 @@ class Settings(BaseSettings):
     oidc_roles_claim: str = "roles"
     oidc_groups_claim: str = "groups"
     oidc_clearance_claim: str = "clearance"
+    oidc_tenant_claim: str = "tenant_id"
 
     default_user_clearance: str = "internal"
     user_clearances: str = ""
@@ -77,6 +79,13 @@ class Settings(BaseSettings):
     search_sync_on_query: bool = True
     zvec_path: str = "./.ukb/zvec/approved-knowledge-v2"
     zvec_collection_name: str = "ukb_approved_knowledge_v2"
+
+    # Talk2Data Domain Pack and governed-memory projection. SQL is canonical;
+    # Graphiti or the in-memory graph is a rebuildable derived index.
+    talk2data_graph_backend: str = "memory"
+    talk2data_index_lag_tolerance_seconds: int = 300
+    graphiti_base_url: str | None = None
+    graphiti_api_key: str | None = None
 
     web_connector_enabled: bool = False
     web_allowed_hosts: str = ""

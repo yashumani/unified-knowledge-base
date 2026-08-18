@@ -1,0 +1,69 @@
+{
+  "$defs": {
+    "IndexStatus": {
+      "enum": [
+        "current",
+        "lagging",
+        "unavailable"
+      ],
+      "title": "IndexStatus",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "details": {
+      "additionalProperties": true,
+      "title": "Details",
+      "type": "object"
+    },
+    "indexed_watermark": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Indexed Watermark"
+    },
+    "partition": {
+      "title": "Partition",
+      "type": "string"
+    },
+    "source_watermark": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Watermark"
+    },
+    "status": {
+      "$ref": "#/$defs/IndexStatus",
+      "default": "current"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "partition"
+  ],
+  "title": "IndexWatermark",
+  "type": "object"
+}

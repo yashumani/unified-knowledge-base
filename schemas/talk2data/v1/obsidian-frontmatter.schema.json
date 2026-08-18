@@ -1,0 +1,203 @@
+{
+  "$defs": {
+    "AuthorityLevel": {
+      "enum": [
+        "authoritative",
+        "approved",
+        "corroborated",
+        "unverified",
+        "hypothesis"
+      ],
+      "title": "AuthorityLevel",
+      "type": "string"
+    },
+    "MemoryStatus": {
+      "enum": [
+        "unverified",
+        "approved",
+        "published",
+        "deprecated",
+        "superseded",
+        "expired",
+        "conflicting",
+        "rejected"
+      ],
+      "title": "MemoryStatus",
+      "type": "string"
+    },
+    "MemoryType": {
+      "enum": [
+        "business_definition",
+        "business_decision",
+        "policy",
+        "business_event",
+        "project_event",
+        "investigation",
+        "user_approved_preference",
+        "metric_context",
+        "entity_context",
+        "external_intelligence",
+        "source_document",
+        "meeting_record",
+        "hypothesis",
+        "recommendation"
+      ],
+      "title": "MemoryType",
+      "type": "string"
+    },
+    "Sensitivity": {
+      "enum": [
+        "public",
+        "internal",
+        "confidential",
+        "restricted"
+      ],
+      "title": "Sensitivity",
+      "type": "string"
+    }
+  },
+  "additionalProperties": true,
+  "properties": {
+    "access_policy_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Access Policy Id"
+    },
+    "allowed_roles": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Allowed Roles",
+      "type": "array"
+    },
+    "approved_by": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Approved By"
+    },
+    "authority_level": {
+      "$ref": "#/$defs/AuthorityLevel",
+      "default": "unverified"
+    },
+    "classification": {
+      "$ref": "#/$defs/Sensitivity"
+    },
+    "denied_roles": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Denied Roles",
+      "type": "array"
+    },
+    "domain": {
+      "title": "Domain",
+      "type": "string"
+    },
+    "effective_from": {
+      "format": "date-time",
+      "title": "Effective From",
+      "type": "string"
+    },
+    "effective_to": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Effective To"
+    },
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "owner": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Owner"
+    },
+    "related_entities": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Related Entities",
+      "type": "array"
+    },
+    "related_metrics": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Related Metrics",
+      "type": "array"
+    },
+    "source": {
+      "title": "Source",
+      "type": "string"
+    },
+    "source_type": {
+      "default": "obsidian",
+      "title": "Source Type",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/MemoryStatus"
+    },
+    "tags": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Tags",
+      "type": "array"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "type": {
+      "$ref": "#/$defs/MemoryType"
+    },
+    "version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "id",
+    "tenant_id",
+    "type",
+    "domain",
+    "status",
+    "classification",
+    "effective_from",
+    "source"
+  ],
+  "title": "ObsidianFrontmatter",
+  "type": "object"
+}

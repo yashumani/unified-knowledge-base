@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import cast
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, Response
@@ -31,21 +32,25 @@ from ukb.models import (
 from ukb.services.governance import GovernanceConflict, GovernanceValidationError
 from ukb.services.graph import BrainGraphService
 from ukb.services.runtime import application, settings
+from ukb.talk2data.routes import router as talk2data_router
+from ukb.talk2data.runtime import service as talk2data_service
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     warn_on_insecure_configuration(settings)
     yield
+    talk2data_service.close()
     application.close()
 
 
 app = FastAPI(
     title=settings.app_name,
-    version="0.2.0",
+    version="0.3.0",
     description=(
-        "Governed AI Brain runtime with durable evidence, advisory local Ollama enrichment, "
-        "human approval, explicit publication, permission-aware retrieval, and context packs."
+        "Governed AI Brain runtime with durable evidence, tenant Domain Packs, typed temporal "
+        "memory, advisory local Ollama enrichment, human publication, permission-aware retrieval, "
+        "and Context Coverage Receipts."
     ),
     lifespan=lifespan,
 )
@@ -64,7 +69,7 @@ app.add_middleware(
 async def request_identity(request: Request, call_next) -> Response:
     request_id = request.headers.get("X-Request-ID") or f"req_{uuid4().hex[:16]}"
     request.state.request_id = request_id
-    response = await call_next(request)
+    response = cast(Response, await call_next(request))
     response.headers["X-Request-ID"] = request_id
     return response
 
@@ -100,12 +105,15 @@ def health() -> dict[str, str]:
 @public_router.get("/ready")
 def readiness() -> dict[str, object]:
     index = application.retrieval.status()
+    talk2data_graph = talk2data_service.graph_status()
     return {
         "status": "ready",
         "store_backend": settings.store_backend,
         "search_backend": index.backend_active,
         "search_available": index.available,
         "ai_provider": application.ai.status().provider.value,
+        "talk2data_graph_backend": talk2data_graph.backend,
+        "talk2data_graph_available": talk2data_graph.available,
     }
 
 
@@ -348,3 +356,4 @@ app.include_router(public_router)
 app.include_router(protected_router)
 app.include_router(ingestion_router)
 app.include_router(search_router)
+app.include_router(talk2data_router)

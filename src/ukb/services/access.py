@@ -14,8 +14,14 @@ SENSITIVITY_ORDER: dict[Sensitivity, int] = {
 
 @runtime_checkable
 class PrincipalLike(Protocol):
-    subject: str
-    clearance: Sensitivity
+    @property
+    def subject(self) -> str: ...
+
+    @property
+    def clearance(self) -> Sensitivity: ...
+
+    @property
+    def tenant_id(self) -> str: ...
 
 
 class AccessDecisionDetail:
