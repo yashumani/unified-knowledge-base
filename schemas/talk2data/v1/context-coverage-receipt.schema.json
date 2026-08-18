@@ -1,0 +1,180 @@
+{
+  "$defs": {
+    "CoverageStatus": {
+      "enum": [
+        "complete",
+        "partial",
+        "stale",
+        "unavailable",
+        "denied"
+      ],
+      "title": "CoverageStatus",
+      "type": "string"
+    },
+    "PartitionCoverage": {
+      "properties": {
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "partition": {
+          "title": "Partition",
+          "type": "string"
+        },
+        "result_count": {
+          "default": 0,
+          "title": "Result Count",
+          "type": "integer"
+        },
+        "searched": {
+          "title": "Searched",
+          "type": "boolean"
+        },
+        "status": {
+          "$ref": "#/$defs/CoverageStatus",
+          "default": "complete"
+        }
+      },
+      "required": [
+        "partition",
+        "searched"
+      ],
+      "title": "PartitionCoverage",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "conflicting_memory_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Conflicting Memory Ids",
+      "type": "array"
+    },
+    "domain_pack_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Domain Pack Id"
+    },
+    "domain_pack_version": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Domain Pack Version"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "incomplete_or_unavailable_sources": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Incomplete Or Unavailable Sources",
+      "type": "array"
+    },
+    "index_lag_seconds": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Index Lag Seconds"
+    },
+    "latest_ingestion_watermark": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Latest Ingestion Watermark"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    },
+    "overall_coverage_status": {
+      "$ref": "#/$defs/CoverageStatus"
+    },
+    "partition_coverage": {
+      "items": {
+        "$ref": "#/$defs/PartitionCoverage"
+      },
+      "title": "Partition Coverage",
+      "type": "array"
+    },
+    "policy_based_exclusions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Policy Based Exclusions",
+      "type": "array"
+    },
+    "receipt_id": {
+      "title": "Receipt Id",
+      "type": "string"
+    },
+    "requested_memory_partitions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Requested Memory Partitions",
+      "type": "array"
+    },
+    "searched_memory_partitions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Searched Memory Partitions",
+      "type": "array"
+    },
+    "superseded_memory_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Superseded Memory Ids",
+      "type": "array"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "requested_memory_partitions",
+    "searched_memory_partitions",
+    "overall_coverage_status"
+  ],
+  "title": "ContextCoverageReceipt",
+  "type": "object"
+}

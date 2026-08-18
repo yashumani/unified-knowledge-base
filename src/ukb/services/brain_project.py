@@ -32,6 +32,18 @@ class BrainProjectConfig(BaseModel):
     plugins: list[BrainPluginConfig] = Field(default_factory=list)
 
 
+def _mapping(value: object) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    return {str(key): item for key, item in value.items()}
+
+
+def _string_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item) for item in value if str(item).strip()]
+
+
 def load_brain_project(path: str | Path) -> BrainProjectConfig:
     """Load a brain.config.yaml file from a project directory or exact path."""
 
@@ -41,22 +53,33 @@ def load_brain_project(path: str | Path) -> BrainProjectConfig:
         raise FileNotFoundError(f"Brain config not found: {config_path}")
 
     with config_path.open("r", encoding="utf-8") as handle:
-        raw = yaml.safe_load(handle) or {}
+        loaded = yaml.safe_load(handle) or {}
+    raw = _mapping(loaded)
+    brain = _mapping(raw.get("brain") or raw)
+    runtime_raw = _mapping(raw.get("runtime"))
+    ai_raw = _mapping(runtime_raw.get("ai"))
+    local_ai = _mapping(ai_raw.get("local"))
+    hosted_ai = _mapping(ai_raw.get("hosted"))
+    governance = _mapping(raw.get("governance"))
+    raw_plugins = raw.get("plugins")
+    plugins = raw_plugins if isinstance(raw_plugins, list) else []
 
-    brain = raw.get("brain", raw)
-    runtime_raw = raw.get("runtime", {})
+    project_id = str(brain.get("id") or "").strip()
+    project_name = str(brain.get("name") or "").strip()
+    if not project_id or not project_name:
+        raise ValueError("brain.config.yaml requires brain.id and brain.name.")
 
     return BrainProjectConfig(
-        id=brain["id"],
-        name=brain["name"],
-        version=str(brain.get("version", "0.1.0")),
-        description=brain.get("description"),
-        domains=list(raw.get("domains", brain.get("domains", []))),
+        id=project_id,
+        name=project_name,
+        version=str(brain.get("version") or "0.1.0"),
+        description=str(brain["description"]) if brain.get("description") is not None else None,
+        domains=_string_list(raw.get("domains") or brain.get("domains")),
         runtime=BrainRuntimeConfig(
-            mode=runtime_raw.get("mode", "offline_first"),
-            require_human_review=raw.get("governance", {}).get("require_human_review", True),
-            local_ai_enabled=runtime_raw.get("ai", {}).get("local", {}).get("enabled", False),
-            hosted_ai_enabled=runtime_raw.get("ai", {}).get("hosted", {}).get("enabled", False),
+            mode=str(runtime_raw.get("mode") or "offline_first"),
+            require_human_review=bool(governance.get("require_human_review", True)),
+            local_ai_enabled=bool(local_ai.get("enabled", False)),
+            hosted_ai_enabled=bool(hosted_ai.get("enabled", False)),
         ),
-        plugins=[BrainPluginConfig(**plugin) for plugin in raw.get("plugins", [])],
+        plugins=[BrainPluginConfig.model_validate(plugin) for plugin in plugins if isinstance(plugin, dict)],
     )

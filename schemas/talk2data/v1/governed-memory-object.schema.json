@@ -1,0 +1,336 @@
+{
+  "$defs": {
+    "AuthorityLevel": {
+      "enum": [
+        "authoritative",
+        "approved",
+        "corroborated",
+        "unverified",
+        "hypothesis"
+      ],
+      "title": "AuthorityLevel",
+      "type": "string"
+    },
+    "MemoryProvenance": {
+      "properties": {
+        "derivation_type": {
+          "default": "human_reviewed",
+          "title": "Derivation Type",
+          "type": "string"
+        },
+        "derivation_version": {
+          "default": "1.0",
+          "title": "Derivation Version",
+          "type": "string"
+        },
+        "derived_by": {
+          "title": "Derived By",
+          "type": "string"
+        },
+        "episode_id": {
+          "title": "Episode Id",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "parent_memory_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Parent Memory Ids",
+          "type": "array"
+        },
+        "source_checksum": {
+          "title": "Source Checksum",
+          "type": "string"
+        },
+        "source_relationships": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Relationships",
+          "type": "array"
+        }
+      },
+      "required": [
+        "episode_id",
+        "source_checksum",
+        "derived_by"
+      ],
+      "title": "MemoryProvenance",
+      "type": "object"
+    },
+    "MemoryStatus": {
+      "enum": [
+        "unverified",
+        "approved",
+        "published",
+        "deprecated",
+        "superseded",
+        "expired",
+        "conflicting",
+        "rejected"
+      ],
+      "title": "MemoryStatus",
+      "type": "string"
+    },
+    "MemoryType": {
+      "enum": [
+        "business_definition",
+        "business_decision",
+        "policy",
+        "business_event",
+        "project_event",
+        "investigation",
+        "user_approved_preference",
+        "metric_context",
+        "entity_context",
+        "external_intelligence",
+        "source_document",
+        "meeting_record",
+        "hypothesis",
+        "recommendation"
+      ],
+      "title": "MemoryType",
+      "type": "string"
+    },
+    "Sensitivity": {
+      "enum": [
+        "public",
+        "internal",
+        "confidential",
+        "restricted"
+      ],
+      "title": "Sensitivity",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "access_policy_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Access Policy Id"
+    },
+    "allowed_roles": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Allowed Roles",
+      "type": "array"
+    },
+    "approved_by": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Approved By"
+    },
+    "authority_level": {
+      "$ref": "#/$defs/AuthorityLevel",
+      "default": "unverified"
+    },
+    "business_domain": {
+      "title": "Business Domain",
+      "type": "string"
+    },
+    "checksum": {
+      "default": "",
+      "title": "Checksum",
+      "type": "string"
+    },
+    "classification": {
+      "$ref": "#/$defs/Sensitivity",
+      "default": "internal"
+    },
+    "conflict_group_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Conflict Group Id"
+    },
+    "content": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "additionalProperties": true,
+          "type": "object"
+        }
+      ],
+      "title": "Content"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "denied_roles": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Denied Roles",
+      "type": "array"
+    },
+    "effective_from": {
+      "format": "date-time",
+      "title": "Effective From",
+      "type": "string"
+    },
+    "effective_to": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Effective To"
+    },
+    "index_watermark": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Index Watermark"
+    },
+    "ingestion_timestamp": {
+      "format": "date-time",
+      "title": "Ingestion Timestamp",
+      "type": "string"
+    },
+    "memory_id": {
+      "title": "Memory Id",
+      "type": "string"
+    },
+    "memory_type": {
+      "$ref": "#/$defs/MemoryType"
+    },
+    "owner": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Owner"
+    },
+    "provenance": {
+      "$ref": "#/$defs/MemoryProvenance"
+    },
+    "related_entities": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Related Entities",
+      "type": "array"
+    },
+    "related_metrics": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Related Metrics",
+      "type": "array"
+    },
+    "source_id": {
+      "title": "Source Id",
+      "type": "string"
+    },
+    "source_type": {
+      "title": "Source Type",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/MemoryStatus",
+      "default": "unverified"
+    },
+    "superseded_by": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Superseded By"
+    },
+    "supersedes": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Supersedes"
+    },
+    "tags": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Tags",
+      "type": "array"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "memory_type",
+    "source_type",
+    "source_id",
+    "business_domain",
+    "content",
+    "provenance"
+  ],
+  "title": "GovernedMemoryObject",
+  "type": "object"
+}

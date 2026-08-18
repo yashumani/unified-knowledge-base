@@ -1,0 +1,4792 @@
+{
+  "components": {
+    "schemas": {
+      "AuthorityLevel": {
+        "enum": [
+          "authoritative",
+          "approved",
+          "corroborated",
+          "unverified",
+          "hypothesis"
+        ],
+        "title": "AuthorityLevel",
+        "type": "string"
+      },
+      "BusinessEntityDefinition": {
+        "properties": {
+          "aliases": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Aliases",
+            "type": "array"
+          },
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "domains": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Domains",
+            "type": "array"
+          },
+          "entity_id": {
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "entity_type": {
+            "title": "Entity Type",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "entity_id",
+          "name",
+          "entity_type"
+        ],
+        "title": "BusinessEntityDefinition",
+        "type": "object"
+      },
+      "BusinessProcessDefinition": {
+        "properties": {
+          "aliases": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Aliases",
+            "type": "array"
+          },
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "domains": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Domains",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "process_id": {
+            "title": "Process Id",
+            "type": "string"
+          },
+          "related_entities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Related Entities",
+            "type": "array"
+          },
+          "related_metrics": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Related Metrics",
+            "type": "array"
+          }
+        },
+        "required": [
+          "process_id",
+          "name"
+        ],
+        "title": "BusinessProcessDefinition",
+        "type": "object"
+      },
+      "CanonicalEpisode": {
+        "additionalProperties": false,
+        "properties": {
+          "access_policy_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Access Policy Id"
+          },
+          "classification": {
+            "$ref": "#/components/schemas/Sensitivity",
+            "default": "internal"
+          },
+          "content_type": {
+            "default": "text/markdown",
+            "title": "Content Type",
+            "type": "string"
+          },
+          "effective_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective From"
+          },
+          "effective_to": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective To"
+          },
+          "episode_id": {
+            "title": "Episode Id",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          },
+          "ingestion_timestamp": {
+            "format": "date-time",
+            "title": "Ingestion Timestamp",
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
+          },
+          "parent_episode_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Parent Episode Ids",
+            "type": "array"
+          },
+          "raw_content": {
+            "title": "Raw Content",
+            "type": "string"
+          },
+          "source_checksum": {
+            "default": "",
+            "title": "Source Checksum",
+            "type": "string"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_type": {
+            "title": "Source Type",
+            "type": "string"
+          },
+          "source_uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Uri"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "source_type",
+          "source_id",
+          "title",
+          "raw_content"
+        ],
+        "title": "CanonicalEpisode",
+        "type": "object"
+      },
+      "ContextCoverageReceipt": {
+        "properties": {
+          "conflicting_memory_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Conflicting Memory Ids",
+            "type": "array"
+          },
+          "domain_pack_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domain Pack Id"
+          },
+          "domain_pack_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domain Pack Version"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "incomplete_or_unavailable_sources": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Incomplete Or Unavailable Sources",
+            "type": "array"
+          },
+          "index_lag_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Index Lag Seconds"
+          },
+          "latest_ingestion_watermark": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Ingestion Watermark"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "overall_coverage_status": {
+            "$ref": "#/components/schemas/CoverageStatus"
+          },
+          "partition_coverage": {
+            "items": {
+              "$ref": "#/components/schemas/PartitionCoverage"
+            },
+            "title": "Partition Coverage",
+            "type": "array"
+          },
+          "policy_based_exclusions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Policy Based Exclusions",
+            "type": "array"
+          },
+          "receipt_id": {
+            "title": "Receipt Id",
+            "type": "string"
+          },
+          "requested_memory_partitions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Requested Memory Partitions",
+            "type": "array"
+          },
+          "searched_memory_partitions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Searched Memory Partitions",
+            "type": "array"
+          },
+          "superseded_memory_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Superseded Memory Ids",
+            "type": "array"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "requested_memory_partitions",
+          "searched_memory_partitions",
+          "overall_coverage_status"
+        ],
+        "title": "ContextCoverageReceipt",
+        "type": "object"
+      },
+      "ContextCoverageRequest": {
+        "properties": {
+          "business_domains": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Business Domains",
+            "type": "array"
+          },
+          "effective_at": {
+            "format": "date-time",
+            "title": "Effective At",
+            "type": "string"
+          },
+          "question": {
+            "minLength": 3,
+            "title": "Question",
+            "type": "string"
+          },
+          "related_entities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Related Entities",
+            "type": "array"
+          },
+          "related_metrics": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Related Metrics",
+            "type": "array"
+          },
+          "requested_memory_partitions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Requested Memory Partitions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "question"
+        ],
+        "title": "ContextCoverageRequest",
+        "type": "object"
+      },
+      "CoverageStatus": {
+        "enum": [
+          "complete",
+          "partial",
+          "stale",
+          "unavailable",
+          "denied"
+        ],
+        "title": "CoverageStatus",
+        "type": "string"
+      },
+      "DimensionReference": {
+        "properties": {
+          "aliases": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Aliases",
+            "type": "array"
+          },
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "dimension_id": {
+            "title": "Dimension Id",
+            "type": "string"
+          },
+          "domain": {
+            "title": "Domain",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "related_entities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Related Entities",
+            "type": "array"
+          }
+        },
+        "required": [
+          "dimension_id",
+          "name",
+          "domain"
+        ],
+        "title": "DimensionReference",
+        "type": "object"
+      },
+      "DomainAdjacencyRule": {
+        "properties": {
+          "allowed": {
+            "default": true,
+            "title": "Allowed",
+            "type": "boolean"
+          },
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "external_category": {
+            "title": "External Category",
+            "type": "string"
+          },
+          "internal_anchor_domains": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Internal Anchor Domains",
+            "type": "array"
+          },
+          "internal_anchor_entities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Internal Anchor Entities",
+            "type": "array"
+          },
+          "internal_anchor_metrics": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Internal Anchor Metrics",
+            "type": "array"
+          },
+          "internal_anchor_terms": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Internal Anchor Terms",
+            "type": "array"
+          },
+          "rule_id": {
+            "title": "Rule Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule_id",
+          "external_category"
+        ],
+        "title": "DomainAdjacencyRule",
+        "type": "object"
+      },
+      "DomainClassificationResult": {
+        "properties": {
+          "classification": {
+            "$ref": "#/components/schemas/DomainFit"
+          },
+          "confidence": {
+            "default": 0.0,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "domain_pack_id": {
+            "title": "Domain Pack Id",
+            "type": "string"
+          },
+          "domain_pack_version": {
+            "title": "Domain Pack Version",
+            "type": "integer"
+          },
+          "internal_anchors": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Internal Anchors",
+            "type": "array"
+          },
+          "matched_domains": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Matched Domains",
+            "type": "array"
+          },
+          "matched_entities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Matched Entities",
+            "type": "array"
+          },
+          "matched_exclusions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Matched Exclusions",
+            "type": "array"
+          },
+          "matched_external_categories": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Matched External Categories",
+            "type": "array"
+          },
+          "matched_metrics": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Matched Metrics",
+            "type": "array"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          }
+        },
+        "required": [
+          "question",
+          "classification",
+          "domain_pack_id",
+          "domain_pack_version"
+        ],
+        "title": "DomainClassificationResult",
+        "type": "object"
+      },
+      "DomainConcept": {
+        "properties": {
+          "aliases": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Aliases",
+            "type": "array"
+          },
+          "concept_id": {
+            "title": "Concept Id",
+            "type": "string"
+          },
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "domains": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Domains",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          }
+        },
+        "required": [
+          "concept_id",
+          "name"
+        ],
+        "title": "DomainConcept",
+        "type": "object"
+      },
+      "DomainFit": {
+        "enum": [
+          "in_domain",
+          "external_adjacent",
+          "excluded",
+          "unsupported",
+          "ambiguous"
+        ],
+        "title": "DomainFit",
+        "type": "string"
+      },
+      "DomainPackStatus": {
+        "enum": [
+          "draft",
+          "approved",
+          "superseded",
+          "deprecated"
+        ],
+        "title": "DomainPackStatus",
+        "type": "string"
+      },
+      "DomainPackVersionList": {
+        "properties": {
+          "domain_packs": {
+            "items": {
+              "$ref": "#/components/schemas/TenantDomainPack"
+            },
+            "title": "Domain Packs",
+            "type": "array"
+          }
+        },
+        "title": "DomainPackVersionList",
+        "type": "object"
+      },
+      "DomainPackWriteResult": {
+        "properties": {
+          "domain_pack": {
+            "$ref": "#/components/schemas/TenantDomainPack"
+          },
+          "superseded_domain_pack_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Superseded Domain Pack Id"
+          }
+        },
+        "required": [
+          "domain_pack"
+        ],
+        "title": "DomainPackWriteResult",
+        "type": "object"
+      },
+      "DomainQuestionRequest": {
+        "properties": {
+          "question": {
+            "minLength": 3,
+            "title": "Question",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question"
+        ],
+        "title": "DomainQuestionRequest",
+        "type": "object"
+      },
+      "EntityRelationshipDefinition": {
+        "properties": {
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "relationship_type": {
+            "title": "Relationship Type",
+            "type": "string"
+          },
+          "source_entity": {
+            "title": "Source Entity",
+            "type": "string"
+          },
+          "target_entity": {
+            "title": "Target Entity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_entity",
+          "relationship_type",
+          "target_entity"
+        ],
+        "title": "EntityRelationshipDefinition",
+        "type": "object"
+      },
+      "EpisodeIngestionRequest": {
+        "properties": {
+          "access_policy_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Access Policy Id"
+          },
+          "classification": {
+            "$ref": "#/components/schemas/Sensitivity",
+            "default": "internal"
+          },
+          "content_type": {
+            "default": "text/markdown",
+            "title": "Content Type",
+            "type": "string"
+          },
+          "effective_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective From"
+          },
+          "effective_to": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective To"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
+          },
+          "parent_episode_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Parent Episode Ids",
+            "type": "array"
+          },
+          "raw_content": {
+            "minLength": 1,
+            "title": "Raw Content",
+            "type": "string"
+          },
+          "source_checksum": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Checksum"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_type": {
+            "title": "Source Type",
+            "type": "string"
+          },
+          "source_uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Uri"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "source_type",
+          "source_id",
+          "title",
+          "raw_content"
+        ],
+        "title": "EpisodeIngestionRequest",
+        "type": "object"
+      },
+      "EpisodeIngestionResult": {
+        "properties": {
+          "duplicate": {
+            "default": false,
+            "title": "Duplicate",
+            "type": "boolean"
+          },
+          "duplicate_reason": {
+            "default": "none",
+            "enum": [
+              "idempotency_key",
+              "checksum",
+              "none"
+            ],
+            "title": "Duplicate Reason",
+            "type": "string"
+          },
+          "episode": {
+            "$ref": "#/components/schemas/CanonicalEpisode"
+          }
+        },
+        "required": [
+          "episode"
+        ],
+        "title": "EpisodeIngestionResult",
+        "type": "object"
+      },
+      "ExcludedDomain": {
+        "properties": {
+          "domain_id": {
+            "title": "Domain Id",
+            "type": "string"
+          },
+          "keywords": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Keywords",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "domain_id",
+          "name",
+          "reason"
+        ],
+        "title": "ExcludedDomain",
+        "type": "object"
+      },
+      "ExternalContextCategory": {
+        "properties": {
+          "category_id": {
+            "title": "Category Id",
+            "type": "string"
+          },
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "keywords": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Keywords",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "category_id",
+          "name"
+        ],
+        "title": "ExternalContextCategory",
+        "type": "object"
+      },
+      "GovernedMemoryObject": {
+        "additionalProperties": false,
+        "properties": {
+          "access_policy_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Access Policy Id"
+          },
+          "allowed_roles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Allowed Roles",
+            "type": "array"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By"
+          },
+          "authority_level": {
+            "$ref": "#/components/schemas/AuthorityLevel",
+            "default": "unverified"
+          },
+          "business_domain": {
+            "title": "Business Domain",
+            "type": "string"
+          },
+          "checksum": {
+            "default": "",
+            "title": "Checksum",
+            "type": "string"
+          },
+          "classification": {
+            "$ref": "#/components/schemas/Sensitivity",
+            "default": "internal"
+          },
+          "conflict_group_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conflict Group Id"
+          },
+          "content": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            ],
+            "title": "Content"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "denied_roles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Denied Roles",
+            "type": "array"
+          },
+          "effective_from": {
+            "format": "date-time",
+            "title": "Effective From",
+            "type": "string"
+          },
+          "effective_to": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective To"
+          },
+          "index_watermark": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Index Watermark"
+          },
+          "ingestion_timestamp": {
+            "format": "date-time",
+            "title": "Ingestion Timestamp",
+            "type": "string"
+          },
+          "memory_id": {
+            "title": "Memory Id",
+            "type": "string"
+          },
+          "memory_type": {
+            "$ref": "#/components/schemas/MemoryType"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/MemoryProvenance"
+          },
+          "related_entities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Related Entities",
+            "type": "array"
+          },
+          "related_metrics": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Related Metrics",
+            "type": "array"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_type": {
+            "title": "Source Type",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MemoryStatus",
+            "default": "unverified"
+          },
+          "superseded_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Superseded By"
+          },
+          "supersedes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supersedes"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "version": {
+            "default": 1,
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "memory_type",
+          "source_type",
+          "source_id",
+          "business_domain",
+          "content",
+          "provenance"
+        ],
+        "title": "GovernedMemoryObject",
+        "type": "object"
+      },
+      "GraphAdapterStatus": {
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "backend": {
+            "title": "Backend",
+            "type": "string"
+          },
+          "canonical": {
+            "default": false,
+            "title": "Canonical",
+            "type": "boolean"
+          },
+          "details": {
+            "additionalProperties": true,
+            "title": "Details",
+            "type": "object"
+          },
+          "replaceable": {
+            "default": true,
+            "title": "Replaceable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "backend",
+          "available"
+        ],
+        "title": "GraphAdapterStatus",
+        "type": "object"
+      },
+      "GraphRebuildResult": {
+        "properties": {
+          "backend": {
+            "title": "Backend",
+            "type": "string"
+          },
+          "episodes_indexed": {
+            "title": "Episodes Indexed",
+            "type": "integer"
+          },
+          "memories_indexed": {
+            "title": "Memories Indexed",
+            "type": "integer"
+          },
+          "relationships_indexed": {
+            "title": "Relationships Indexed",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "episodes_indexed",
+          "memories_indexed",
+          "relationships_indexed",
+          "backend"
+        ],
+        "title": "GraphRebuildResult",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "IndexStatus": {
+        "enum": [
+          "current",
+          "lagging",
+          "unavailable"
+        ],
+        "title": "IndexStatus",
+        "type": "string"
+      },
+      "IndexWatermark": {
+        "properties": {
+          "details": {
+            "additionalProperties": true,
+            "title": "Details",
+            "type": "object"
+          },
+          "indexed_watermark": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Indexed Watermark"
+          },
+          "partition": {
+            "title": "Partition",
+            "type": "string"
+          },
+          "source_watermark": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Watermark"
+          },
+          "status": {
+            "$ref": "#/components/schemas/IndexStatus",
+            "default": "current"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "partition"
+        ],
+        "title": "IndexWatermark",
+        "type": "object"
+      },
+      "KnowledgeSourceReference": {
+        "properties": {
+          "access_policy_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Access Policy Id"
+          },
+          "classification": {
+            "$ref": "#/components/schemas/Sensitivity",
+            "default": "internal"
+          },
+          "domains": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Domains",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "required": {
+            "default": true,
+            "title": "Required",
+            "type": "boolean"
+          },
+          "required_for_partitions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Required For Partitions",
+            "type": "array"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_type": {
+            "title": "Source Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id",
+          "name",
+          "source_type"
+        ],
+        "title": "KnowledgeSourceReference",
+        "type": "object"
+      },
+      "MemoryPromotionRequest": {
+        "properties": {
+          "access_policy_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Access Policy Id"
+          },
+          "allowed_roles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Allowed Roles",
+            "type": "array"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By"
+          },
+          "authority_level": {
+            "$ref": "#/components/schemas/AuthorityLevel",
+            "default": "unverified"
+          },
+          "business_domain": {
+            "title": "Business Domain",
+            "type": "string"
+          },
+          "classification": {
+            "$ref": "#/components/schemas/Sensitivity",
+            "default": "internal"
+          },
+          "conflict_group_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conflict Group Id"
+          },
+          "content": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            ],
+            "title": "Content"
+          },
+          "denied_roles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Denied Roles",
+            "type": "array"
+          },
+          "effective_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective From"
+          },
+          "effective_to": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective To"
+          },
+          "memory_type": {
+            "$ref": "#/components/schemas/MemoryType"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/MemoryProvenance"
+          },
+          "related_entities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Related Entities",
+            "type": "array"
+          },
+          "related_metrics": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Related Metrics",
+            "type": "array"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_type": {
+            "title": "Source Type",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MemoryStatus",
+            "default": "unverified"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "memory_type",
+          "source_type",
+          "source_id",
+          "business_domain",
+          "content",
+          "provenance"
+        ],
+        "title": "MemoryPromotionRequest",
+        "type": "object"
+      },
+      "MemoryProvenance": {
+        "properties": {
+          "derivation_type": {
+            "default": "human_reviewed",
+            "title": "Derivation Type",
+            "type": "string"
+          },
+          "derivation_version": {
+            "default": "1.0",
+            "title": "Derivation Version",
+            "type": "string"
+          },
+          "derived_by": {
+            "title": "Derived By",
+            "type": "string"
+          },
+          "episode_id": {
+            "title": "Episode Id",
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "parent_memory_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Parent Memory Ids",
+            "type": "array"
+          },
+          "source_checksum": {
+            "title": "Source Checksum",
+            "type": "string"
+          },
+          "source_relationships": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Relationships",
+            "type": "array"
+          }
+        },
+        "required": [
+          "episode_id",
+          "source_checksum",
+          "derived_by"
+        ],
+        "title": "MemoryProvenance",
+        "type": "object"
+      },
+      "MemoryQuery": {
+        "properties": {
+          "business_domains": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Business Domains",
+            "type": "array"
+          },
+          "effective_at": {
+            "format": "date-time",
+            "title": "Effective At",
+            "type": "string"
+          },
+          "include_historical": {
+            "default": false,
+            "title": "Include Historical",
+            "type": "boolean"
+          },
+          "limit": {
+            "default": 25,
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "memory_types": {
+            "items": {
+              "$ref": "#/components/schemas/MemoryType"
+            },
+            "title": "Memory Types",
+            "type": "array"
+          },
+          "query": {
+            "default": "",
+            "title": "Query",
+            "type": "string"
+          },
+          "related_entities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Related Entities",
+            "type": "array"
+          },
+          "related_metrics": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Related Metrics",
+            "type": "array"
+          },
+          "statuses": {
+            "items": {
+              "$ref": "#/components/schemas/MemoryStatus"
+            },
+            "title": "Statuses",
+            "type": "array"
+          }
+        },
+        "title": "MemoryQuery",
+        "type": "object"
+      },
+      "MemoryQueryResult": {
+        "properties": {
+          "graph_backend": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Graph Backend"
+          },
+          "memory": {
+            "items": {
+              "$ref": "#/components/schemas/GovernedMemoryObject"
+            },
+            "title": "Memory",
+            "type": "array"
+          },
+          "policy_exclusions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Policy Exclusions",
+            "type": "array"
+          },
+          "returned_count": {
+            "default": 0,
+            "title": "Returned Count",
+            "type": "integer"
+          },
+          "searched_partitions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Searched Partitions",
+            "type": "array"
+          }
+        },
+        "title": "MemoryQueryResult",
+        "type": "object"
+      },
+      "MemoryRelationship": {
+        "properties": {
+          "access_policy_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Access Policy Id"
+          },
+          "classification": {
+            "$ref": "#/components/schemas/Sensitivity",
+            "default": "internal"
+          },
+          "effective_from": {
+            "format": "date-time",
+            "title": "Effective From",
+            "type": "string"
+          },
+          "effective_to": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective To"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "provenance_episode_id": {
+            "title": "Provenance Episode Id",
+            "type": "string"
+          },
+          "relationship_id": {
+            "title": "Relationship Id",
+            "type": "string"
+          },
+          "relationship_type": {
+            "title": "Relationship Type",
+            "type": "string"
+          },
+          "source_memory_id": {
+            "title": "Source Memory Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RelationshipStatus",
+            "default": "active"
+          },
+          "target_entity_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Entity Id"
+          },
+          "target_memory_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Memory Id"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "source_memory_id",
+          "relationship_type",
+          "provenance_episode_id"
+        ],
+        "title": "MemoryRelationship",
+        "type": "object"
+      },
+      "MemoryStatus": {
+        "enum": [
+          "unverified",
+          "approved",
+          "published",
+          "deprecated",
+          "superseded",
+          "expired",
+          "conflicting",
+          "rejected"
+        ],
+        "title": "MemoryStatus",
+        "type": "string"
+      },
+      "MemorySupersessionRequest": {
+        "properties": {
+          "effective_at": {
+            "format": "date-time",
+            "title": "Effective At",
+            "type": "string"
+          },
+          "memory_id": {
+            "title": "Memory Id",
+            "type": "string"
+          },
+          "replacement": {
+            "$ref": "#/components/schemas/MemoryPromotionRequest"
+          }
+        },
+        "required": [
+          "memory_id",
+          "replacement"
+        ],
+        "title": "MemorySupersessionRequest",
+        "type": "object"
+      },
+      "MemorySupersessionResult": {
+        "properties": {
+          "replacement": {
+            "$ref": "#/components/schemas/GovernedMemoryObject"
+          },
+          "superseded": {
+            "$ref": "#/components/schemas/GovernedMemoryObject"
+          }
+        },
+        "required": [
+          "superseded",
+          "replacement"
+        ],
+        "title": "MemorySupersessionResult",
+        "type": "object"
+      },
+      "MemoryType": {
+        "enum": [
+          "business_definition",
+          "business_decision",
+          "policy",
+          "business_event",
+          "project_event",
+          "investigation",
+          "user_approved_preference",
+          "metric_context",
+          "entity_context",
+          "external_intelligence",
+          "source_document",
+          "meeting_record",
+          "hypothesis",
+          "recommendation"
+        ],
+        "title": "MemoryType",
+        "type": "string"
+      },
+      "MetricReference": {
+        "properties": {
+          "aliases": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Aliases",
+            "type": "array"
+          },
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "dimensions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Dimensions",
+            "type": "array"
+          },
+          "domain": {
+            "title": "Domain",
+            "type": "string"
+          },
+          "metric_id": {
+            "title": "Metric Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "related_entities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Related Entities",
+            "type": "array"
+          }
+        },
+        "required": [
+          "metric_id",
+          "name",
+          "domain"
+        ],
+        "title": "MetricReference",
+        "type": "object"
+      },
+      "ObsidianFrontmatter": {
+        "additionalProperties": true,
+        "properties": {
+          "access_policy_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Access Policy Id"
+          },
+          "allowed_roles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Allowed Roles",
+            "type": "array"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By"
+          },
+          "authority_level": {
+            "$ref": "#/components/schemas/AuthorityLevel",
+            "default": "unverified"
+          },
+          "classification": {
+            "$ref": "#/components/schemas/Sensitivity"
+          },
+          "denied_roles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Denied Roles",
+            "type": "array"
+          },
+          "domain": {
+            "title": "Domain",
+            "type": "string"
+          },
+          "effective_from": {
+            "format": "date-time",
+            "title": "Effective From",
+            "type": "string"
+          },
+          "effective_to": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective To"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
+          },
+          "related_entities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Related Entities",
+            "type": "array"
+          },
+          "related_metrics": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Related Metrics",
+            "type": "array"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "source_type": {
+            "default": "obsidian",
+            "title": "Source Type",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MemoryStatus"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/MemoryType"
+          },
+          "version": {
+            "default": 1,
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "tenant_id",
+          "type",
+          "domain",
+          "status",
+          "classification",
+          "effective_from",
+          "source"
+        ],
+        "title": "ObsidianFrontmatter",
+        "type": "object"
+      },
+      "ObsidianPromotionRequest": {
+        "properties": {
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          },
+          "markdown": {
+            "minLength": 1,
+            "title": "Markdown",
+            "type": "string"
+          }
+        },
+        "required": [
+          "markdown"
+        ],
+        "title": "ObsidianPromotionRequest",
+        "type": "object"
+      },
+      "ObsidianPromotionResult": {
+        "properties": {
+          "episode": {
+            "$ref": "#/components/schemas/CanonicalEpisode"
+          },
+          "memory": {
+            "$ref": "#/components/schemas/GovernedMemoryObject"
+          },
+          "wiki_links": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Wiki Links",
+            "type": "array"
+          }
+        },
+        "required": [
+          "episode",
+          "memory",
+          "wiki_links"
+        ],
+        "title": "ObsidianPromotionResult",
+        "type": "object"
+      },
+      "ObsidianValidationRequest": {
+        "properties": {
+          "markdown": {
+            "minLength": 1,
+            "title": "Markdown",
+            "type": "string"
+          }
+        },
+        "required": [
+          "markdown"
+        ],
+        "title": "ObsidianValidationRequest",
+        "type": "object"
+      },
+      "ObsidianValidationResult": {
+        "properties": {
+          "authoritative": {
+            "title": "Authoritative",
+            "type": "boolean"
+          },
+          "body": {
+            "default": "",
+            "title": "Body",
+            "type": "string"
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "frontmatter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ObsidianFrontmatter"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_relationships": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Relationships",
+            "type": "array"
+          },
+          "valid": {
+            "title": "Valid",
+            "type": "boolean"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "wiki_links": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Wiki Links",
+            "type": "array"
+          }
+        },
+        "required": [
+          "valid",
+          "authoritative"
+        ],
+        "title": "ObsidianValidationResult",
+        "type": "object"
+      },
+      "OrganizationalDomain": {
+        "properties": {
+          "aliases": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Aliases",
+            "type": "array"
+          },
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "domain_id": {
+            "title": "Domain Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "subdomains": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Subdomains",
+            "type": "array"
+          }
+        },
+        "required": [
+          "domain_id",
+          "name"
+        ],
+        "title": "OrganizationalDomain",
+        "type": "object"
+      },
+      "PartitionCoverage": {
+        "properties": {
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "partition": {
+            "title": "Partition",
+            "type": "string"
+          },
+          "result_count": {
+            "default": 0,
+            "title": "Result Count",
+            "type": "integer"
+          },
+          "searched": {
+            "title": "Searched",
+            "type": "boolean"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CoverageStatus",
+            "default": "complete"
+          }
+        },
+        "required": [
+          "partition",
+          "searched"
+        ],
+        "title": "PartitionCoverage",
+        "type": "object"
+      },
+      "RelationshipStatus": {
+        "enum": [
+          "active",
+          "superseded",
+          "deprecated"
+        ],
+        "title": "RelationshipStatus",
+        "type": "string"
+      },
+      "Sensitivity": {
+        "enum": [
+          "public",
+          "internal",
+          "confidential",
+          "restricted"
+        ],
+        "title": "Sensitivity",
+        "type": "string"
+      },
+      "SourceHealthStatus": {
+        "enum": [
+          "healthy",
+          "partial",
+          "stale",
+          "failed",
+          "unavailable"
+        ],
+        "title": "SourceHealthStatus",
+        "type": "string"
+      },
+      "SourceIngestionHealth": {
+        "properties": {
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "incomplete_partitions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Incomplete Partitions",
+            "type": "array"
+          },
+          "last_error_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error At"
+          },
+          "last_success_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Success At"
+          },
+          "latest_episode_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Episode Id"
+          },
+          "latest_ingestion_watermark": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Ingestion Watermark"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SourceHealthStatus"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "source_id",
+          "status"
+        ],
+        "title": "SourceIngestionHealth",
+        "type": "object"
+      },
+      "Talk2DataAuditEvent": {
+        "properties": {
+          "actor": {
+            "title": "Actor",
+            "type": "string"
+          },
+          "audit_id": {
+            "title": "Audit Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "details": {
+            "additionalProperties": true,
+            "title": "Details",
+            "type": "object"
+          },
+          "event_type": {
+            "title": "Event Type",
+            "type": "string"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Id"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "actor",
+          "event_type"
+        ],
+        "title": "Talk2DataAuditEvent",
+        "type": "object"
+      },
+      "TenantDefaults": {
+        "properties": {
+          "calendar": {
+            "default": "gregorian",
+            "title": "Calendar",
+            "type": "string"
+          },
+          "currency": {
+            "default": "USD",
+            "title": "Currency",
+            "type": "string"
+          },
+          "fiscal_year_start_month": {
+            "default": 1,
+            "maximum": 12.0,
+            "minimum": 1.0,
+            "title": "Fiscal Year Start Month",
+            "type": "integer"
+          },
+          "geography": {
+            "default": "national",
+            "title": "Geography",
+            "type": "string"
+          },
+          "terminology_rules": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Terminology Rules",
+            "type": "object"
+          },
+          "timezone": {
+            "default": "UTC",
+            "title": "Timezone",
+            "type": "string"
+          },
+          "unit_system": {
+            "default": "metric",
+            "title": "Unit System",
+            "type": "string"
+          }
+        },
+        "title": "TenantDefaults",
+        "type": "object"
+      },
+      "TenantDomainPack": {
+        "additionalProperties": false,
+        "properties": {
+          "access_policy_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Access Policy Refs",
+            "type": "array"
+          },
+          "allowed_external_context_categories": {
+            "items": {
+              "$ref": "#/components/schemas/ExternalContextCategory"
+            },
+            "title": "Allowed External Context Categories",
+            "type": "array"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By"
+          },
+          "business_capabilities": {
+            "items": {
+              "$ref": "#/components/schemas/DomainConcept"
+            },
+            "title": "Business Capabilities",
+            "type": "array"
+          },
+          "business_entities": {
+            "items": {
+              "$ref": "#/components/schemas/BusinessEntityDefinition"
+            },
+            "title": "Business Entities",
+            "type": "array"
+          },
+          "business_processes": {
+            "items": {
+              "$ref": "#/components/schemas/BusinessProcessDefinition"
+            },
+            "title": "Business Processes",
+            "type": "array"
+          },
+          "checksum": {
+            "default": "",
+            "title": "Checksum",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "data_classification_policy_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Data Classification Policy Refs",
+            "type": "array"
+          },
+          "defaults": {
+            "$ref": "#/components/schemas/TenantDefaults"
+          },
+          "dimension_references": {
+            "items": {
+              "$ref": "#/components/schemas/DimensionReference"
+            },
+            "title": "Dimension References",
+            "type": "array"
+          },
+          "domain_adjacency_relationships": {
+            "items": {
+              "$ref": "#/components/schemas/DomainAdjacencyRule"
+            },
+            "title": "Domain Adjacency Relationships",
+            "type": "array"
+          },
+          "domain_pack_id": {
+            "title": "Domain Pack Id",
+            "type": "string"
+          },
+          "effective_from": {
+            "format": "date-time",
+            "title": "Effective From",
+            "type": "string"
+          },
+          "effective_to": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective To"
+          },
+          "entity_relationships": {
+            "items": {
+              "$ref": "#/components/schemas/EntityRelationshipDefinition"
+            },
+            "title": "Entity Relationships",
+            "type": "array"
+          },
+          "excluded_domains": {
+            "items": {
+              "$ref": "#/components/schemas/ExcludedDomain"
+            },
+            "title": "Excluded Domains",
+            "type": "array"
+          },
+          "industry": {
+            "minLength": 1,
+            "title": "Industry",
+            "type": "string"
+          },
+          "knowledge_sources": {
+            "items": {
+              "$ref": "#/components/schemas/KnowledgeSourceReference"
+            },
+            "title": "Knowledge Sources",
+            "type": "array"
+          },
+          "metric_references": {
+            "items": {
+              "$ref": "#/components/schemas/MetricReference"
+            },
+            "title": "Metric References",
+            "type": "array"
+          },
+          "organizational_domains": {
+            "items": {
+              "$ref": "#/components/schemas/OrganizationalDomain"
+            },
+            "title": "Organizational Domains",
+            "type": "array"
+          },
+          "owner": {
+            "title": "Owner",
+            "type": "string"
+          },
+          "products_and_services": {
+            "items": {
+              "$ref": "#/components/schemas/DomainConcept"
+            },
+            "title": "Products And Services",
+            "type": "array"
+          },
+          "schema_version": {
+            "default": "1.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DomainPackStatus",
+            "default": "draft"
+          },
+          "subindustries": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Subindustries",
+            "type": "array"
+          },
+          "superseded_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Superseded By"
+          },
+          "supersedes_domain_pack_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supersedes Domain Pack Id"
+          },
+          "tenant_id": {
+            "minLength": 1,
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "tenant_name": {
+            "minLength": 1,
+            "title": "Tenant Name",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "default": 1,
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          },
+          "vocabulary": {
+            "items": {
+              "$ref": "#/components/schemas/VocabularyEntry"
+            },
+            "title": "Vocabulary",
+            "type": "array"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "tenant_name",
+          "industry",
+          "owner"
+        ],
+        "title": "TenantDomainPack",
+        "type": "object"
+      },
+      "TimelineRequest": {
+        "properties": {
+          "effective_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective At"
+          },
+          "identifier": {
+            "title": "Identifier",
+            "type": "string"
+          },
+          "limit": {
+            "default": 100,
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "identifier"
+        ],
+        "title": "TimelineRequest",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "VocabularyEntry": {
+        "properties": {
+          "abbreviations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Abbreviations",
+            "type": "array"
+          },
+          "aliases": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Aliases",
+            "type": "array"
+          },
+          "canonical_term": {
+            "title": "Canonical Term",
+            "type": "string"
+          },
+          "concept_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Concept Id"
+          },
+          "concept_type": {
+            "title": "Concept Type",
+            "type": "string"
+          },
+          "domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domain"
+          },
+          "synonyms": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Synonyms",
+            "type": "array"
+          }
+        },
+        "required": [
+          "canonical_term",
+          "concept_type"
+        ],
+        "title": "VocabularyEntry",
+        "type": "object"
+      },
+      "VocabularyResolution": {
+        "properties": {
+          "canonical_term": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Canonical Term"
+          },
+          "concept_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Concept Id"
+          },
+          "concept_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Concept Type"
+          },
+          "domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domain"
+          },
+          "domain_pack_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domain Pack Version"
+          },
+          "input_term": {
+            "title": "Input Term",
+            "type": "string"
+          },
+          "matched_term": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Matched Term"
+          },
+          "resolved": {
+            "title": "Resolved",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_term",
+          "resolved"
+        ],
+        "title": "VocabularyResolution",
+        "type": "object"
+      },
+      "VocabularyResolutionRequest": {
+        "properties": {
+          "term": {
+            "minLength": 1,
+            "title": "Term",
+            "type": "string"
+          }
+        },
+        "required": [
+          "term"
+        ],
+        "title": "VocabularyResolutionRequest",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Talk2Data Domain Pack and Governed Memory API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/v1/domain-packs": {
+      "post": {
+        "operationId": "create_domain_pack_v1_domain_packs_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TenantDomainPack"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DomainPackWriteResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Domain Pack",
+        "tags": [
+          "Talk2Data domain and governed memory"
+        ]
+      }
+    },
+    "/v1/domain-packs/classify": {
+      "post": {
+        "operationId": "classify_question_v1_domain_packs_classify_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DomainQuestionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DomainClassificationResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Classify Question",
+        "tags": [
+          "Talk2Data domain and governed memory"
+        ]
+      }
+    },
+    "/v1/domain-packs/current": {
+      "get": {
+        "operationId": "current_domain_pack_v1_domain_packs_current_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "effective_at",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Effective At"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantDomainPack"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Current Domain Pack",
+        "tags": [
+          "Talk2Data domain and governed memory"
+        ]
+      }
+    },
+    "/v1/domain-packs/resolve": {
+      "post": {
+        "operationId": "resolve_vocabulary_v1_domain_packs_resolve_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VocabularyResolutionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VocabularyResolution"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resolve Vocabulary",
+        "tags": [
+          "Talk2Data domain and governed memory"
+        ]
+      }
+    },
+    "/v1/domain-packs/versions": {
+      "get": {
+        "operationId": "domain_pack_versions_v1_domain_packs_versions_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DomainPackVersionList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Domain Pack Versions",
+        "tags": [
+          "Talk2Data domain and governed memory"
+        ]
+      }
+    },
+    "/v1/graph/rebuild": {
+      "post": {
+        "operationId": "rebuild_graph_v1_graph_rebuild_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphRebuildResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rebuild Graph",
+        "tags": [
+          "Talk2Data domain and governed memory"
+        ]
+      }
+    },
+    "/v1/graph/status": {
+      "get": {
+        "operationId": "graph_status_v1_graph_status_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphAdapterStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Graph Status",
+        "tags": [
+          "Talk2Data domain and governed memory"
+        ]
+      }
+    },
+    "/v1/memory": {
+      "post": {
+        "operationId": "promote_memory_v1_memory_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemoryPromotionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GovernedMemoryObject"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Promote Memory",
+        "tags": [
+          "Talk2Data domain and governed memory"
+        ]
+      }
+    },
+    "/v1/memory/audit": {
+      "get": {
+        "operationId": "memory_audit_v1_memory_audit_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Talk2DataAuditEvent"
+                  },
+                  "title": "Response Memory Audit V1 Memory Audit Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Memory Audit",
+        "tags": [
+          "Talk2Data domain and governed memory"
+        ]
+      }
+    },
+    "/v1/memory/context-coverage": {
+      "post": {
+        "operationId": "context_coverage_v1_memory_context_coverage_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContextCoverageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContextCoverageReceipt"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Context Coverage",
+        "tags": [
+          "Talk2Data domain and governed memory"
+        ]
+      }
+    },
+    "/v1/memory/episodes": {
+      "post": {
+        "operationId": "ingest_episode_v1_memory_episodes_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EpisodeIngestionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EpisodeIngestionResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ingest Episode",
+        "tags": [
+          "Talk2Data domain and governed memory"
+        ]
+      }
+    },
+    "/v1/memory/episodes/{episode_id}": {
+      "get": {
+        "operationId": "get_episode_v1_memory_episodes__episode_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "episode_id",
+            "required": true,
+            "schema": {
+              "title": "Episode Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CanonicalEpisode"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Episode",
+        "tags": [
+          "Talk2Data domain and governed memory"
+        ]
+      }
+    },
+    "/v1/memory/index-watermarks": {
+      "get": {
+        "operationId": "index_watermarks_v1_memory_index_watermarks_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IndexWatermark"
+                  },
+                  "title": "Response Index Watermarks V1 Memory Index Watermarks Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Index Watermarks",
+        "tags": [
+          "Talk2Data domain and governed memory"
+        ]
+      },
+      "put": {
+        "operationId": "update_index_watermark_v1_memory_index_watermarks_put",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IndexWatermark"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndexWatermark"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Index Watermark",
+        "tags": [
+          "Talk2Data domain and governed memory"
+        ]
+      }
+    },
+    "/v1/memory/investigations": {
+      "post": {
+        "operationId": "prior_investigations_v1_memory_investigations_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemoryQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryQueryResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Prior Investigations",
+        "tags": [
+          "Talk2Data domain and governed memory"
+        ]
+      }
+    },
+    "/v1/memory/query": {
+      "post": {
+        "operationId": "query_memory_v1_memory_query_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemoryQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryQueryResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Query Memory",
+        "tags": [
+          "Talk2Data domain and governed memory"
+        ]
+      }
+    },
+    "/v1/memory/query/graph": {
+      "post": {
+        "operationId": "query_memory_with_graph_v1_memory_query_graph_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemoryQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryQueryResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Query Memory With Graph",
+        "tags": [
+          "Talk2Data domain and governed memory"
+        ]
+      }
+    },
+    "/v1/memory/relationships": {
+      "post": {
+        "operationId": "add_memory_relationship_v1_memory_relationships_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemoryRelationship"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryRelationship"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Memory Relationship",
+        "tags": [
+          "Talk2Data domain and governed memory"
+        ]
+      }
+    },
+    "/v1/memory/source-health": {
+      "get": {
+        "operationId": "source_health_v1_memory_source_health_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SourceIngestionHealth"
+                  },
+                  "title": "Response Source Health V1 Memory Source Health Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Source Health",
+        "tags": [
+          "Talk2Data domain and governed memory"
+        ]
+      },
+      "put": {
+        "operationId": "update_source_health_v1_memory_source_health_put",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceIngestionHealth"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceIngestionHealth"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Source Health",
+        "tags": [
+          "Talk2Data domain and governed memory"
+        ]
+      }
+    },
+    "/v1/memory/supersede": {
+      "post": {
+        "operationId": "supersede_memory_v1_memory_supersede_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemorySupersessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemorySupersessionResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Supersede Memory",
+        "tags": [
+          "Talk2Data domain and governed memory"
+        ]
+      }
+    },
+    "/v1/memory/timelines/entities": {
+      "post": {
+        "operationId": "entity_timeline_v1_memory_timelines_entities_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TimelineRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryQueryResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Entity Timeline",
+        "tags": [
+          "Talk2Data domain and governed memory"
+        ]
+      }
+    },
+    "/v1/memory/timelines/metrics": {
+      "post": {
+        "operationId": "metric_timeline_v1_memory_timelines_metrics_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TimelineRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryQueryResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Metric Timeline",
+        "tags": [
+          "Talk2Data domain and governed memory"
+        ]
+      }
+    },
+    "/v1/obsidian/promote": {
+      "post": {
+        "operationId": "promote_obsidian_v1_obsidian_promote_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ObsidianPromotionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObsidianPromotionResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Promote Obsidian",
+        "tags": [
+          "Talk2Data domain and governed memory"
+        ]
+      }
+    },
+    "/v1/obsidian/validate": {
+      "post": {
+        "operationId": "validate_obsidian_v1_obsidian_validate_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-api-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ObsidianValidationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObsidianValidationResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Validate Obsidian",
+        "tags": [
+          "Talk2Data domain and governed memory"
+        ]
+      }
+    }
+  }
+}

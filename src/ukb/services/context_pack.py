@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from typing import Literal
 
 from ukb.models import (
     ConfidenceFactors,
@@ -47,7 +48,9 @@ class ContextPackService:
             principal=subject,
         )
         objects = [result.object for result in response.results]
-        access_decision = "denied" if response.denied_count and not objects else "allowed"
+        access_decision: Literal["allowed", "denied"] = (
+            "denied" if response.denied_count and not objects else "allowed"
+        )
 
         evidence: list[SourceEvidence] = []
         citations: list[ContextPackCitation] = []
@@ -59,13 +62,15 @@ class ContextPackService:
             chunks = self._result_chunks(result.object, result.evidence_chunk)
             for chunk in chunks[:3]:
                 source = self.store.sources.get(chunk.source_id)
-                if source is None or not self.access_policy.can_access_sensitivity(subject, source.sensitivity):
+                if source is None or not self.access_policy.can_access_sensitivity(
+                    subject, source.sensitivity
+                ):
                     continue
                 if source.source_id not in seen_sources:
                     evidence.append(source)
                     seen_sources.add(source.source_id)
-                key = (result.object.id, chunk.id)
-                if key in seen_citations:
+                citation_key: tuple[str, str | None] = (result.object.id, chunk.id)
+                if citation_key in seen_citations:
                     continue
                 citations.append(
                     ContextPackCitation(
@@ -78,19 +83,21 @@ class ContextPackService:
                         locator=chunk.locator,
                     )
                 )
-                seen_citations.add(key)
+                seen_citations.add(citation_key)
                 object_cited.add(result.object.id)
 
             if result.object.id not in object_cited:
                 for source_id in result.object.source_ids:
                     source = self.store.sources.get(source_id)
-                    if source is None or not self.access_policy.can_access_sensitivity(subject, source.sensitivity):
+                    if source is None or not self.access_policy.can_access_sensitivity(
+                        subject, source.sensitivity
+                    ):
                         continue
                     if source.source_id not in seen_sources:
                         evidence.append(source)
                         seen_sources.add(source.source_id)
-                    key = (result.object.id, None)
-                    if key not in seen_citations:
+                    source_key: tuple[str, str | None] = (result.object.id, None)
+                    if source_key not in seen_citations:
                         citations.append(
                             ContextPackCitation(
                                 object_id=result.object.id,
@@ -101,7 +108,7 @@ class ContextPackService:
                                 locator="source excerpt",
                             )
                         )
-                        seen_citations.add(key)
+                        seen_citations.add(source_key)
                         object_cited.add(result.object.id)
                     break
 
@@ -151,12 +158,16 @@ class ContextPackService:
         best_score = max(result.hit.score for result in results)
         retrieval = 1.0 if best_score >= 100 else min(0.95, best_score / (best_score + 5.0))
         evidence_coverage = len(cited) / len(results)
-        source_authority = sum((6 - result.object.authority_tier) / 5 for result in results) / len(results)
+        source_authority = sum((6 - result.object.authority_tier) / 5 for result in results) / len(
+            results
+        )
         now = utc_now()
         freshness_values: list[float] = []
         for result in results:
             age = now - result.object.updated_at
-            freshness_values.append(1.0 if age <= timedelta(days=180) else 0.8 if age <= timedelta(days=365) else 0.6)
+            freshness_values.append(
+                1.0 if age <= timedelta(days=180) else 0.8 if age <= timedelta(days=365) else 0.6
+            )
         return ConfidenceFactors(
             retrieval=round(retrieval, 3),
             evidence_coverage=round(evidence_coverage, 3),
@@ -169,7 +180,7 @@ class ContextPackService:
     def _overall_confidence(
         factors: ConfidenceFactors,
         has_objects: bool,
-        access_decision: str,
+        access_decision: Literal["allowed", "denied"],
     ) -> float:
         if access_decision == "denied":
             return 0.0
@@ -186,30 +197,38 @@ class ContextPackService:
 
     def _conflicts(self, objects: list[KnowledgeObject]) -> list[str]:
         conflicts: list[str] = []
-        result_ids = {obj.id for obj in objects}
         for obj in objects:
             normalized = (obj.domain.casefold(), obj.type.value.casefold(), obj.title.casefold())
             for other in self.store.knowledge_objects.values():
                 if other.id == obj.id or other.status.value != "published":
                     continue
-                if (other.domain.casefold(), other.type.value.casefold(), other.title.casefold()) != normalized:
+                if (
+                    other.domain.casefold(),
+                    other.type.value.casefold(),
+                    other.title.casefold(),
+                ) != normalized:
                     continue
                 if other.summary.strip().casefold() != obj.summary.strip().casefold():
                     conflicts.append(
                         f"Published objects {obj.id} and {other.id} share the title '{obj.title}' but have different definitions."
                     )
-                    result_ids.add(other.id)
         return sorted(set(conflicts))
 
     @staticmethod
-    def _caveats(objects: list[KnowledgeObject], denied_count: int, conflicts: list[str]) -> list[str]:
+    def _caveats(
+        objects: list[KnowledgeObject],
+        denied_count: int,
+        conflicts: list[str],
+    ) -> list[str]:
         caveats: list[str] = []
         if denied_count:
             caveats.append(f"{denied_count} matching result(s) were withheld by access policy.")
         if any(not obj.owner for obj in objects):
             caveats.append("At least one returned object has no assigned owner.")
         if conflicts:
-            caveats.append("Conflicting published definitions require governance review before a definitive answer.")
+            caveats.append(
+                "Conflicting published definitions require governance review before a definitive answer."
+            )
         for obj in objects:
             raw = " ".join(str(value) for value in obj.attributes.values()).lower()
             if "exclude" in raw:
@@ -220,7 +239,7 @@ class ContextPackService:
     def _missing_context(
         objects: list[KnowledgeObject],
         citations: list[ContextPackCitation],
-        access_decision: str,
+        access_decision: Literal["allowed", "denied"],
     ) -> list[str]:
         if access_decision == "denied":
             return ["Matching context exists but is above the authenticated principal's clearance."]
@@ -235,7 +254,7 @@ class ContextPackService:
     def _guidance(
         request: ContextPackRequest,
         objects: list[KnowledgeObject],
-        decision: str,
+        decision: Literal["allowed", "denied"],
         conflicts: list[str],
     ) -> str:
         if decision == "denied":
@@ -268,7 +287,7 @@ class ContextPackService:
     def _followups(
         request: ContextPackRequest,
         objects: list[KnowledgeObject],
-        decision: str,
+        decision: Literal["allowed", "denied"],
         conflicts: list[str],
     ) -> list[str]:
         if decision == "denied":
