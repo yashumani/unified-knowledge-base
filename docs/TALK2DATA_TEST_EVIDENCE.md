@@ -26,4 +26,6 @@ Docker and Compose validation
 CodeQL
 ```
 
+Validation is performed from the remote development branch `agent/talk2data-domain-pack-memory` against `agent/architecture-gap-closure`.
+
 The PR description is the authoritative place for workflow run IDs and final repository-wide counts after GitHub Actions completes.
