@@ -123,6 +123,42 @@
   }
 }
 
+@media (max-width: 720px) {
+  .depo-page .graph-story,
+  .depo-page .graph-story > *,
+  .depo-page .graph-story-copy,
+  .depo-page .graph-stage-wrap,
+  .depo-page .graph-card,
+  .depo-page .graph-toolbar,
+  .depo-page .graph-layout,
+  .depo-page .graph-canvas-column,
+  .depo-page .graph-legend,
+  .depo-page .brain-graph {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .depo-page .graph-story {
+    width: 100%;
+    overflow-x: clip;
+  }
+
+  .depo-page .graph-stage-wrap,
+  .depo-page .graph-card {
+    width: 100%;
+    margin-inline: 0;
+    overflow: hidden;
+  }
+
+  .depo-page .graph-toolbar,
+  .depo-page .graph-layout,
+  .depo-page .graph-canvas-column,
+  .depo-page .graph-legend {
+    width: 100%;
+  }
+}
+
 @media (max-width: 560px) {
   .confidence-factor-grid {
     grid-template-columns: 1fr;
