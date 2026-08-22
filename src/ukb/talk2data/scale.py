@@ -215,7 +215,7 @@ def _build_fixture(profile: ScaleProfile) -> ScaleFixture:
                 f"Synthetic governed source {file_index} for {principal.tenant_id}; "
                 "covers network congestion and wireless operations."
             )
-            checksum = hashlib.sha256(content.encode("utf-8")).hexdigest()
+            checksum = hashlib.sha256(content.encode()).hexdigest()
             episode = CanonicalEpisode(
                 episode_id=f"episode_{principal.tenant_id}_{file_index}",
                 tenant_id=principal.tenant_id,
@@ -241,7 +241,7 @@ def _build_fixture(profile: ScaleProfile) -> ScaleFixture:
         file_index = (index // len(principals)) % files_per_tenant
         episode_id = episode_ids[(principal.tenant_id, file_index)]
         episode = store.episodes[episode_id]
-        marker_seed = f"{principal.tenant_id}:{index}".encode("utf-8")
+        marker_seed = f"{principal.tenant_id}:{index}".encode()
         marker = f"tm{hashlib.sha256(marker_seed).hexdigest()[:24]}"
         tenant_markers[principal.tenant_id].append(marker)
         memory = GovernedMemoryObject(
@@ -269,7 +269,7 @@ def _build_fixture(profile: ScaleProfile) -> ScaleFixture:
                 derivation_type="scale_fixture",
                 derived_by=principal.subject,
             ),
-            checksum=hashlib.sha256(marker.encode("utf-8")).hexdigest(),
+            checksum=hashlib.sha256(marker.encode()).hexdigest(),
             tags=["synthetic", "scale-test"],
         )
         store.add_memory(memory)
