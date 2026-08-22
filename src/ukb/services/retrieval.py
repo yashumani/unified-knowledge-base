@@ -12,7 +12,7 @@ from ukb.search import (
     build_search_index,
 )
 from ukb.search.base import approved_documents
-from ukb.services.access import AccessPolicyService, PrincipalLike, SENSITIVITY_ORDER
+from ukb.services.access import AccessPolicyService, PrincipalLike
 from ukb.storage.memory import BrainStore
 
 
@@ -30,7 +30,9 @@ class RetrievalService:
         self.store = store
         self.settings = settings or get_settings()
         self.index = index or build_search_index(self.settings)
-        self.access_policy = access_policy or AccessPolicyService.from_settings(self.settings)
+        self.access_policy = access_policy or AccessPolicyService.from_settings(
+            self.settings
+        )
         self._sync_key: tuple[tuple[str, str], ...] | None = None
 
     def search(
@@ -41,7 +43,12 @@ class RetrievalService:
         user_id: str = "anonymous",
     ) -> list[KnowledgeObject]:
         response = self.search_response(
-            SearchRequest(query=query, domains=domains or [], limit=limit, user_id=user_id),
+            SearchRequest(
+                query=query,
+                domains=domains or [],
+                limit=limit,
+                user_id=user_id,
+            ),
             principal=user_id,
         )
         return [result.object for result in response.results]
@@ -53,7 +60,20 @@ class RetrievalService:
         principal: str | PrincipalLike,
     ) -> SearchResponse:
         self._ensure_synced()
-        effective = request.model_copy(update={"sensitivities": self._allowed_sensitivities(request, principal)})
+
+        # Search the caller-requested partitions first, then enforce clearance
+        # before any object or evidence content is returned. This preserves the
+        # ability to distinguish "nothing matched" from "matching memory was
+        # withheld" without exposing the withheld object's identifiers or text.
+        effective = request.model_copy(
+            update={
+                "sensitivities": (
+                    list(request.sensitivities)
+                    if request.sensitivities
+                    else list(Sensitivity)
+                )
+            }
+        )
 
         candidates: list[SearchHit] = self._exact_hits(effective)
         candidates.extend(self.index.search(effective))
@@ -61,19 +81,21 @@ class RetrievalService:
 
         results: list[SearchResult] = []
         seen_objects: set[str] = set()
-        denied = 0
+        denied_objects: set[str] = set()
         for hit in candidates:
-            if hit.object_id in seen_objects:
+            if hit.object_id in seen_objects or hit.object_id in denied_objects:
                 continue
             obj = self.store.knowledge_objects.get(hit.object_id)
             if obj is None or obj.status != ReviewStatus.published:
                 continue
             if not self.access_policy.can_access(principal, obj):
-                denied += 1
+                denied_objects.add(obj.id)
                 continue
             chunk = self.store.evidence_chunks.get(hit.chunk_id) if hit.chunk_id else None
-            if chunk is not None and not self.access_policy.can_access_sensitivity(principal, chunk.sensitivity):
-                denied += 1
+            if chunk is not None and not self.access_policy.can_access_sensitivity(
+                principal, chunk.sensitivity
+            ):
+                denied_objects.add(obj.id)
                 continue
             results.append(SearchResult(hit=hit, object=obj, evidence_chunk=chunk))
             seen_objects.add(obj.id)
@@ -83,7 +105,7 @@ class RetrievalService:
         return SearchResponse(
             query=request.query,
             results=results,
-            denied_count=denied,
+            denied_count=len(denied_objects),
             index=self.index.status(),
         )
 
@@ -150,27 +172,15 @@ class RetrievalService:
                 )
         return hits
 
-    def _allowed_sensitivities(
-        self,
-        request: SearchRequest,
-        principal: str | PrincipalLike,
-    ) -> list[Sensitivity]:
-        clearance = self.access_policy.clearance_for(principal)
-        allowed = [
-            sensitivity
-            for sensitivity in Sensitivity
-            if SENSITIVITY_ORDER[sensitivity] <= SENSITIVITY_ORDER[clearance]
-        ]
-        if not request.sensitivities:
-            return allowed
-        requested = set(request.sensitivities)
-        return [sensitivity for sensitivity in allowed if sensitivity in requested]
-
     @staticmethod
     def _key(
         objects: list[KnowledgeObject],
         chunks: list,
     ) -> tuple[tuple[str, str], ...]:
-        object_keys = [(f"obj:{obj.id}", obj.updated_at.isoformat()) for obj in objects]
-        chunk_keys = [(f"chunk:{chunk.id}", chunk.content_hash) for chunk in chunks]
+        object_keys = [
+            (f"obj:{obj.id}", obj.updated_at.isoformat()) for obj in objects
+        ]
+        chunk_keys = [
+            (f"chunk:{chunk.id}", chunk.content_hash) for chunk in chunks
+        ]
         return tuple(sorted([*object_keys, *chunk_keys]))
