@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "unified-knowledge-base"
-version = "0.2.0"
-description = "Governed AI Brain runtime with durable evidence, local Ollama enrichment, Zvec retrieval, MCP, and human publication controls."
+version = "0.3.0"
+description = "Governed AI Brain runtime with durable evidence, local Ollama enrichment, Zvec retrieval, MCP, and tenant-aware Talk2Data memory contracts."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -39,7 +39,12 @@ dev = [
 ]
 mcp = ["mcp[cli]>=1.2.0"]
 search = ["zvec>=0.6.0,<0.7.0"]
-all = ["mcp[cli]>=1.2.0", "zvec>=0.6.0,<0.7.0"]
+graphiti = ["graphiti-core==0.29.3"]
+all = [
+  "mcp[cli]>=1.2.0",
+  "zvec>=0.6.0,<0.7.0",
+  "graphiti-core==0.29.3"
+]
 
 [project.scripts]
 ukb = "ukb.cli:app"
