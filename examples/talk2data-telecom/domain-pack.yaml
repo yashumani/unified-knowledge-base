@@ -1,0 +1,359 @@
+schema_version: "1.0"
+domain_pack_id: domain_pack_synthetic_telecom_v1
+tenant_id: synthetic-telecom
+tenant_name: Northstar Communications (Synthetic)
+industry: Telecommunications
+subindustries:
+  - Wireless communications
+  - Fixed broadband
+  - Retail telecommunications
+  - Network services
+products_and_services:
+  - concept_id: wireless_service
+    name: Wireless service
+    description: Consumer and business mobile voice, messaging, and data connectivity.
+    aliases: [mobile service, cellular service]
+    domains: [wireless, commercial]
+  - concept_id: fixed_broadband
+    name: Fixed broadband
+    description: Home and small-business internet access delivered over fixed access networks.
+    aliases: [home internet, broadband service]
+    domains: [broadband, commercial]
+  - concept_id: device_portfolio
+    name: Device portfolio
+    description: Handsets, tablets, routers, hotspots, and connected devices sold or supported by the tenant.
+    aliases: [devices, equipment portfolio]
+    domains: [device, retail]
+business_capabilities:
+  - concept_id: subscriber_management
+    name: Subscriber management
+    aliases: [customer lifecycle management]
+    domains: [subscriber, commercial]
+  - concept_id: network_operations
+    name: Network operations
+    aliases: [network assurance, service assurance]
+    domains: [network]
+  - concept_id: retail_sales
+    name: Retail sales
+    aliases: [store sales, retail operations]
+    domains: [retail, commercial]
+  - concept_id: customer_care
+    name: Customer care
+    aliases: [contact center, customer support]
+    domains: [customer-care]
+organizational_domains:
+  - domain_id: wireless
+    name: Wireless
+    aliases: [mobile, cellular]
+    subdomains: [postpaid, prepaid, connected devices]
+  - domain_id: broadband
+    name: Broadband
+    aliases: [home internet, fixed internet]
+    subdomains: [fiber, cable, fixed wireless access]
+  - domain_id: subscriber
+    name: Subscriber
+    aliases: [customer base, account base]
+    subdomains: [acquisition, retention, lifecycle]
+  - domain_id: network
+    name: Network
+    aliases: [radio network, core network, transport network]
+    subdomains: [capacity, performance, congestion, incidents]
+  - domain_id: retail
+    name: Retail
+    aliases: [store, stores, retail channel]
+    subdomains: [store traffic, activations, device sales]
+  - domain_id: customer-care
+    name: Customer care
+    aliases: [care, support, contact center]
+    subdomains: [calls, chats, resolutions, escalations]
+  - domain_id: device
+    name: Device
+    aliases: [handset, equipment]
+    subdomains: [inventory, upgrade, financing, returns]
+  - domain_id: market
+    name: Market
+    aliases: [geographic market, trading area]
+    subdomains: [region, territory, local market]
+  - domain_id: commercial
+    name: Commercial
+    aliases: [sales, revenue, offer performance]
+    subdomains: [pricing, promotion, acquisition, retention]
+business_entities:
+  - entity_id: subscriber
+    name: Subscriber
+    entity_type: party
+    aliases: [customer, line, mobile subscriber]
+    domains: [subscriber, wireless]
+  - entity_id: service_plan
+    name: Service plan
+    entity_type: product
+    aliases: [plan, rate plan, tariff]
+    domains: [wireless, commercial]
+  - entity_id: broadband_account
+    name: Broadband account
+    entity_type: account
+    aliases: [home internet account]
+    domains: [broadband, subscriber]
+  - entity_id: network_cell
+    name: Network cell
+    entity_type: network_resource
+    aliases: [cell site, sector, radio cell]
+    domains: [network]
+  - entity_id: retail_store
+    name: Retail store
+    entity_type: location
+    aliases: [store, shop, retail location]
+    domains: [retail, market]
+  - entity_id: device
+    name: Device
+    entity_type: product
+    aliases: [handset, phone, router, hotspot]
+    domains: [device, retail]
+  - entity_id: geographic_market
+    name: Geographic market
+    entity_type: geography
+    aliases: [market, region, territory]
+    domains: [market]
+  - entity_id: care_interaction
+    name: Care interaction
+    entity_type: interaction
+    aliases: [support contact, call, chat, case]
+    domains: [customer-care]
+  - entity_id: mobile_activation
+    name: Mobile activation
+    entity_type: business_event
+    aliases: [activation, gross add, new line activation]
+    domains: [wireless, retail, commercial]
+  - entity_id: application_traffic
+    name: Application traffic
+    entity_type: network_demand
+    aliases: [app traffic, data traffic, mobile application traffic]
+    domains: [network]
+entity_relationships:
+  - source_entity: subscriber
+    relationship_type: subscribed_to
+    target_entity: service_plan
+  - source_entity: subscriber
+    relationship_type: uses
+    target_entity: device
+  - source_entity: retail_store
+    relationship_type: located_in
+    target_entity: geographic_market
+  - source_entity: network_cell
+    relationship_type: serves
+    target_entity: geographic_market
+  - source_entity: mobile_activation
+    relationship_type: occurs_at
+    target_entity: retail_store
+  - source_entity: application_traffic
+    relationship_type: traverses
+    target_entity: network_cell
+vocabulary:
+  - canonical_term: postpaid churn
+    concept_type: metric
+    concept_id: postpaid_churn_rate
+    domain: subscriber
+    aliases: [postpaid disconnect rate]
+    abbreviations: [churn]
+    synonyms: [subscriber attrition]
+  - canonical_term: mobile activation
+    concept_type: entity
+    concept_id: mobile_activation
+    domain: retail
+    aliases: [activation, gross add]
+    abbreviations: []
+    synonyms: [new line activation]
+  - canonical_term: network congestion
+    concept_type: metric
+    concept_id: evening_congestion_rate
+    domain: network
+    aliases: [cell congestion, capacity congestion]
+    abbreviations: []
+    synonyms: [network saturation]
+  - canonical_term: foot traffic
+    concept_type: external_context
+    concept_id: nearby_foot_traffic
+    domain: retail
+    aliases: [pedestrian traffic, venue traffic]
+    abbreviations: []
+    synonyms: [visitor volume]
+  - canonical_term: food-delivery application traffic
+    concept_type: external_context
+    concept_id: food_delivery_app_traffic
+    domain: network
+    aliases: [delivery app traffic]
+    abbreviations: []
+    synonyms: [meal delivery application traffic]
+metric_references:
+  - metric_id: postpaid_churn_rate
+    name: Postpaid churn rate
+    domain: subscriber
+    description: Share of postpaid subscriber lines disconnected during the reporting period.
+    aliases: [postpaid churn, churn rate]
+    related_entities: [subscriber, service_plan, geographic_market]
+    dimensions: [plan, market, month]
+  - metric_id: mobile_activations
+    name: Mobile activations
+    domain: retail
+    description: Count of completed mobile line activations.
+    aliases: [activations, gross adds]
+    related_entities: [mobile_activation, retail_store, service_plan]
+    dimensions: [store, market, plan, date]
+  - metric_id: evening_congestion_rate
+    name: Evening network congestion rate
+    domain: network
+    description: Share of monitored network intervals exceeding the approved congestion threshold during evening hours.
+    aliases: [network congestion, congestion rate]
+    related_entities: [network_cell, geographic_market, application_traffic]
+    dimensions: [cell, market, application category, hour]
+  - metric_id: broadband_net_adds
+    name: Broadband net additions
+    domain: broadband
+    aliases: [broadband net adds]
+    related_entities: [broadband_account, geographic_market]
+    dimensions: [market, product, month]
+  - metric_id: care_repeat_contact_rate
+    name: Care repeat-contact rate
+    domain: customer-care
+    aliases: [repeat contact rate]
+    related_entities: [care_interaction, subscriber]
+    dimensions: [channel, reason, market]
+dimension_references:
+  - dimension_id: plan
+    name: Service plan
+    domain: wireless
+    aliases: [rate plan, tariff]
+    related_entities: [service_plan]
+  - dimension_id: market
+    name: Geographic market
+    domain: market
+    aliases: [region, territory]
+    related_entities: [geographic_market]
+  - dimension_id: store
+    name: Retail store
+    domain: retail
+    aliases: [retail location]
+    related_entities: [retail_store]
+  - dimension_id: network_cell
+    name: Network cell
+    domain: network
+    aliases: [cell site, sector]
+    related_entities: [network_cell]
+  - dimension_id: application_category
+    name: Application category
+    domain: network
+    aliases: [app category, traffic category]
+    related_entities: [application_traffic]
+business_processes:
+  - process_id: subscriber_retention
+    name: Subscriber retention
+    aliases: [churn management]
+    domains: [subscriber, commercial]
+    related_metrics: [postpaid_churn_rate]
+    related_entities: [subscriber, service_plan]
+  - process_id: retail_activation
+    name: Retail activation
+    aliases: [line activation, store activation]
+    domains: [retail, wireless, commercial]
+    related_metrics: [mobile_activations]
+    related_entities: [mobile_activation, retail_store, subscriber]
+  - process_id: network_capacity_management
+    name: Network capacity management
+    aliases: [congestion management, capacity planning]
+    domains: [network]
+    related_metrics: [evening_congestion_rate]
+    related_entities: [network_cell, application_traffic, geographic_market]
+  - process_id: customer_care_resolution
+    name: Customer-care resolution
+    aliases: [case resolution]
+    domains: [customer-care]
+    related_metrics: [care_repeat_contact_rate]
+    related_entities: [care_interaction, subscriber]
+knowledge_sources:
+  - source_id: subscriber_metrics_catalog
+    name: Subscriber metrics catalog
+    source_type: governed_catalog
+    domains: [subscriber, wireless, commercial]
+    required_for_partitions: [current_memory, historical_memory, metric_timeline]
+    classification: internal
+    access_policy_id: policy-telecom-metrics
+    required: true
+  - source_id: network_performance_catalog
+    name: Network performance catalog
+    source_type: governed_catalog
+    domains: [network]
+    required_for_partitions: [current_memory, metric_timeline, external_intelligence, graph]
+    classification: confidential
+    access_policy_id: policy-network-performance
+    required: true
+  - source_id: retail_market_context
+    name: Retail and market context feed
+    source_type: external_intelligence
+    domains: [retail, market]
+    required_for_partitions: [external_intelligence, entity_timeline]
+    classification: internal
+    access_policy_id: policy-retail-context
+    required: false
+allowed_external_context_categories:
+  - category_id: restaurant_foot_traffic
+    name: Restaurant foot traffic
+    description: Aggregated nearby venue activity that may explain visits to telecommunications retail stores.
+    keywords: [restaurant foot traffic, dining foot traffic, pedestrian traffic near restaurants, nearby restaurant traffic]
+  - category_id: food_delivery_app_traffic
+    name: Food-delivery application traffic
+    description: Network demand attributable to a category of food-delivery mobile applications.
+    keywords: [food delivery app traffic, food-delivery application traffic, meal delivery app traffic, delivery application traffic]
+domain_adjacency_relationships:
+  - rule_id: restaurant_traffic_to_store_activation
+    external_category: restaurant_foot_traffic
+    description: Restaurant-area foot traffic is relevant only when anchored to retail stores, markets, or mobile activations.
+    internal_anchor_domains: [retail, market]
+    internal_anchor_metrics: [mobile_activations]
+    internal_anchor_entities: [retail_store, mobile_activation, geographic_market]
+    internal_anchor_terms: [our stores, store activations, mobile activations]
+    allowed: true
+  - rule_id: delivery_apps_to_network_congestion
+    external_category: food_delivery_app_traffic
+    description: Food-delivery application traffic is relevant only when anchored to network demand, cells, congestion, or capacity.
+    internal_anchor_domains: [network]
+    internal_anchor_metrics: [evening_congestion_rate]
+    internal_anchor_entities: [network_cell, geographic_market]
+    internal_anchor_terms: [network congestion, evening congestion, cell capacity]
+    allowed: true
+excluded_domains:
+  - domain_id: restaurant_operations
+    name: Restaurant operations
+    reason: The tenant does not operate restaurants; food-cost, menu, kitchen, and restaurant-margin analysis are unsupported unless a separate telecom anchor is present.
+    keywords: [restaurant food cost, food-cost margin, menu margin, ingredient cost, kitchen labor, restaurant margin]
+  - domain_id: hospitality_operations
+    name: Hospitality operations
+    reason: Hotel and hospitality operating metrics are outside the tenant domain.
+    keywords: [room occupancy, hotel revenue, restaurant table turns]
+defaults:
+  calendar: gregorian
+  fiscal_year_start_month: 1
+  currency: USD
+  unit_system: metric
+  geography: national
+  timezone: America/New_York
+  terminology_rules:
+    customer: Use subscriber when referring to a provisioned communications service line.
+    store: Use retail store for tenant-operated sales locations.
+    churn: Resolve to the governed churn metric for the relevant subscriber segment.
+data_classification_policy_refs:
+  - classification-public-internal-confidential-restricted
+access_policy_refs:
+  - policy-telecom-domain-reader
+  - policy-telecom-metric-reader
+  - policy-network-performance
+version: 1
+status: approved
+owner: Synthetic Domain Governance Team
+approved_by: synthetic.domain.reviewer
+effective_from: "2026-01-01T00:00:00Z"
+effective_to: null
+supersedes_domain_pack_id: null
+superseded_by: null
+checksum: ""
+created_at: "2026-01-01T00:00:00Z"
+updated_at: "2026-01-01T00:00:00Z"

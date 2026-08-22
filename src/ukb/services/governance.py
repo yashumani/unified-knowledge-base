@@ -71,6 +71,14 @@ class GovernanceService:
             item.id,
             {"comment": decision.comment, "revision": item.revision},
         )
+
+        # Compatibility for callers that predate the explicit publication
+        # transition. Revision-aware callers retain the stricter v2 workflow:
+        # approve -> publication pending -> publish. Legacy callers that omit an
+        # expected revision receive a published, independent object copy while
+        # the review item remains approved.
+        if decision.expected_revision is None:
+            self._publish_legacy_copy(item, resolved_actor, decision.comment)
         return item
 
     def publish(
@@ -215,6 +223,48 @@ class GovernanceService:
             {"comment": request.comment, "revision": item.revision},
         )
         return item
+
+    def _publish_legacy_copy(
+        self,
+        item: ReviewItem,
+        actor: str,
+        comment: str | None,
+    ) -> KnowledgeObject:
+        # A Pydantic validation round-trip deliberately breaks every nested
+        # reference to the review candidate. Publishing this copy must never
+        # mutate the approved review item observed by legacy direct callers.
+        published = KnowledgeObject.model_validate(item.candidate_object.model_dump(mode="python"))
+        published.status = ReviewStatus.published
+        published.published_by = actor
+        published.published_at = utc_now()
+        published.updated_at = utc_now()
+        published = self.store.publish_object(published)
+
+        for relationship in published.relationships:
+            self.store.add_relationship(
+                RelationshipRecord(
+                    source_object_id=published.id,
+                    target_object_id=relationship.target_id,
+                    relationship_type=relationship.type,
+                    confidence=relationship.confidence,
+                    status=ReviewStatus.published,
+                    approved_by=actor,
+                )
+            )
+
+        self._audit(
+            "knowledge_published",
+            actor,
+            item.id,
+            {
+                "published_object_id": published.id,
+                "object_version": published.version,
+                "comment": comment,
+                "revision": item.revision,
+                "legacy_approval_compatibility": True,
+            },
+        )
+        return published
 
     def _touch(self, item: ReviewItem) -> None:
         item.revision += 1

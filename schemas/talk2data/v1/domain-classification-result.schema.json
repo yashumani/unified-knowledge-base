@@ -1,0 +1,96 @@
+{
+  "$defs": {
+    "DomainFit": {
+      "enum": [
+        "in_domain",
+        "external_adjacent",
+        "excluded",
+        "unsupported",
+        "ambiguous"
+      ],
+      "title": "DomainFit",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "classification": {
+      "$ref": "#/$defs/DomainFit"
+    },
+    "confidence": {
+      "default": 0.0,
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Confidence",
+      "type": "number"
+    },
+    "domain_pack_id": {
+      "title": "Domain Pack Id",
+      "type": "string"
+    },
+    "domain_pack_version": {
+      "title": "Domain Pack Version",
+      "type": "integer"
+    },
+    "internal_anchors": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Internal Anchors",
+      "type": "array"
+    },
+    "matched_domains": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Matched Domains",
+      "type": "array"
+    },
+    "matched_entities": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Matched Entities",
+      "type": "array"
+    },
+    "matched_exclusions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Matched Exclusions",
+      "type": "array"
+    },
+    "matched_external_categories": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Matched External Categories",
+      "type": "array"
+    },
+    "matched_metrics": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Matched Metrics",
+      "type": "array"
+    },
+    "question": {
+      "title": "Question",
+      "type": "string"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reasons",
+      "type": "array"
+    }
+  },
+  "required": [
+    "question",
+    "classification",
+    "domain_pack_id",
+    "domain_pack_version"
+  ],
+  "title": "DomainClassificationResult",
+  "type": "object"
+}

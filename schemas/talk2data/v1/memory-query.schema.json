@@ -1,0 +1,99 @@
+{
+  "$defs": {
+    "MemoryStatus": {
+      "enum": [
+        "unverified",
+        "approved",
+        "published",
+        "deprecated",
+        "superseded",
+        "expired",
+        "conflicting",
+        "rejected"
+      ],
+      "title": "MemoryStatus",
+      "type": "string"
+    },
+    "MemoryType": {
+      "enum": [
+        "business_definition",
+        "business_decision",
+        "policy",
+        "business_event",
+        "project_event",
+        "investigation",
+        "user_approved_preference",
+        "metric_context",
+        "entity_context",
+        "external_intelligence",
+        "source_document",
+        "meeting_record",
+        "hypothesis",
+        "recommendation"
+      ],
+      "title": "MemoryType",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "business_domains": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Business Domains",
+      "type": "array"
+    },
+    "effective_at": {
+      "format": "date-time",
+      "title": "Effective At",
+      "type": "string"
+    },
+    "include_historical": {
+      "default": false,
+      "title": "Include Historical",
+      "type": "boolean"
+    },
+    "limit": {
+      "default": 25,
+      "maximum": 200,
+      "minimum": 1,
+      "title": "Limit",
+      "type": "integer"
+    },
+    "memory_types": {
+      "items": {
+        "$ref": "#/$defs/MemoryType"
+      },
+      "title": "Memory Types",
+      "type": "array"
+    },
+    "query": {
+      "default": "",
+      "title": "Query",
+      "type": "string"
+    },
+    "related_entities": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Related Entities",
+      "type": "array"
+    },
+    "related_metrics": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Related Metrics",
+      "type": "array"
+    },
+    "statuses": {
+      "items": {
+        "$ref": "#/$defs/MemoryStatus"
+      },
+      "title": "Statuses",
+      "type": "array"
+    }
+  },
+  "title": "MemoryQuery",
+  "type": "object"
+}
