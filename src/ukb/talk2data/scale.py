@@ -103,9 +103,7 @@ def run_scale_benchmark(profile: ScaleProfile) -> ScaleBenchmarkResult:
         latencies.append((time.perf_counter() - query_started) * 1000)
 
         own_marker_hits = [
-            memory
-            for memory in result.memory
-            if marker in memory.content_text
+            memory for memory in result.memory if marker in memory.content_text
         ]
         if not own_marker_hits:
             leakage += 1
@@ -126,8 +124,7 @@ def run_scale_benchmark(profile: ScaleProfile) -> ScaleBenchmarkResult:
         leakage += sum(
             1
             for memory in foreign.memory
-            if memory.tenant_id != other.tenant_id
-            or marker in memory.content_text
+            if memory.tenant_id != other.tenant_id or marker in memory.content_text
         )
 
     first = fixture.principals[0]
@@ -149,18 +146,25 @@ def run_scale_benchmark(profile: ScaleProfile) -> ScaleBenchmarkResult:
     p50 = statistics.median(ordered)
     p95_index = max(0, min(len(ordered) - 1, round(len(ordered) * 0.95) - 1))
     p95 = ordered[p95_index]
-    passed = leakage == 0 and receipt.overall_coverage_status.value in {
-        "complete",
-        "partial",
-    }
+    exact_counts = (
+        len(fixture.service.store.episodes) == profile.source_files
+        and len(fixture.service.store.memories) == profile.memory_objects
+    )
+    passed = (
+        leakage == 0
+        and exact_counts
+        and receipt.overall_coverage_status.value in {"complete", "partial"}
+    )
     notes = [
         "This benchmark measures tenant filtering, governed retrieval and coverage "
         "over deterministic in-process stores.",
         "Every tenant marker is a unique single retrieval token. The leakage count "
         "increments only when that marker or a foreign-tenant record crosses the "
         "authenticated tenant boundary.",
+        "The source fixture distributes remainders across tenants so the created "
+        "episode count exactly equals the profile declaration.",
         "The full profile represents 5,000 source episodes and 100,000 typed memory "
-        "objects; it is intentionally workflow-dispatched rather than run on every PR.",
+        "objects; it is a release-candidate gate rather than a routine unit test.",
     ]
     return ScaleBenchmarkResult(
         profile=profile,
@@ -208,9 +212,13 @@ def _build_fixture(profile: ScaleProfile) -> ScaleFixture:
         )
 
     episode_ids: dict[tuple[str, int], str] = {}
-    files_per_tenant = max(1, profile.source_files // profile.tenants)
+    base_count, remainder = divmod(profile.source_files, profile.tenants)
+    source_counts = {
+        principal.tenant_id: base_count + (1 if index < remainder else 0)
+        for index, principal in enumerate(principals)
+    }
     for principal in principals:
-        for file_index in range(files_per_tenant):
+        for file_index in range(source_counts[principal.tenant_id]):
             content = (
                 f"Synthetic governed source {file_index} for {principal.tenant_id}; "
                 "covers network congestion and wireless operations."
@@ -238,7 +246,8 @@ def _build_fixture(profile: ScaleProfile) -> ScaleFixture:
     now = utc_now()
     for index in range(profile.memory_objects):
         principal = principals[index % len(principals)]
-        file_index = (index // len(principals)) % files_per_tenant
+        tenant_source_count = source_counts[principal.tenant_id]
+        file_index = (index // len(principals)) % tenant_source_count
         episode_id = episode_ids[(principal.tenant_id, file_index)]
         episode = store.episodes[episode_id]
         marker_seed = f"{principal.tenant_id}:{index}".encode()
