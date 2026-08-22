@@ -8,10 +8,17 @@ import type {
   ContextPackRequest,
   EmbeddingRequest,
   EmbeddingResponse,
+  EvidenceChunk,
   IngestionPayload,
   KnowledgeObject,
+  PublishDecision,
   ReviewDecision,
-  ReviewItem
+  ReviewItem,
+  ReviewRevisionRequest,
+  SearchRequest,
+  SearchResponse,
+  SourceEvidence,
+  SourceVersion
 } from "../types";
 import type {
   BatchIngestionResult,
@@ -39,28 +46,37 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (API_TOKEN && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${API_TOKEN}`);
   }
+  if (!headers.has("X-Request-ID")) {
+    headers.set("X-Request-ID", `web-${crypto.randomUUID()}`);
+  }
 
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers
-  });
-
+  const response = await fetch(`${API_BASE}${path}`, { ...init, headers });
   if (!response.ok) {
-    const detail = await response.text();
+    const raw = await response.text();
+    let detail = raw;
+    try {
+      const parsed = JSON.parse(raw) as { detail?: string };
+      detail = parsed.detail ?? raw;
+    } catch {
+      // Keep non-JSON detail.
+    }
     if (response.status === 401 || response.status === 403) {
       throw new Error(
-        `${response.status} ${response.statusText}: API token missing or rejected. ` +
-          `Set VITE_UKB_API_TOKEN to match the server's UKB_API_TOKEN.`
+        `${response.status} ${response.statusText}: API identity missing or rejected. ` +
+          `Configure a per-user session or set VITE_UKB_API_TOKEN for a trusted local deployment.`
       );
+    }
+    if (response.status === 409) {
+      throw new Error(`This item changed while you were reviewing it. Refresh and try again. ${detail}`);
     }
     throw new Error(`${response.status} ${response.statusText}: ${detail}`);
   }
-
   return response.json() as Promise<T>;
 }
 
 export const brainClient = {
-  health: () => request<{ status: string; environment: string }>("/health"),
+  health: () => request<{ status: string; environment: string; version?: string }>("/health"),
+  ready: () => request<Record<string, unknown>>("/ready"),
   getAIProviderStatus: () => request<AIProviderStatus>("/ai/providers"),
   getAIProviderHealth: () => request<AIProviderHealth>("/ai/health"),
   buildEmbeddings: (payload: EmbeddingRequest) =>
@@ -73,18 +89,11 @@ export const brainClient = {
       method: "POST",
       body: JSON.stringify(payload)
     }),
-  getIngestionCapabilities: () =>
-    request<IngestionCapabilities>("/ingestion/capabilities"),
+  getIngestionCapabilities: () => request<IngestionCapabilities>("/ingestion/capabilities"),
   previewFiles: (form: FormData) =>
-    request<IngestionPreview>("/ingestion/files/preview", {
-      method: "POST",
-      body: form
-    }),
+    request<IngestionPreview>("/ingestion/files/preview", { method: "POST", body: form }),
   submitFiles: (form: FormData) =>
-    request<BatchIngestionResult>("/ingestion/files/submit", {
-      method: "POST",
-      body: form
-    }),
+    request<BatchIngestionResult>("/ingestion/files/submit", { method: "POST", body: form }),
   previewDriveFolder: (payload: DriveIngestionRequest) =>
     request<IngestionPreview>("/ingestion/google-drive/preview", {
       method: "POST",
@@ -115,15 +124,24 @@ export const brainClient = {
       method: "POST",
       body: JSON.stringify(payload)
     }),
+  listSources: () => request<SourceEvidence[]>("/sources"),
+  getSourceVersions: (sourceId: string) =>
+    request<SourceVersion[]>(`/sources/${encodeURIComponent(sourceId)}/versions`),
+  getSourceChunks: (sourceId: string) =>
+    request<EvidenceChunk[]>(`/sources/${encodeURIComponent(sourceId)}/chunks`),
   listReviewItems: () => request<ReviewItem[]>("/review/queue"),
+  listApprovedReviews: () => request<ReviewItem[]>("/review/approved"),
   enrichReviewItem: (reviewItemId: string) =>
-    request<ReviewItem>(`/review/items/${reviewItemId}/enrich`, {
-      method: "POST"
-    }),
+    request<ReviewItem>(`/review/items/${reviewItemId}/enrich`, { method: "POST" }),
   getReviewItemAIEnrichment: (reviewItemId: string) =>
     request<AIEnrichmentResult>(`/review/items/${reviewItemId}/ai-enrichment`),
   approveReviewItem: (reviewItemId: string, decision: ReviewDecision) =>
     request<ReviewItem>(`/review/items/${reviewItemId}/approve`, {
+      method: "POST",
+      body: JSON.stringify(decision)
+    }),
+  publishReviewItem: (reviewItemId: string, decision: PublishDecision) =>
+    request<ReviewItem>(`/review/items/${reviewItemId}/publish`, {
       method: "POST",
       body: JSON.stringify(decision)
     }),
@@ -137,8 +155,18 @@ export const brainClient = {
       method: "POST",
       body: JSON.stringify(decision)
     }),
+  reviseReviewItem: (reviewItemId: string, revision: ReviewRevisionRequest) =>
+    request<ReviewItem>(`/review/items/${reviewItemId}/revise`, {
+      method: "POST",
+      body: JSON.stringify(revision)
+    }),
   listObjects: () => request<KnowledgeObject[]>("/brain/objects"),
   getGraph: () => request<BrainGraph>("/brain/graph"),
+  searchBrain: (payload: SearchRequest) =>
+    request<SearchResponse>("/brain/search", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
   buildContextPack: (payload: ContextPackRequest) =>
     request<ContextPack>("/brain/context-pack", {
       method: "POST",

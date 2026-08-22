@@ -2,17 +2,25 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import cast
+from uuid import uuid4
 
-from fastapi import APIRouter, Depends, FastAPI, HTTPException
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
-from ukb.ai.service import AIEnrichmentService
-from ukb.api.security import require_api_token, warn_on_insecure_configuration
-from ukb.config import get_settings
+from ukb.api.ingestion_routes import router as ingestion_router
+from ukb.api.search_routes import router as search_router
+from ukb.api.security import (
+    Principal,
+    require_principal,
+    require_roles,
+    warn_on_insecure_configuration,
+)
 from ukb.models import (
     AIEnrichmentResult,
     AIProviderHealth,
     AIProviderStatus,
+    AITaskRun,
     AuditEvent,
     BrainGraph,
     ContextPack,
@@ -21,29 +29,30 @@ from ukb.models import (
     EmbeddingResponse,
     IngestionSubmission,
     KnowledgeObject,
+    PublishDecision,
     ReviewDecision,
     ReviewItem,
+    ReviewRevisionRequest,
 )
-from ukb.services.access import AccessPolicyService
-from ukb.services.compiler import BrainCompiler
-from ukb.services.context_pack import ContextPackService
-from ukb.services.governance import GovernanceService
+from ukb.services.governance import GovernanceConflict, GovernanceValidationError
 from ukb.services.graph import BrainGraphService
-from ukb.store import store
-
-settings = get_settings()
+from ukb.services.runtime import application, settings
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     warn_on_insecure_configuration(settings)
     yield
+    application.close()
 
 
 app = FastAPI(
     title=settings.app_name,
-    version="0.1.0",
-    description="Governed AI Brain starter platform with ingestion, review, and context-pack endpoints.",
+    version="0.2.0",
+    description=(
+        "Governed AI Brain runtime with durable evidence, advisory local Ollama enrichment, "
+        "human approval, explicit publication, permission-aware retrieval, and context packs."
+    ),
     lifespan=lifespan,
 )
 
@@ -53,140 +62,250 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Request-ID"],
 )
 
-access_policy = AccessPolicyService.from_settings(settings)
-compiler = BrainCompiler()
-governance = GovernanceService(store)
-context_pack_service = ContextPackService(store, access_policy=access_policy)
-graph_service = BrainGraphService(store)
-ai_enrichment_service = AIEnrichmentService(settings=settings)
 
-# Only liveness is unauthenticated. Everything else touches submitted context,
-# unapproved candidates, provider infrastructure detail, or the audit trail.
+@app.middleware("http")
+async def request_identity(request: Request, call_next) -> Response:
+    request_id = request.headers.get("X-Request-ID") or f"req_{uuid4().hex[:16]}"
+    request.state.request_id = request_id
+    response = cast(Response, await call_next(request))
+    response.headers["X-Request-ID"] = request_id
+    return response
+
+
+@app.exception_handler(GovernanceConflict)
+async def governance_conflict(_: Request, exc: GovernanceConflict) -> Response:
+    from fastapi.responses import JSONResponse
+
+    return JSONResponse(status_code=409, content={"detail": str(exc)})
+
+
+@app.exception_handler(GovernanceValidationError)
+async def governance_validation(_: Request, exc: GovernanceValidationError) -> Response:
+    from fastapi.responses import JSONResponse
+
+    return JSONResponse(status_code=422, content={"detail": str(exc)})
+
+
 public_router = APIRouter()
-protected_router = APIRouter(dependencies=[Depends(require_api_token)])
+protected_router = APIRouter()
+graph_service = BrainGraphService(application.store)
 
 
 @public_router.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "environment": settings.environment}
+    return {
+        "status": "ok",
+        "environment": settings.environment,
+        "version": app.version,
+    }
+
+
+@public_router.get("/ready")
+def readiness() -> dict[str, object]:
+    index = application.retrieval.status()
+    return {
+        "status": "ready",
+        "store_backend": settings.store_backend,
+        "search_backend": index.backend_active,
+        "search_available": index.available,
+        "ai_provider": application.ai.status().provider.value,
+    }
 
 
 @protected_router.get("/ai/providers", response_model=AIProviderStatus)
-def get_ai_provider_status() -> AIProviderStatus:
-    return ai_enrichment_service.status()
+def get_ai_provider_status(
+    principal: Principal = Depends(require_principal),
+) -> AIProviderStatus:
+    require_roles(
+        principal,
+        {"consumer", "submitter", "reviewer", "publisher", "governance_admin"},
+    )
+    return application.ai.status()
 
 
 @protected_router.get("/ai/health", response_model=AIProviderHealth)
-def get_ai_provider_health() -> AIProviderHealth:
-    return ai_enrichment_service.health()
+def get_ai_provider_health(
+    principal: Principal = Depends(require_principal),
+) -> AIProviderHealth:
+    require_roles(principal, {"reviewer", "publisher", "governance_admin"})
+    return application.ai.health()
 
 
 @protected_router.post("/ai/embeddings", response_model=EmbeddingResponse)
-def build_embeddings(request: EmbeddingRequest) -> EmbeddingResponse:
-    return ai_enrichment_service.embed_texts(texts=request.texts, model=request.model)
+def build_embeddings(
+    request: EmbeddingRequest,
+    principal: Principal = Depends(require_principal),
+) -> EmbeddingResponse:
+    require_roles(principal, {"reviewer", "publisher", "governance_admin"})
+    return application.ai.embed_texts(texts=request.texts, model=request.model)
+
+
+@protected_router.get("/ai/tasks", response_model=list[AITaskRun])
+def list_ai_tasks(
+    principal: Principal = Depends(require_principal),
+) -> list[AITaskRun]:
+    require_roles(principal, {"reviewer", "governance_admin"})
+    return sorted(
+        application.store.ai_task_runs.values(),
+        key=lambda item: item.created_at,
+        reverse=True,
+    )
 
 
 @protected_router.post("/ingestion/submissions", response_model=ReviewItem)
-def submit_context(submission: IngestionSubmission) -> ReviewItem:
-    source, review_item = compiler.compile_submission(submission)
-    review_item.ai_enrichment = ai_enrichment_service.enrich_source(
-        source=source,
-        content=submission.content,
-        baseline_candidate=review_item.candidate_object,
-    )
-    store.add_source(source)
-    store.add_review_item(review_item)
-    enrichment = review_item.ai_enrichment
-    store.add_audit_event(
-        AuditEvent(
-            event_type="submission_created",
-            actor=submission.submitted_by,
-            target_id=review_item.id,
-            details={
-                "source_id": source.source_id,
-                "domain": submission.domain,
-                "ai_enrichment_id": enrichment.id if enrichment else None,
-                "ai_provider": enrichment.provider.value if enrichment else None,
-            },
-        )
-    )
-    return review_item
+def submit_context(
+    submission: IngestionSubmission,
+    principal: Principal = Depends(require_principal),
+) -> ReviewItem:
+    require_roles(principal, {"submitter", "reviewer", "governance_admin"})
+    return application.submit_text(submission, principal=principal)
 
 
 @protected_router.get("/review/queue", response_model=list[ReviewItem])
-def list_review_queue() -> list[ReviewItem]:
-    return governance.list_queue()
+def list_review_queue(
+    principal: Principal = Depends(require_principal),
+) -> list[ReviewItem]:
+    require_roles(principal, {"reviewer", "governance_admin"})
+    return [
+        item
+        for item in application.governance.list_queue()
+        if application.access_policy.can_access(principal, item.candidate_object)
+    ]
+
+
+@protected_router.get("/review/approved", response_model=list[ReviewItem])
+def list_approved_reviews(
+    principal: Principal = Depends(require_principal),
+) -> list[ReviewItem]:
+    require_roles(principal, {"publisher", "governance_admin"})
+    return [
+        item
+        for item in application.governance.list_approved()
+        if application.access_policy.can_access(principal, item.candidate_object)
+    ]
+
+
+@protected_router.get("/review/items/{review_item_id}", response_model=ReviewItem)
+def get_review_item(
+    review_item_id: str,
+    principal: Principal = Depends(require_principal),
+) -> ReviewItem:
+    require_roles(principal, {"reviewer", "publisher", "governance_admin"})
+    item = application.store.review_items.get(review_item_id)
+    if item is None or not application.access_policy.can_access(
+        principal, item.candidate_object
+    ):
+        raise HTTPException(
+            status_code=404,
+            detail=f"Review item not found: {review_item_id}",
+        )
+    return item
 
 
 @protected_router.post("/review/items/{review_item_id}/enrich", response_model=ReviewItem)
-def enrich_review_item(review_item_id: str) -> ReviewItem:
+def enrich_review_item(
+    review_item_id: str,
+    principal: Principal = Depends(require_principal),
+) -> ReviewItem:
+    require_roles(principal, {"reviewer", "governance_admin"})
     try:
-        review_item = store.review_items[review_item_id]
-        source = store.sources[review_item.source_id]
+        return application.enrich_review(review_item_id, principal=principal)
     except KeyError as exc:
-        raise HTTPException(
-            status_code=404, detail=f"Review item or source not found: {review_item_id}"
-        ) from exc
-
-    review_item.ai_enrichment = ai_enrichment_service.enrich_source(
-        source=source,
-        content=source.content_excerpt,
-        baseline_candidate=review_item.candidate_object,
-    )
-    store.add_audit_event(
-        AuditEvent(
-            event_type="ai_review_item_enriched",
-            actor="ai_enrichment_service",
-            target_id=review_item.id,
-            details={
-                "source_id": source.source_id,
-                "ai_enrichment_id": review_item.ai_enrichment.id,
-                "ai_provider": review_item.ai_enrichment.provider.value,
-            },
-        )
-    )
-    return review_item
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @protected_router.get(
-    "/review/items/{review_item_id}/ai-enrichment", response_model=AIEnrichmentResult
+    "/review/items/{review_item_id}/ai-enrichment",
+    response_model=AIEnrichmentResult,
 )
-def get_review_item_ai_enrichment(review_item_id: str) -> AIEnrichmentResult:
-    try:
-        enrichment = store.review_items[review_item_id].ai_enrichment
-    except KeyError as exc:
+def get_review_item_ai_enrichment(
+    review_item_id: str,
+    principal: Principal = Depends(require_principal),
+) -> AIEnrichmentResult:
+    item = get_review_item(review_item_id, principal)
+    if item.ai_enrichment is None:
         raise HTTPException(
-            status_code=404, detail=f"Review item not found: {review_item_id}"
-        ) from exc
-    if enrichment is None:
-        raise HTTPException(
-            status_code=404, detail=f"Review item has no AI enrichment: {review_item_id}"
+            status_code=404,
+            detail="The review item has no AI enrichment.",
         )
-    return enrichment
+    return item.ai_enrichment
 
 
 @protected_router.post("/review/items/{review_item_id}/approve", response_model=ReviewItem)
-def approve_review_item(review_item_id: str, decision: ReviewDecision) -> ReviewItem:
+def approve_review_item(
+    review_item_id: str,
+    decision: ReviewDecision,
+    principal: Principal = Depends(require_principal),
+) -> ReviewItem:
+    require_roles(principal, settings.reviewer_role_set)
     try:
-        return governance.approve(review_item_id, decision)
+        return application.approve_review(review_item_id, decision, principal=principal)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@protected_router.post("/review/items/{review_item_id}/publish", response_model=ReviewItem)
+def publish_review_item(
+    review_item_id: str,
+    decision: PublishDecision,
+    principal: Principal = Depends(require_principal),
+) -> ReviewItem:
+    require_roles(principal, settings.publisher_role_set)
+    try:
+        return application.publish_review(
+            review_item_id,
+            decision,
+            principal=principal,
+        ).item
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @protected_router.post("/review/items/{review_item_id}/reject", response_model=ReviewItem)
-def reject_review_item(review_item_id: str, decision: ReviewDecision) -> ReviewItem:
+def reject_review_item(
+    review_item_id: str,
+    decision: ReviewDecision,
+    principal: Principal = Depends(require_principal),
+) -> ReviewItem:
+    require_roles(principal, settings.reviewer_role_set)
     try:
-        return governance.reject(review_item_id, decision)
+        return application.reject_review(review_item_id, decision, principal=principal)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@protected_router.post("/review/items/{review_item_id}/request-changes", response_model=ReviewItem)
-def request_review_changes(review_item_id: str, decision: ReviewDecision) -> ReviewItem:
+@protected_router.post(
+    "/review/items/{review_item_id}/request-changes",
+    response_model=ReviewItem,
+)
+def request_review_changes(
+    review_item_id: str,
+    decision: ReviewDecision,
+    principal: Principal = Depends(require_principal),
+) -> ReviewItem:
+    require_roles(principal, settings.reviewer_role_set)
     try:
-        return governance.request_changes(review_item_id, decision)
+        return application.request_changes(
+            review_item_id,
+            decision,
+            principal=principal,
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@protected_router.post("/review/items/{review_item_id}/revise", response_model=ReviewItem)
+def revise_review_item(
+    review_item_id: str,
+    request: ReviewRevisionRequest,
+    principal: Principal = Depends(require_principal),
+) -> ReviewItem:
+    require_roles(principal, {"submitter", "reviewer", "governance_admin"})
+    try:
+        return application.revise_review(review_item_id, request, principal=principal)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -194,41 +313,37 @@ def request_review_changes(review_item_id: str, decision: ReviewDecision) -> Rev
 @protected_router.get("/brain/objects", response_model=list[KnowledgeObject])
 def list_brain_objects(
     domain: str | None = None,
-    principal: str = Depends(require_api_token),
+    principal: Principal = Depends(require_principal),
 ) -> list[KnowledgeObject]:
     return [
         obj
-        for obj in store.list_objects(domain=domain)
-        if access_policy.can_access(principal, obj)
+        for obj in application.store.list_objects(domain=domain)
+        if application.access_policy.can_access(principal, obj)
     ]
 
 
 @protected_router.get("/brain/objects/{object_id}", response_model=KnowledgeObject)
 def get_brain_object(
     object_id: str,
-    principal: str = Depends(require_api_token),
+    principal: Principal = Depends(require_principal),
 ) -> KnowledgeObject:
-    try:
-        obj = store.knowledge_objects[object_id]
-    except KeyError as exc:
+    obj = application.store.knowledge_objects.get(object_id)
+    if obj is None or not application.access_policy.can_access(principal, obj):
         raise HTTPException(
-            status_code=404, detail=f"Knowledge object not found: {object_id}"
-        ) from exc
-    if not access_policy.can_access(principal, obj):
-        # 404 rather than 403: confirming the ID exists leaks that a restricted
-        # object with this identifier is present.
-        raise HTTPException(status_code=404, detail=f"Knowledge object not found: {object_id}")
+            status_code=404,
+            detail=f"Knowledge object not found: {object_id}",
+        )
     return obj
 
 
 @protected_router.get("/brain/graph", response_model=BrainGraph)
 def get_brain_graph(
     include_review_items: bool = True,
-    principal: str = Depends(require_api_token),
+    principal: Principal = Depends(require_principal),
 ) -> BrainGraph:
     return graph_service.build(
         include_review_items=include_review_items,
-        access_policy=access_policy,
+        access_policy=application.access_policy,
         principal=principal,
     )
 
@@ -236,37 +351,34 @@ def get_brain_graph(
 @protected_router.post("/brain/context-pack", response_model=ContextPack)
 def build_context_pack(
     request: ContextPackRequest,
-    principal: str = Depends(require_api_token),
+    principal: Principal = Depends(require_principal),
 ) -> ContextPack:
-    # Clearance follows the authenticated principal, not request.user_id, so a
-    # caller cannot widen their own access by relabelling the request body.
-    pack = context_pack_service.build(request, principal=principal)
-    # A denied pack has nothing groundable in it. Enriching anyway would replace
-    # the denial guidance with "nothing matched", which misstates why the pack
-    # is empty and sends the question to the model for no benefit.
-    if pack.access_decision != "denied":
-        pack = ai_enrichment_service.enrich_context_pack(context_pack=pack)
-    store.add_audit_event(
-        AuditEvent(
-            event_type="context_pack_requested",
-            actor=request.user_id,
-            target_id=pack.context_pack_id,
-            details={
-                "question": request.question,
-                "mode": request.mode,
-                "principal": principal,
-                "access_decision": pack.access_decision,
-                "ai_guidance_added": bool(pack.ai_guidance),
-            },
+    return application.build_context_pack(request, principal=principal)
+
+
+@protected_router.get("/brain/context-packs/{context_pack_id}", response_model=ContextPack)
+def get_context_pack(
+    context_pack_id: str,
+    principal: Principal = Depends(require_principal),
+) -> ContextPack:
+    pack = application.store.context_packs.get(context_pack_id)
+    if pack is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Context pack not found: {context_pack_id}",
         )
-    )
     return pack
 
 
 @protected_router.get("/governance/audit", response_model=list[AuditEvent])
-def list_audit_events() -> list[AuditEvent]:
-    return store.audit_events
+def list_audit_events(
+    principal: Principal = Depends(require_principal),
+) -> list[AuditEvent]:
+    require_roles(principal, {"reviewer", "governance_admin"})
+    return list(reversed(application.store.audit_events))
 
 
 app.include_router(public_router)
 app.include_router(protected_router)
+app.include_router(ingestion_router)
+app.include_router(search_router)

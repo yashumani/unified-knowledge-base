@@ -3,7 +3,7 @@ import { ConfirmAction } from "../common/ConfirmAction";
 import { ReviewSignal } from "../common/ReviewSignal";
 import { StatusPill } from "../common/StatusPill";
 import { formatRelative } from "../../utils/format";
-import type { ReviewItem } from "../../types";
+import type { ReviewItem, ReviewRevisionRequest } from "../../types";
 
 export function ReviewStep({
   items,
@@ -11,6 +11,7 @@ export function ReviewStep({
   onApprove,
   onReject,
   onRequestChanges,
+  onRevise,
   demoMode
 }: {
   items: ReviewItem[];
@@ -18,10 +19,15 @@ export function ReviewStep({
   onApprove: (id: string, comment: string | null) => Promise<void>;
   onReject: (id: string, comment: string | null) => Promise<void>;
   onRequestChanges: (id: string, comment: string | null) => Promise<void>;
+  onRevise?: (id: string, request: ReviewRevisionRequest) => Promise<void>;
   demoMode: boolean;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(items[0]?.id ?? null);
   const [comment, setComment] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [summary, setSummary] = useState("");
+  const [owner, setOwner] = useState("");
+  const [saving, setSaving] = useState(false);
   const previousNewestId = useRef<string | null>(items[0]?.id ?? null);
 
   useEffect(() => {
@@ -31,44 +37,54 @@ export function ReviewStep({
       setSelectedId(null);
       return;
     }
-
-    // Keep the end-to-end thread intact: when submission inserts a new item at
-    // the front of the queue, review that item instead of retaining an older
-    // seeded selection.
     if (newestId !== previousNewestId.current) {
       previousNewestId.current = newestId;
       setSelectedId(newestId);
       return;
     }
-
-    if (!selectedId || !items.some((item) => item.id === selectedId)) {
-      setSelectedId(newestId);
-    }
+    if (!selectedId || !items.some((item) => item.id === selectedId)) setSelectedId(newestId);
   }, [items, selectedId]);
-
-  // A comment belongs to the candidate being judged, not to the panel.
-  useEffect(() => setComment(""), [selectedId]);
 
   const selectedItem = selectedId ? items.find((item) => item.id === selectedId) : undefined;
   const enrichment = selectedItem?.ai_enrichment;
+
+  useEffect(() => {
+    setComment("");
+    setEditing(false);
+    setSummary(selectedItem?.candidate_object.summary ?? "");
+    setOwner(selectedItem?.candidate_object.owner ?? "");
+  }, [selectedId, selectedItem?.candidate_object.summary, selectedItem?.candidate_object.owner]);
+
   const trimmed = comment.trim();
   const needsComment = trimmed.length === 0;
 
-  async function act(
-    handler: (id: string, comment: string | null) => Promise<void>,
-    id: string
-  ) {
+  async function act(handler: (id: string, comment: string | null) => Promise<void>, id: string) {
     await handler(id, trimmed || null);
     setComment("");
+  }
+
+  async function saveRevision() {
+    if (!selectedItem || !onRevise) return;
+    setSaving(true);
+    try {
+      await onRevise(selectedItem.id, {
+        summary: summary.trim(),
+        owner: owner.trim(),
+        expected_revision: selectedItem.revision ?? 1,
+        comment: trimmed || "Candidate updated from the review console."
+      });
+      setEditing(false);
+      setComment("");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
     <div className="panel review-panel">
       <div className="review-layout">
         <ul className="scroll-list">
-          {items.length === 0 && (
-            <li className="empty-state">No candidate knowledge is waiting for review.</li>
-          )}
+          {items.length === 0 && <li className="empty-state">No candidate knowledge is waiting for review.</li>}
           {items.map((item) => (
             <li key={item.id}>
               <button
@@ -82,8 +98,7 @@ export function ReviewStep({
                 <span className="review-item-meta">
                   <StatusPill status={item.status} />
                   <small>
-                    {item.ai_enrichment ? "AI brief attached" : "No AI brief"} ·{" "}
-                    {formatRelative(item.created_at)}
+                    r{item.revision ?? 1} · {item.ai_enrichment ? "AI brief attached" : "No AI brief"} · {formatRelative(item.created_at)}
                   </small>
                 </span>
               </button>
@@ -94,65 +109,81 @@ export function ReviewStep({
         <aside className="candidate-inspector">
           {selectedItem ? (
             <>
-              <span className="badge">Candidate</span>
+              <span className="badge">Candidate · revision {selectedItem.revision ?? 1}</span>
               <h3>{selectedItem.candidate_object.title}</h3>
-              <p>{selectedItem.candidate_object.summary}</p>
+
+              {editing ? (
+                <div className="candidate-edit-form">
+                  <label>
+                    Candidate summary
+                    <textarea rows={5} value={summary} onChange={(event) => setSummary(event.target.value)} />
+                  </label>
+                  <label>
+                    Responsible owner
+                    <input value={owner} onChange={(event) => setOwner(event.target.value)} />
+                  </label>
+                  <div className="actions">
+                    <button type="button" onClick={saveRevision} disabled={saving || !summary.trim()}>
+                      {saving ? "Saving revision…" : "Save and return to review"}
+                    </button>
+                    <button type="button" className="secondary" onClick={() => setEditing(false)}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <p>{selectedItem.candidate_object.summary}</p>
+              )}
 
               <ReviewSignal confidence={selectedItem.candidate_object.confidence} />
 
-              {enrichment && (
+              {enrichment ? (
                 <div className="ai-brief">
                   <div className="ai-brief-header">
                     <strong>AI review brief</strong>
-                    <span>{enrichment.provider} · {enrichment.model}</span>
+                    <span>{enrichment.provider} · {enrichment.model} · schema {enrichment.schema_version ?? "1"}</span>
                   </div>
                   <p>{enrichment.review_brief.summary}</p>
                   <p className="advisory">
-                    <strong>
-                      AI suggests: {enrichment.review_brief.recommended_action.replace(/_/g, " ")}
-                    </strong>
+                    <strong>AI suggests: {enrichment.review_brief.recommended_action.replace(/_/g, " ")}</strong>
                     {" — advisory only. The decision below is yours."}
                   </p>
                 </div>
-              )}
-
-              {!enrichment && (
+              ) : (
                 <p className="step-locked" role="note">
-                  No AI brief was generated for this candidate. Approving is allowed — the
-                  decision is yours — and the activity log records that it happened without one.
+                  No AI brief was generated. A human may still decide from the preserved source evidence.
                 </p>
               )}
 
               <dl>
                 <div><dt>Status</dt><dd><StatusPill status={selectedItem.status} /></dd></div>
                 <div><dt>Domain</dt><dd>{selectedItem.candidate_object.domain}</dd></div>
-                <div>
-                  <dt>Owner</dt>
-                  <dd>{selectedItem.candidate_object.owner ?? "Not assigned"}</dd>
-                </div>
+                <div><dt>Owner</dt><dd>{selectedItem.candidate_object.owner ?? "Not assigned"}</dd></div>
                 <div><dt>Sensitivity</dt><dd>{selectedItem.candidate_object.sensitivity}</dd></div>
+                <div><dt>Evidence links</dt><dd>{selectedItem.candidate_object.evidence_refs?.length ?? 0}</dd></div>
                 <div><dt>Submitted</dt><dd>{formatRelative(selectedItem.created_at)}</dd></div>
                 <div><dt>Acting as</dt><dd>{reviewer}</dd></div>
               </dl>
 
-              {!selectedItem.candidate_object.owner && (
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={() =>
-                    setComment(
-                      "Please assign a responsible owner before this is published."
-                    )
-                  }
-                >
-                  Request changes to assign an owner
+              {(selectedItem.candidate_object.evidence_refs?.length ?? 0) > 0 && (
+                <div className="review-evidence-list">
+                  <strong>Grounding evidence</strong>
+                  {selectedItem.candidate_object.evidence_refs?.slice(0, 3).map((reference) => (
+                    <blockquote key={`${reference.chunk_id}-${reference.field_name ?? "claim"}`}>
+                      <span>{reference.locator ?? reference.chunk_id}</span>
+                      {reference.quote}
+                    </blockquote>
+                  ))}
+                </div>
+              )}
+
+              {onRevise && (
+                <button type="button" className="secondary" onClick={() => setEditing((value) => !value)}>
+                  {editing ? "Close editor" : "Edit candidate before deciding"}
                 </button>
               )}
 
               {selectedItem.review_comment && (
                 <p className="prior-comment">
-                  <strong>{selectedItem.reviewer ?? "Reviewer"} said:</strong>{" "}
-                  {selectedItem.review_comment}
+                  <strong>{selectedItem.reviewer ?? "Reviewer"} said:</strong> {selectedItem.review_comment}
                 </p>
               )}
 
@@ -168,8 +199,10 @@ export function ReviewStep({
 
               <div className="actions">
                 <ConfirmAction
-                  label={demoMode ? "Simulate approval" : "Approve and publish"}
+                  label={demoMode ? "Simulate approval" : "Approve for publication"}
                   confirmLabel="Confirm approval"
+                  disabled={!selectedItem.candidate_object.owner}
+                  disabledReason="Assign a responsible owner before approval."
                   onConfirm={() => act(onApprove, selectedItem.id)}
                 />
                 <ConfirmAction
@@ -189,12 +222,9 @@ export function ReviewStep({
                   onConfirm={() => act(onReject, selectedItem.id)}
                 />
               </div>
-              {needsComment && (
-                <small className="action-hint">
-                  Approving may proceed without a comment. Rejecting or requesting changes
-                  needs one, because a negative decision has to be explainable later.
-                </small>
-              )}
+              <small className="action-hint">
+                Approval moves the candidate to the publication queue. It does not make the memory retrievable yet.
+              </small>
             </>
           ) : (
             <div className="empty-state">Select a candidate to inspect before approving.</div>

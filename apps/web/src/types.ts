@@ -1,6 +1,31 @@
-export type SourceType = "document" | "markdown" | "spreadsheet" | "sql" | "dashboard" | "git" | "api" | "manual";
+export type SourceType =
+  | "document"
+  | "markdown"
+  | "spreadsheet"
+  | "sql"
+  | "dashboard"
+  | "git"
+  | "api"
+  | "manual"
+  | "web"
+  | "folder"
+  | "archive"
+  | "object_store";
 export type Sensitivity = "public" | "internal" | "confidential" | "restricted";
-export type ReviewStatus = "draft" | "submitted" | "ai_classified" | "human_review_required" | "approved" | "rejected" | "changes_requested" | "published" | "deprecated";
+export type ReviewStatus =
+  | "draft"
+  | "submitted"
+  | "parsing"
+  | "enrichment_pending"
+  | "ai_classified"
+  | "human_review_required"
+  | "changes_requested"
+  | "approved"
+  | "publication_pending"
+  | "published"
+  | "rejected"
+  | "superseded"
+  | "deprecated";
 export type ValidationSeverity = "info" | "low" | "medium" | "high" | "critical";
 export type AIProviderName = "noop" | "ollama" | "openai" | "custom";
 export type AIEnrichmentMode = "offline_no_model" | "local_ai" | "hosted_ai" | "hybrid";
@@ -12,8 +37,10 @@ export interface IngestionPayload {
   content: string;
   source_uri?: string | null;
   domain: string;
+  owner?: string | null;
   sensitivity: Sensitivity;
   tags: string[];
+  effective_date?: string | null;
 }
 
 export interface SourceEvidence {
@@ -24,8 +51,54 @@ export interface SourceEvidence {
   source_uri?: string | null;
   submitted_by: string;
   domain: string;
+  owner?: string | null;
+  sensitivity: Sensitivity;
+  content_hash?: string | null;
+  current_version_id?: string | null;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface SourceVersion {
+  id: string;
+  source_id: string;
+  version: number;
+  content_hash: string;
+  content_type: string;
+  size_bytes: number;
+  object_key?: string | null;
+  object_uri?: string | null;
+  parser: string;
+  parser_version: string;
+  source_uri?: string | null;
+  created_by: string;
+  created_at: string;
+}
+
+export interface EvidenceChunk {
+  id: string;
+  source_id: string;
+  source_version_id: string;
+  ordinal: number;
+  heading_path: string[];
+  content: string;
+  content_type: string;
+  locator?: string | null;
+  start_offset: number;
+  end_offset: number;
+  content_hash: string;
   sensitivity: Sensitivity;
   created_at: string;
+}
+
+export interface EvidenceReference {
+  chunk_id: string;
+  source_id: string;
+  source_version_id: string;
+  quote: string;
+  locator?: string | null;
+  field_name?: string | null;
+  confidence: number;
 }
 
 export interface Relationship {
@@ -44,9 +117,16 @@ export interface KnowledgeObject {
   status: ReviewStatus;
   sensitivity: Sensitivity;
   source_ids: string[];
+  evidence_refs?: EvidenceReference[];
   relationships: Relationship[];
+  aliases?: string[];
   attributes: Record<string, unknown>;
   confidence: number;
+  authority_tier?: number;
+  version?: number;
+  supersedes_id?: string | null;
+  published_by?: string | null;
+  published_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -66,6 +146,7 @@ export interface SuggestedRelationship {
   target_label: string;
   confidence: number;
   rationale?: string | null;
+  evidence_refs?: EvidenceReference[];
 }
 
 export interface ValidationFinding {
@@ -73,6 +154,7 @@ export interface ValidationFinding {
   finding_type: string;
   message: string;
   source_span?: string | null;
+  evidence_refs?: EvidenceReference[];
   recommended_action?: string | null;
 }
 
@@ -87,7 +169,9 @@ export interface AIEnrichmentResult {
   id: string;
   provider: AIProviderName;
   model: string;
-  status: "skipped" | "completed" | "failed";
+  schema_version?: string;
+  prompt_version?: string;
+  status: "queued" | "running" | "skipped" | "completed" | "failed";
   source_classification: SourceClassification;
   extracted_objects: KnowledgeObject[];
   suggested_relationships: SuggestedRelationship[];
@@ -140,14 +224,33 @@ export interface ReviewItem {
   candidate_object: KnowledgeObject;
   ai_enrichment?: AIEnrichmentResult | null;
   status: ReviewStatus;
+  revision?: number;
   reviewer?: string | null;
   review_comment?: string | null;
+  approved_by?: string | null;
+  approved_at?: string | null;
   created_at: string;
   updated_at: string;
 }
 
 export interface ReviewDecision {
-  reviewed_by: string;
+  reviewed_by?: string | null;
+  comment?: string | null;
+  expected_revision?: number | null;
+}
+
+export interface PublishDecision {
+  published_by?: string | null;
+  comment?: string | null;
+  expected_revision?: number | null;
+}
+
+export interface ReviewRevisionRequest {
+  title?: string | null;
+  summary?: string | null;
+  owner?: string | null;
+  attributes?: Record<string, unknown> | null;
+  expected_revision: number;
   comment?: string | null;
 }
 
@@ -158,6 +261,25 @@ export interface ContextPackRequest {
   mode: "default" | "executive_insight" | "metric_definition" | "lineage" | "governance_review" | "debug";
 }
 
+export interface ContextPackCitation {
+  citation_id: string;
+  object_id: string;
+  source_id: string;
+  source_version_id?: string | null;
+  chunk_id?: string | null;
+  title: string;
+  quote: string;
+  locator?: string | null;
+}
+
+export interface ConfidenceFactors {
+  retrieval: number;
+  evidence_coverage: number;
+  source_authority: number;
+  freshness: number;
+  conflict_penalty: number;
+}
+
 export interface ContextPack {
   context_pack_id: string;
   question: string;
@@ -165,10 +287,14 @@ export interface ContextPack {
   mode: string;
   access_decision: "allowed" | "denied";
   confidence: number;
+  confidence_factors?: ConfidenceFactors;
+  retrieval_engine?: string;
   answer_guidance: string;
   knowledge_objects: KnowledgeObject[];
   evidence: SourceEvidence[];
+  citations?: ContextPackCitation[];
   caveats: string[];
+  conflicts?: string[];
   related_objects: string[];
   recommended_followups: string[];
   ai_guidance?: string | null;
@@ -181,6 +307,7 @@ export interface AuditEvent {
   event_type: string;
   actor: string;
   target_id?: string | null;
+  request_id?: string | null;
   details: Record<string, unknown>;
   created_at: string;
 }
@@ -209,4 +336,40 @@ export interface BrainGraph {
   nodes: GraphNode[];
   edges: GraphEdge[];
   generated_at: string;
+}
+
+export interface SearchRequest {
+  query: string;
+  user_id?: string;
+  domains?: string[];
+  object_types?: string[];
+  sensitivities?: Sensitivity[];
+  limit?: number;
+}
+
+export interface SearchHit {
+  document_id: string;
+  object_id: string;
+  chunk_id?: string | null;
+  score: number;
+  engine: string;
+  reasons: string[];
+}
+
+export interface SearchResult {
+  hit: SearchHit;
+  object: KnowledgeObject;
+  evidence_chunk?: EvidenceChunk | null;
+}
+
+export interface SearchResponse {
+  query: string;
+  results: SearchResult[];
+  denied_count: number;
+  index: {
+    backend_requested: string;
+    backend_active: string;
+    available: boolean;
+    document_count: number;
+  };
 }

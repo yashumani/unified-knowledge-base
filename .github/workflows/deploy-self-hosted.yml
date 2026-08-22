@@ -1,20 +1,23 @@
-# Deploy the UKB runtime on a machine you control through a GitHub self-hosted runner.
-# This does not make GitHub host the backend or Ollama; it uses GitHub Actions as the deployment control plane.
 name: Deploy UKB runtime on self-hosted runner
 
 on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: "API image tag to deploy from GHCR. Use latest, a commit SHA, or a release tag."
+        description: "API image tag from GHCR."
         required: true
         default: "latest"
         type: string
       deploy_path:
-        description: "Directory on the self-hosted runner where Compose files and runtime .env live."
+        description: "Deployment directory on the self-hosted Linux runner."
         required: true
         default: "/opt/unified-knowledge-base"
         type: string
+      bootstrap_models:
+        description: "Pull the configured Ollama chat and embedding models."
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -22,8 +25,8 @@ permissions:
 
 jobs:
   deploy:
-    # Configure your runner with labels: self-hosted, linux, ukb.
     runs-on: [self-hosted, linux, ukb]
+    environment: ukb-runtime
     env:
       UKB_API_IMAGE: ghcr.io/${{ github.repository_owner }}/unified-knowledge-base-api:${{ inputs.image_tag }}
       UKB_DEPLOY_PATH: ${{ inputs.deploy_path }}
@@ -32,12 +35,12 @@ jobs:
       - name: Checkout deployment assets
         uses: actions/checkout@v4
 
-      - name: Verify Docker Compose is available
+      - name: Verify Docker Compose
         run: |
           docker version
           docker compose version
 
-      - name: Log in to GHCR for private/package-protected images
+      - name: Log in to GHCR
         run: echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: Prepare deployment directory
@@ -47,22 +50,68 @@ jobs:
           cp deploy/docker-compose.prod.yml "${UKB_DEPLOY_PATH}/docker-compose.yml"
           if [ ! -f "${UKB_DEPLOY_PATH}/.env" ]; then
             cp deploy/prod.env.example "${UKB_DEPLOY_PATH}/.env"
-            echo "Created ${UKB_DEPLOY_PATH}/.env from deploy/prod.env.example. Review it before production use."
+            echo "A template .env was created. Replace every placeholder and rerun the deployment."
+            exit 1
           fi
 
-      - name: Pull API and Ollama images
+      - name: Reject placeholder secrets
         working-directory: ${{ inputs.deploy_path }}
         run: |
-          UKB_API_IMAGE="${UKB_API_IMAGE}" docker compose --env-file .env pull
+          if grep -Eq 'replace-with|replace-review-token|replace-publish-token' .env; then
+            echo "Deployment .env still contains placeholder credentials."
+            exit 1
+          fi
 
-      - name: Start or update UKB runtime
+      - name: Pull runtime images
         working-directory: ${{ inputs.deploy_path }}
-        run: |
-          UKB_API_IMAGE="${UKB_API_IMAGE}" docker compose --env-file .env up -d
-          docker compose ps
+        run: UKB_API_IMAGE="${UKB_API_IMAGE}" docker compose --env-file .env pull
 
-      - name: Show runtime checks
+      - name: Start private dependencies
         working-directory: ${{ inputs.deploy_path }}
         run: |
-          echo "UKB API should be reachable on the configured UKB_API_PORT."
-          echo "Ollama is intentionally private on the Compose network and is not published to the internet."
+          UKB_API_IMAGE="${UKB_API_IMAGE}" docker compose --env-file .env up -d postgres ollama crawl4ai
+          for attempt in $(seq 1 40); do
+            if docker compose --env-file .env exec -T postgres sh -c 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"'; then
+              exit 0
+            fi
+            sleep 3
+          done
+          docker compose --env-file .env logs postgres
+          exit 1
+
+      - name: Apply database migrations
+        working-directory: ${{ inputs.deploy_path }}
+        run: |
+          UKB_API_IMAGE="${UKB_API_IMAGE}" docker compose --env-file .env run --rm --no-deps api alembic upgrade head
+
+      - name: Start governed API
+        working-directory: ${{ inputs.deploy_path }}
+        run: |
+          UKB_API_IMAGE="${UKB_API_IMAGE}" docker compose --env-file .env up -d api
+          docker compose --env-file .env ps
+
+      - name: Pull configured Ollama models
+        if: ${{ inputs.bootstrap_models }}
+        working-directory: ${{ inputs.deploy_path }}
+        run: |
+          set -a
+          source .env
+          set +a
+          docker exec ukb-ollama ollama pull "${UKB_AI_CHAT_MODEL:-llama3.1}"
+          docker exec ukb-ollama ollama pull "${UKB_AI_EMBEDDING_MODEL:-embeddinggemma}"
+
+      - name: Verify API readiness
+        working-directory: ${{ inputs.deploy_path }}
+        run: |
+          set -a
+          source .env
+          set +a
+          for attempt in $(seq 1 40); do
+            if curl --fail --silent "http://127.0.0.1:${UKB_API_PORT:-8000}/ready" > /tmp/ukb-ready.json; then
+              cat /tmp/ukb-ready.json
+              exit 0
+            fi
+            sleep 3
+          done
+          docker compose --env-file .env logs api
+          exit 1
