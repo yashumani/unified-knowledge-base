@@ -1,0 +1,264 @@
+name: Release Unified Knowledge Base
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/release.yml"
+      - ".github/workflows/pages.yml"
+      - "Dockerfile"
+      - "pyproject.toml"
+      - "src/**"
+      - "migrations/**"
+      - "apps/web/**"
+      - "package.json"
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  pages: write
+  id-token: write
+  issues: write
+
+concurrency:
+  group: ukb-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate exact release commit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      UKB_AI_ENRICHMENT_ENABLED: "true"
+      UKB_AI_MODE: offline_no_model
+      UKB_AI_PROVIDER: noop
+      UKB_AI_CHAT_MODEL: deterministic
+      UKB_SEARCH_BACKEND: memory
+      UKB_STORE_BACKEND: memory
+      UKB_WEB_CONNECTOR_ENABLED: "false"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev,mcp,search]"
+
+      - name: Validate migrations
+        run: |
+          mkdir -p .ukb
+          UKB_STORE_BACKEND=sqlalchemy \
+          UKB_DATABASE_URL=sqlite+pysqlite:///./.ukb/release-migration.db \
+          alembic upgrade head
+
+      - name: Lint, type-check, and test
+        run: |
+          ruff check --select E4,E7,E9,F src tests
+          mypy src/ukb
+          pytest -q --cov=src/ukb --cov-report=term
+          python -m compileall -q src tests scripts
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build GitHub Pages bundle
+        env:
+          GITHUB_PAGES: "true"
+          VITE_UKB_API_BASE_URL: ${{ vars.UKB_API_BASE_URL }}
+        run: npm run web:build
+
+      - name: Validate container definitions
+        run: |
+          cp .env.example .env
+          cp deploy/prod.env.example deploy/.env
+          docker compose config --quiet
+          docker compose --env-file deploy/.env -f deploy/docker-compose.prod.yml config --quiet
+          docker build --tag ukb-api:release-validation .
+          docker build --file apps/web/Dockerfile --tag ukb-web:release-validation .
+
+  publish-api:
+    name: Publish and pull-verify API image
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+      version: ${{ steps.meta.outputs.version }}
+      digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Resolve release metadata
+        id: meta
+        shell: bash
+        run: |
+          VERSION="$(python - <<'PY'
+          import tomllib
+          with open('pyproject.toml', 'rb') as handle:
+              print(tomllib.load(handle)['project']['version'])
+          PY
+          )"
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY_OWNER}/unified-knowledge-base-api"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push API image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:${{ github.sha }}
+            ${{ steps.meta.outputs.image }}:v${{ steps.meta.outputs.version }}
+            ${{ steps.meta.outputs.image }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
+            org.opencontainers.image.title=Unified Knowledge Base API
+
+      - name: Pull and import-verify published digest
+        shell: bash
+        run: |
+          REF="${{ steps.meta.outputs.image }}@${{ steps.build.outputs.digest }}"
+          docker pull "$REF"
+          docker run --rm "$REF" python -c \
+            "from ukb.api.main import app; assert app.version; print(app.version)"
+
+  deploy-pages:
+    name: Deploy and smoke-test GitHub Pages
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build React UI
+        env:
+          GITHUB_PAGES: "true"
+          VITE_UKB_API_BASE_URL: ${{ vars.UKB_API_BASE_URL }}
+        run: npm run web:build
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Smoke-test deployed site
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        shell: bash
+        run: |
+          BODY="$(curl --fail --location --retry 12 --retry-delay 10 \
+            --retry-all-errors --silent --show-error "$PAGE_URL")"
+          printf '%s' "$BODY" | grep -qi "Unified Knowledge Base"
+
+  record-release:
+    name: Record deployment evidence
+    if: always() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: [validate, publish-api, deploy-pages]
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Write deployment ledger comment
+        uses: actions/github-script@v8
+        env:
+          VALIDATE_RESULT: ${{ needs.validate.result }}
+          API_RESULT: ${{ needs.publish-api.result }}
+          PAGES_RESULT: ${{ needs.deploy-pages.result }}
+          API_IMAGE: ${{ needs.publish-api.outputs.image }}
+          API_VERSION: ${{ needs.publish-api.outputs.version }}
+          API_DIGEST: ${{ needs.publish-api.outputs.digest }}
+          PAGE_URL: ${{ needs.deploy-pages.outputs.page_url }}
+        with:
+          script: |
+            const body = [
+              `## Release ${process.env.API_VERSION || 'unresolved'} — ${context.sha}`,
+              '',
+              `- Workflow: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              `- Exact-commit validation: **${process.env.VALIDATE_RESULT}**`,
+              `- API image publication and pull verification: **${process.env.API_RESULT}**`,
+              `- GitHub Pages deployment and live smoke test: **${process.env.PAGES_RESULT}**`,
+              `- Pages URL: ${process.env.PAGE_URL || 'unavailable'}`,
+              `- API image: ${process.env.API_IMAGE || 'unavailable'}:${context.sha}`,
+              `- Version tag: ${process.env.API_IMAGE || 'unavailable'}:v${process.env.API_VERSION || 'unresolved'}`,
+              `- Digest: ${process.env.API_DIGEST || 'unavailable'}`,
+              '- Private FastAPI/Ollama/PostgreSQL runtime: **not deployed by this workflow**',
+              '',
+              'A release is considered successful only when validation, API publication, and Pages deployment all report success.'
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 19,
+              body
+            });
+
+      - name: Fail when any release surface failed
+        if: >-
+          needs.validate.result != 'success' ||
+          needs.publish-api.result != 'success' ||
+          needs.deploy-pages.result != 'success'
+        run: exit 1
