@@ -1,0 +1,35 @@
+name: Export AI Brain source
+
+on:
+  push:
+    branches: ["agent/ai-brain-foundation"]
+    paths:
+      - ".github/workflows/export-ai-brain-source.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/ai-brain-foundation
+          fetch-depth: 0
+
+      - name: Create source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          git archive --format=zip --output=/tmp/unified-knowledge-base-source.zip HEAD
+
+      - name: Upload source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: unified-knowledge-base-source
+          path: /tmp/unified-knowledge-base-source.zip
+          if-no-files-found: error
+          retention-days: 1
