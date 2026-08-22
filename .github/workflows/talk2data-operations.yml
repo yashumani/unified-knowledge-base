@@ -75,7 +75,10 @@ jobs:
         run: python scripts/talk2data_scale_test.py --profile ci --max-p95-ms 1500
 
       - name: Run full 5,000-source / 100,000-memory profile
-        if: github.event_name == 'workflow_dispatch' && inputs.scale_profile == 'full'
+        if: >-
+          (github.event_name == 'workflow_dispatch' && inputs.scale_profile == 'full') ||
+          (github.event_name == 'pull_request' &&
+           github.head_ref == 'agent/talk2data-integration-operations')
         run: python scripts/talk2data_scale_test.py --profile full --max-p95-ms 5000
 
   graphiti-neo4j-smoke:
