@@ -40,19 +40,27 @@ def settings_for(tmp_path: Path, *, store_backend: str = "memory") -> Settings:
 def principal(*roles: str) -> Principal:
     return Principal(
         subject="architecture.tester",
-        roles=frozenset(roles or {"consumer", "submitter", "reviewer", "publisher"}),
+        roles=frozenset(
+            roles or {"consumer", "submitter", "reviewer", "publisher"}
+        ),
         clearance=Sensitivity.internal,
         auth_method="test",
     )
 
 
 def build_application(tmp_path: Path, *, durable: bool = False) -> BrainApplication:
-    settings = settings_for(tmp_path, store_backend="sqlalchemy" if durable else "memory")
+    settings = settings_for(
+        tmp_path,
+        store_backend="sqlalchemy" if durable else "memory",
+    )
     store = SqlAlchemyBrainStore(settings.database_url) if durable else BrainStore()
     return BrainApplication(
         store=store,
         settings=settings,
-        ai_service=AIEnrichmentService(settings=settings, provider=NoopProvider()),
+        ai_service=AIEnrichmentService(
+            settings=settings,
+            provider=NoopProvider(),
+        ),
     )
 
 
@@ -68,14 +76,17 @@ def submission() -> IngestionSubmission:
         tags=["alias:Handoff Duration", "synthetic"],
         content=(
             "# Service Handoff Time\n\n"
-            "Service Handoff Time is the elapsed time between first-line support and specialist "
-            "support. It is owned by Support Operations. Customer-wait periods are excluded.\n\n"
+            "Service Handoff Time is the elapsed time between first-line support and "
+            "specialist support. It is owned by Support Operations. Customer-wait "
+            "periods are excluded.\n\n"
             "## Caveat\n\nRecently reassigned cases may need 12 hours to reconcile."
         ),
     )
 
 
-def test_evidence_is_versioned_chunked_and_ai_runs_are_audited(tmp_path: Path) -> None:
+def test_evidence_is_versioned_chunked_and_ai_runs_are_audited(
+    tmp_path: Path,
+) -> None:
     application = build_application(tmp_path)
     item = application.submit_text(submission(), principal=principal("submitter"))
 
@@ -98,10 +109,14 @@ def test_approval_and_publication_are_separate_revision_guarded_transitions(
 ) -> None:
     application = build_application(tmp_path)
     item = application.submit_text(submission(), principal=principal("submitter"))
+    submitted_revision = item.revision
 
     approved = application.approve_review(
         item.id,
-        ReviewDecision(comment="Definition and evidence verified.", expected_revision=item.revision),
+        ReviewDecision(
+            comment="Definition and evidence verified.",
+            expected_revision=submitted_revision,
+        ),
         principal=principal("reviewer"),
     )
     assert approved.status == ReviewStatus.approved
@@ -110,7 +125,10 @@ def test_approval_and_publication_are_separate_revision_guarded_transitions(
     with pytest.raises(GovernanceConflict):
         application.publish_review(
             item.id,
-            PublishDecision(comment="Stale publication attempt.", expected_revision=item.revision),
+            PublishDecision(
+                comment="Stale publication attempt.",
+                expected_revision=submitted_revision,
+            ),
             principal=principal("publisher"),
         )
 
@@ -131,7 +149,9 @@ def test_approval_and_publication_are_separate_revision_guarded_transitions(
     }
 
 
-def test_context_pack_uses_indexed_published_memory_and_citations(tmp_path: Path) -> None:
+def test_context_pack_uses_indexed_published_memory_and_citations(
+    tmp_path: Path,
+) -> None:
     application = build_application(tmp_path)
     item = application.submit_text(submission(), principal=principal("submitter"))
     approved = application.approve_review(
@@ -198,7 +218,10 @@ def test_sql_store_survives_restart_with_evidence_governance_and_context_pack(
         assert reopened.list_evidence_chunks(source_id=item.source_id)
         assert item.candidate_object.id in reopened.knowledge_objects
         assert pack.context_pack_id in reopened.context_packs
-        assert any(event.event_type == "knowledge_published" for event in reopened.audit_events)
+        assert any(
+            event.event_type == "knowledge_published"
+            for event in reopened.audit_events
+        )
     finally:
         reopened.close()
 
