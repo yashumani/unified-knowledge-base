@@ -1,29 +1,20 @@
 services:
-  api:
-    image: ${UKB_API_IMAGE:-ghcr.io/yashumani/unified-knowledge-base-api:latest}
-    container_name: ukb-api
+  postgres:
+    image: postgres:16-alpine
+    container_name: ukb-postgres
     restart: unless-stopped
-    env_file:
-      - .env
     environment:
-      UKB_ENVIRONMENT: ${UKB_ENVIRONMENT:-prod}
-      UKB_CORS_ALLOW_ORIGINS: ${UKB_CORS_ALLOW_ORIGINS:-https://yashumani.github.io}
-      UKB_AI_ENRICHMENT_ENABLED: ${UKB_AI_ENRICHMENT_ENABLED:-true}
-      UKB_AI_MODE: ${UKB_AI_MODE:-local_ai}
-      UKB_AI_PROVIDER: ${UKB_AI_PROVIDER:-ollama}
-      UKB_AI_BASE_URL: ${UKB_AI_BASE_URL:-http://ollama:11434}
-      UKB_AI_CHAT_MODEL: ${UKB_AI_CHAT_MODEL:-llama3.1}
-      UKB_AI_EMBEDDING_MODEL: ${UKB_AI_EMBEDDING_MODEL:-embeddinggemma}
-      UKB_STORE_AI_PROMPTS: ${UKB_STORE_AI_PROMPTS:-false}
-      UKB_STORE_AI_OUTPUTS: ${UKB_STORE_AI_OUTPUTS:-true}
-    ports:
-      - "${UKB_API_PORT:-8000}:8000"
+      POSTGRES_DB: ${UKB_POSTGRES_DB:-ukb}
+      POSTGRES_USER: ${UKB_POSTGRES_USER:-ukb}
+      POSTGRES_PASSWORD: ${UKB_POSTGRES_PASSWORD:?Set UKB_POSTGRES_PASSWORD}
     volumes:
-      - ukb_object_store:/app/.ukb
-    depends_on:
-      - ollama
-    networks:
-      - ukb_internal
+      - ukb_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${UKB_POSTGRES_USER:-ukb} -d ${UKB_POSTGRES_DB:-ukb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks: [ukb_internal]
 
   ollama:
     image: ollama/ollama:latest
@@ -32,13 +23,70 @@ services:
     expose:
       - "11434"
     volumes:
-      - ollama_models:/root/.ollama
-    networks:
-      - ukb_internal
+      - ukb_ollama:/root/.ollama
+    networks: [ukb_internal]
+
+  crawl4ai:
+    image: ${UKB_CRAWL4AI_IMAGE:-unclecode/crawl4ai:0.8.8}
+    container_name: ukb-crawl4ai
+    restart: unless-stopped
+    expose:
+      - "11235"
+    shm_size: ${UKB_CRAWL4AI_SHM_SIZE:-1gb}
+    networks: [ukb_internal]
+
+  api:
+    image: ${UKB_API_IMAGE:-ghcr.io/yashumani/unified-knowledge-base-api:latest}
+    container_name: ukb-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      UKB_ENVIRONMENT: ${UKB_ENVIRONMENT:-prod}
+      UKB_STORE_BACKEND: sqlalchemy
+      UKB_DATABASE_URL: postgresql+psycopg://${UKB_POSTGRES_USER:-ukb}:${UKB_POSTGRES_PASSWORD}@postgres:5432/${UKB_POSTGRES_DB:-ukb}
+      UKB_OBJECT_STORE_URL: file:///app/.ukb/object-store
+      UKB_CREATE_SCHEMA_ON_STARTUP: "false"
+      UKB_SEARCH_BACKEND: ${UKB_SEARCH_BACKEND:-zvec}
+      UKB_SEARCH_SYNC_ON_QUERY: ${UKB_SEARCH_SYNC_ON_QUERY:-true}
+      UKB_ZVEC_PATH: /app/.ukb/zvec/approved-knowledge-v2
+      UKB_ZVEC_COLLECTION_NAME: ${UKB_ZVEC_COLLECTION_NAME:-ukb_approved_knowledge_v2}
+      UKB_CORS_ALLOW_ORIGINS: ${UKB_CORS_ALLOW_ORIGINS:-https://yashumani.github.io}
+      UKB_AI_ENRICHMENT_ENABLED: ${UKB_AI_ENRICHMENT_ENABLED:-true}
+      UKB_AI_MODE: ${UKB_AI_MODE:-local_ai}
+      UKB_AI_PROVIDER: ${UKB_AI_PROVIDER:-ollama}
+      UKB_AI_BASE_URL: http://ollama:11434
+      UKB_AI_CHAT_MODEL: ${UKB_AI_CHAT_MODEL:-llama3.1}
+      UKB_AI_EMBEDDING_MODEL: ${UKB_AI_EMBEDDING_MODEL:-embeddinggemma}
+      UKB_CRAWL4AI_ENABLED: ${UKB_CRAWL4AI_ENABLED:-false}
+      UKB_CRAWL4AI_BASE_URL: http://crawl4ai:11235
+      UKB_CRAWL4AI_API_TOKEN: ${UKB_CRAWL4AI_API_TOKEN:-}
+      UKB_WEB_ALLOWED_HOSTS: ${UKB_WEB_ALLOWED_HOSTS:-}
+      UKB_GOOGLE_DRIVE_ENABLED: ${UKB_GOOGLE_DRIVE_ENABLED:-false}
+      UKB_GOOGLE_DRIVE_ACCESS_TOKEN: ${UKB_GOOGLE_DRIVE_ACCESS_TOKEN:-}
+    ports:
+      - "${UKB_API_PORT:-8000}:8000"
+    volumes:
+      - ukb_runtime:/app/.ukb
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+      crawl4ai:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    networks: [ukb_internal]
 
 volumes:
-  ukb_object_store:
-  ollama_models:
+  ukb_postgres:
+  ukb_ollama:
+  ukb_runtime:
 
 networks:
   ukb_internal:

@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "unified-knowledge-base"
-version = "0.1.0"
-description = "Governed AI Brain starter platform with REST API, MCP adapter, and human review workflow."
+version = "0.2.0"
+description = "Governed AI Brain runtime with durable evidence, local Ollama enrichment, Zvec retrieval, MCP, and human publication controls."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -14,19 +14,32 @@ dependencies = [
   "pydantic>=2.8.0",
   "pydantic-settings>=2.3.0",
   "typer>=0.12.0",
-  "PyYAML>=6.0.0"
+  "PyYAML>=6.0.0",
+  "httpx>=0.27.0",
+  "SQLAlchemy>=2.0.36",
+  "alembic>=1.14.0",
+  "psycopg[binary]>=3.2.0",
+  "python-multipart>=0.0.18",
+  "beautifulsoup4>=4.12.0",
+  "lxml>=5.3.0",
+  "python-docx>=1.1.2",
+  "openpyxl>=3.1.5",
+  "pypdf>=5.1.0",
+  "python-pptx>=1.0.2",
+  "PyJWT[crypto]>=2.10.0"
 ]
 
 [project.optional-dependencies]
 dev = [
   "pytest>=8.0.0",
-  "ruff>=0.5.0",
-  "mypy>=1.10.0",
-  "httpx>=0.27.0"
+  "pytest-cov>=5.0.0",
+  "ruff>=0.8.0",
+  "mypy>=1.13.0",
+  "types-PyYAML>=6.0.12"
 ]
-mcp = [
-  "mcp[cli]>=1.2.0"
-]
+mcp = ["mcp[cli]>=1.2.0"]
+search = ["zvec>=0.6.0,<0.7.0"]
+all = ["mcp[cli]>=1.2.0", "zvec>=0.6.0,<0.7.0"]
 
 [project.scripts]
 ukb = "ukb.cli:app"
@@ -36,13 +49,19 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-ra"
 
 [tool.ruff]
 line-length = 100
 src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]
 
 [tool.mypy]
 python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true
+plugins = []

@@ -1,0 +1,66 @@
+name: Bug report
+description: Report a reproducible problem in Unified Knowledge Base.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include employer, client, customer, or proprietary data. Use synthetic examples and redact logs.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Product area
+      options:
+        - Backend/API
+        - React UI
+        - Local Ollama/AI enrichment
+        - Governance/review workflow
+        - Graph/retrieval
+        - MCP/plugins/starter kit
+        - Docker/GitHub Actions/deployment
+        - Documentation
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem
+      description: What happened, and what did you expect instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Start...
+        2. Submit...
+        3. Observe...
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python, Node, browser, Docker, Ollama version/model, and deployment mode.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs or screenshots
+      description: Remove secrets, internal URLs, personal data, and proprietary context.
+
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Data-safety confirmation
+      options:
+        - label: I used only synthetic or fully sanitized information in this issue.
+          required: true

@@ -33,12 +33,18 @@ def test_protected_route_rejects_missing_token(client):
 
 
 def test_protected_route_rejects_wrong_token(client):
-    response = client.get("/brain/objects", headers={"Authorization": "Bearer nope"})
+    response = client.get(
+        "/brain/objects",
+        headers={"Authorization": "Bearer nope"},
+    )
     assert response.status_code == 403
 
 
 def test_protected_route_accepts_bearer_token(client):
-    response = client.get("/brain/objects", headers={"Authorization": f"Bearer {DEV_TOKEN}"})
+    response = client.get(
+        "/brain/objects",
+        headers={"Authorization": f"Bearer {DEV_TOKEN}"},
+    )
     assert response.status_code == 200
 
 
@@ -61,9 +67,7 @@ def test_protected_route_accepts_x_api_token_header(client):
     ],
 )
 def test_every_privileged_route_requires_a_token(client, method, path):
-    response = (
-        client.get(path) if method == "GET" else client.post(path, json={})
-    )
+    response = client.get(path) if method == "GET" else client.post(path, json={})
     assert response.status_code == 401
 
 
@@ -96,13 +100,16 @@ def test_extract_token_handles_both_header_forms():
 
 def test_default_token_triggers_startup_warning():
     warnings = warn_on_insecure_configuration(Settings(api_token=DEV_TOKEN))
-    assert any("shipped development default" in warning for warning in warnings)
+    assert any("development default" in warning for warning in warnings)
 
 
 def test_disabled_auth_triggers_startup_warning():
     warnings = warn_on_insecure_configuration(Settings(require_auth=False))
-    assert any("unauthenticated" in warning for warning in warnings)
+    assert any("Authentication is disabled" in warning for warning in warnings)
 
 
 def test_custom_token_produces_no_warning():
-    assert warn_on_insecure_configuration(Settings(api_token="a-real-rotated-secret")) == []
+    assert (
+        warn_on_insecure_configuration(Settings(api_token="a-real-rotated-secret"))
+        == []
+    )
