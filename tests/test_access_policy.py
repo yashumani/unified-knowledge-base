@@ -3,6 +3,7 @@ from ukb.models import (
     IngestionSubmission,
     KnowledgeObject,
     KnowledgeObjectType,
+    PublishDecision,
     Relationship,
     ReviewDecision,
     Sensitivity,
@@ -15,7 +16,12 @@ from ukb.services.graph import BrainGraphService
 from ukb.store import BrainStore
 
 
-def _publish(store: BrainStore, title: str, content: str, sensitivity: Sensitivity) -> str:
+def _publish(
+    store: BrainStore,
+    title: str,
+    content: str,
+    sensitivity: Sensitivity,
+) -> str:
     compiler = BrainCompiler()
     governance = GovernanceService(store)
     submission = IngestionSubmission(
@@ -29,7 +35,20 @@ def _publish(store: BrainStore, title: str, content: str, sensitivity: Sensitivi
     source, review_item = compiler.compile_submission(submission)
     store.add_source(source)
     store.add_review_item(review_item)
-    governance.approve(review_item.id, ReviewDecision(reviewed_by="reviewer"))
+    approved = governance.approve(
+        review_item.id,
+        ReviewDecision(
+            reviewed_by="reviewer",
+            expected_revision=review_item.revision,
+        ),
+    )
+    governance.publish(
+        review_item.id,
+        PublishDecision(
+            published_by="publisher",
+            expected_revision=approved.revision,
+        ),
+    )
     return review_item.candidate_object.id
 
 
@@ -65,7 +84,11 @@ def test_no_match_is_allowed_not_denied():
     service = ContextPackService(store, access_policy=AccessPolicyService())
 
     pack = service.build(
-        ContextPackRequest(question="Anything at all?", user_id="consumer", domains=["support"])
+        ContextPackRequest(
+            question="Anything at all?",
+            user_id="consumer",
+            domains=["support"],
+        )
     )
 
     assert pack.access_decision == "allowed"
@@ -87,7 +110,8 @@ def test_partial_redaction_is_allowed_but_flagged():
         Sensitivity.confidential,
     )
     service = ContextPackService(
-        store, access_policy=AccessPolicyService(default_clearance=Sensitivity.internal)
+        store,
+        access_policy=AccessPolicyService(default_clearance=Sensitivity.internal),
     )
 
     pack = service.build(
@@ -101,7 +125,7 @@ def test_partial_redaction_is_allowed_but_flagged():
     assert pack.access_decision == "allowed"
     assert len(pack.knowledge_objects) == 1
     assert pack.knowledge_objects[0].sensitivity == Sensitivity.public
-    assert any("withheld by the access policy" in caveat for caveat in pack.caveats)
+    assert any("withheld by access policy" in caveat for caveat in pack.caveats)
 
 
 def test_higher_clearance_sees_restricted_object():
@@ -187,7 +211,8 @@ def test_related_object_ids_above_clearance_are_dropped():
     store.publish_object(visible)
 
     service = ContextPackService(
-        store, access_policy=AccessPolicyService(default_clearance=Sensitivity.public)
+        store,
+        access_policy=AccessPolicyService(default_clearance=Sensitivity.public),
     )
     pack = service.build(
         ContextPackRequest(
@@ -210,7 +235,10 @@ def test_graph_hides_objects_and_edges_above_clearance():
         Sensitivity.restricted,
     )
     policy = AccessPolicyService(default_clearance=Sensitivity.internal)
-    graph = BrainGraphService(store).build(access_policy=policy, principal="consumer")
+    graph = BrainGraphService(store).build(
+        access_policy=policy,
+        principal="consumer",
+    )
 
     assert graph.nodes == []
     assert graph.edges == []
