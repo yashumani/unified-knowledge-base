@@ -1,0 +1,832 @@
+{
+  "$defs": {
+    "BusinessEntityDefinition": {
+      "properties": {
+        "aliases": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Aliases",
+          "type": "array"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "domains": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Domains",
+          "type": "array"
+        },
+        "entity_id": {
+          "title": "Entity Id",
+          "type": "string"
+        },
+        "entity_type": {
+          "title": "Entity Type",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "entity_id",
+        "name",
+        "entity_type"
+      ],
+      "title": "BusinessEntityDefinition",
+      "type": "object"
+    },
+    "BusinessProcessDefinition": {
+      "properties": {
+        "aliases": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Aliases",
+          "type": "array"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "domains": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Domains",
+          "type": "array"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "process_id": {
+          "title": "Process Id",
+          "type": "string"
+        },
+        "related_entities": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Related Entities",
+          "type": "array"
+        },
+        "related_metrics": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Related Metrics",
+          "type": "array"
+        }
+      },
+      "required": [
+        "process_id",
+        "name"
+      ],
+      "title": "BusinessProcessDefinition",
+      "type": "object"
+    },
+    "DimensionReference": {
+      "properties": {
+        "aliases": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Aliases",
+          "type": "array"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "dimension_id": {
+          "title": "Dimension Id",
+          "type": "string"
+        },
+        "domain": {
+          "title": "Domain",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "related_entities": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Related Entities",
+          "type": "array"
+        }
+      },
+      "required": [
+        "dimension_id",
+        "name",
+        "domain"
+      ],
+      "title": "DimensionReference",
+      "type": "object"
+    },
+    "DomainAdjacencyRule": {
+      "properties": {
+        "allowed": {
+          "default": true,
+          "title": "Allowed",
+          "type": "boolean"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "external_category": {
+          "title": "External Category",
+          "type": "string"
+        },
+        "internal_anchor_domains": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Internal Anchor Domains",
+          "type": "array"
+        },
+        "internal_anchor_entities": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Internal Anchor Entities",
+          "type": "array"
+        },
+        "internal_anchor_metrics": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Internal Anchor Metrics",
+          "type": "array"
+        },
+        "internal_anchor_terms": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Internal Anchor Terms",
+          "type": "array"
+        },
+        "rule_id": {
+          "title": "Rule Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rule_id",
+        "external_category"
+      ],
+      "title": "DomainAdjacencyRule",
+      "type": "object"
+    },
+    "DomainConcept": {
+      "properties": {
+        "aliases": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Aliases",
+          "type": "array"
+        },
+        "concept_id": {
+          "title": "Concept Id",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "domains": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Domains",
+          "type": "array"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        }
+      },
+      "required": [
+        "concept_id",
+        "name"
+      ],
+      "title": "DomainConcept",
+      "type": "object"
+    },
+    "DomainPackStatus": {
+      "enum": [
+        "draft",
+        "approved",
+        "superseded",
+        "deprecated"
+      ],
+      "title": "DomainPackStatus",
+      "type": "string"
+    },
+    "EntityRelationshipDefinition": {
+      "properties": {
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "relationship_type": {
+          "title": "Relationship Type",
+          "type": "string"
+        },
+        "source_entity": {
+          "title": "Source Entity",
+          "type": "string"
+        },
+        "target_entity": {
+          "title": "Target Entity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_entity",
+        "relationship_type",
+        "target_entity"
+      ],
+      "title": "EntityRelationshipDefinition",
+      "type": "object"
+    },
+    "ExcludedDomain": {
+      "properties": {
+        "domain_id": {
+          "title": "Domain Id",
+          "type": "string"
+        },
+        "keywords": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Keywords",
+          "type": "array"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "domain_id",
+        "name",
+        "reason"
+      ],
+      "title": "ExcludedDomain",
+      "type": "object"
+    },
+    "ExternalContextCategory": {
+      "properties": {
+        "category_id": {
+          "title": "Category Id",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "keywords": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Keywords",
+          "type": "array"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "category_id",
+        "name"
+      ],
+      "title": "ExternalContextCategory",
+      "type": "object"
+    },
+    "KnowledgeSourceReference": {
+      "properties": {
+        "access_policy_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Access Policy Id"
+        },
+        "classification": {
+          "$ref": "#/$defs/Sensitivity",
+          "default": "internal"
+        },
+        "domains": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Domains",
+          "type": "array"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "required_for_partitions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Required For Partitions",
+          "type": "array"
+        },
+        "source_id": {
+          "title": "Source Id",
+          "type": "string"
+        },
+        "source_type": {
+          "title": "Source Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "name",
+        "source_type"
+      ],
+      "title": "KnowledgeSourceReference",
+      "type": "object"
+    },
+    "MetricReference": {
+      "properties": {
+        "aliases": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Aliases",
+          "type": "array"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "dimensions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Dimensions",
+          "type": "array"
+        },
+        "domain": {
+          "title": "Domain",
+          "type": "string"
+        },
+        "metric_id": {
+          "title": "Metric Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "related_entities": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Related Entities",
+          "type": "array"
+        }
+      },
+      "required": [
+        "metric_id",
+        "name",
+        "domain"
+      ],
+      "title": "MetricReference",
+      "type": "object"
+    },
+    "OrganizationalDomain": {
+      "properties": {
+        "aliases": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Aliases",
+          "type": "array"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "domain_id": {
+          "title": "Domain Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "subdomains": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Subdomains",
+          "type": "array"
+        }
+      },
+      "required": [
+        "domain_id",
+        "name"
+      ],
+      "title": "OrganizationalDomain",
+      "type": "object"
+    },
+    "Sensitivity": {
+      "enum": [
+        "public",
+        "internal",
+        "confidential",
+        "restricted"
+      ],
+      "title": "Sensitivity",
+      "type": "string"
+    },
+    "TenantDefaults": {
+      "properties": {
+        "calendar": {
+          "default": "gregorian",
+          "title": "Calendar",
+          "type": "string"
+        },
+        "currency": {
+          "default": "USD",
+          "title": "Currency",
+          "type": "string"
+        },
+        "fiscal_year_start_month": {
+          "default": 1,
+          "maximum": 12,
+          "minimum": 1,
+          "title": "Fiscal Year Start Month",
+          "type": "integer"
+        },
+        "geography": {
+          "default": "national",
+          "title": "Geography",
+          "type": "string"
+        },
+        "terminology_rules": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Terminology Rules",
+          "type": "object"
+        },
+        "timezone": {
+          "default": "UTC",
+          "title": "Timezone",
+          "type": "string"
+        },
+        "unit_system": {
+          "default": "metric",
+          "title": "Unit System",
+          "type": "string"
+        }
+      },
+      "title": "TenantDefaults",
+      "type": "object"
+    },
+    "VocabularyEntry": {
+      "properties": {
+        "abbreviations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Abbreviations",
+          "type": "array"
+        },
+        "aliases": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Aliases",
+          "type": "array"
+        },
+        "canonical_term": {
+          "title": "Canonical Term",
+          "type": "string"
+        },
+        "concept_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Concept Id"
+        },
+        "concept_type": {
+          "title": "Concept Type",
+          "type": "string"
+        },
+        "domain": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Domain"
+        },
+        "synonyms": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Synonyms",
+          "type": "array"
+        }
+      },
+      "required": [
+        "canonical_term",
+        "concept_type"
+      ],
+      "title": "VocabularyEntry",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "access_policy_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Access Policy Refs",
+      "type": "array"
+    },
+    "allowed_external_context_categories": {
+      "items": {
+        "$ref": "#/$defs/ExternalContextCategory"
+      },
+      "title": "Allowed External Context Categories",
+      "type": "array"
+    },
+    "approved_by": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Approved By"
+    },
+    "business_capabilities": {
+      "items": {
+        "$ref": "#/$defs/DomainConcept"
+      },
+      "title": "Business Capabilities",
+      "type": "array"
+    },
+    "business_entities": {
+      "items": {
+        "$ref": "#/$defs/BusinessEntityDefinition"
+      },
+      "title": "Business Entities",
+      "type": "array"
+    },
+    "business_processes": {
+      "items": {
+        "$ref": "#/$defs/BusinessProcessDefinition"
+      },
+      "title": "Business Processes",
+      "type": "array"
+    },
+    "checksum": {
+      "default": "",
+      "title": "Checksum",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "data_classification_policy_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Data Classification Policy Refs",
+      "type": "array"
+    },
+    "defaults": {
+      "$ref": "#/$defs/TenantDefaults"
+    },
+    "dimension_references": {
+      "items": {
+        "$ref": "#/$defs/DimensionReference"
+      },
+      "title": "Dimension References",
+      "type": "array"
+    },
+    "domain_adjacency_relationships": {
+      "items": {
+        "$ref": "#/$defs/DomainAdjacencyRule"
+      },
+      "title": "Domain Adjacency Relationships",
+      "type": "array"
+    },
+    "domain_pack_id": {
+      "title": "Domain Pack Id",
+      "type": "string"
+    },
+    "effective_from": {
+      "format": "date-time",
+      "title": "Effective From",
+      "type": "string"
+    },
+    "effective_to": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Effective To"
+    },
+    "entity_relationships": {
+      "items": {
+        "$ref": "#/$defs/EntityRelationshipDefinition"
+      },
+      "title": "Entity Relationships",
+      "type": "array"
+    },
+    "excluded_domains": {
+      "items": {
+        "$ref": "#/$defs/ExcludedDomain"
+      },
+      "title": "Excluded Domains",
+      "type": "array"
+    },
+    "industry": {
+      "minLength": 1,
+      "title": "Industry",
+      "type": "string"
+    },
+    "knowledge_sources": {
+      "items": {
+        "$ref": "#/$defs/KnowledgeSourceReference"
+      },
+      "title": "Knowledge Sources",
+      "type": "array"
+    },
+    "metric_references": {
+      "items": {
+        "$ref": "#/$defs/MetricReference"
+      },
+      "title": "Metric References",
+      "type": "array"
+    },
+    "organizational_domains": {
+      "items": {
+        "$ref": "#/$defs/OrganizationalDomain"
+      },
+      "title": "Organizational Domains",
+      "type": "array"
+    },
+    "owner": {
+      "title": "Owner",
+      "type": "string"
+    },
+    "products_and_services": {
+      "items": {
+        "$ref": "#/$defs/DomainConcept"
+      },
+      "title": "Products And Services",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/DomainPackStatus",
+      "default": "draft"
+    },
+    "subindustries": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Subindustries",
+      "type": "array"
+    },
+    "superseded_by": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Superseded By"
+    },
+    "supersedes_domain_pack_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Supersedes Domain Pack Id"
+    },
+    "tenant_id": {
+      "minLength": 1,
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "tenant_name": {
+      "minLength": 1,
+      "title": "Tenant Name",
+      "type": "string"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    },
+    "version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    },
+    "vocabulary": {
+      "items": {
+        "$ref": "#/$defs/VocabularyEntry"
+      },
+      "title": "Vocabulary",
+      "type": "array"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "tenant_name",
+    "industry",
+    "owner"
+  ],
+  "title": "TenantDomainPack",
+  "type": "object"
+}

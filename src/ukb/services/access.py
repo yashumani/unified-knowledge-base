@@ -20,6 +20,9 @@ class PrincipalLike(Protocol):
     @property
     def clearance(self) -> Sensitivity: ...
 
+    @property
+    def tenant_id(self) -> str: ...
+
 
 class AccessDecisionDetail:
     def __init__(

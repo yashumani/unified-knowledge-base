@@ -22,6 +22,7 @@ class Principal:
     subject: str
     roles: frozenset[str]
     clearance: Sensitivity
+    tenant_id: str = "default"
     auth_method: str = "token"
 
     def has_any_role(self, allowed: set[str]) -> bool:
@@ -68,6 +69,11 @@ def principal_from_oidc_claims(claims: Mapping[str, Any], settings: Settings) ->
         raise InvalidTokenError(
             f"OIDC token is missing the configured subject claim {settings.oidc_subject_claim!r}."
         )
+    tenant_id = str(claims.get(settings.oidc_tenant_claim) or settings.default_tenant_id).strip()
+    if not tenant_id:
+        raise InvalidTokenError(
+            f"OIDC token is missing the configured tenant claim {settings.oidc_tenant_claim!r}."
+        )
     roles = {
         *[value.casefold() for value in _claim_values(claims.get(settings.oidc_roles_claim))],
         *[value.casefold() for value in _claim_values(claims.get(settings.oidc_groups_claim))],
@@ -80,6 +86,7 @@ def principal_from_oidc_claims(claims: Mapping[str, Any], settings: Settings) ->
     )
     return Principal(
         subject=subject,
+        tenant_id=tenant_id,
         roles=frozenset(roles),
         clearance=clearance,
         auth_method="oidc",
@@ -120,11 +127,13 @@ def _configured_principals(settings: Settings) -> dict[str, Principal]:
         if not isinstance(token, str) or not token or not isinstance(config, dict):
             continue
         subject = str(config.get("subject") or "").strip()
-        if not subject:
+        tenant_id = str(config.get("tenant_id") or settings.default_tenant_id).strip()
+        if not subject or not tenant_id:
             continue
         roles = frozenset(value.casefold() for value in _claim_values(config.get("roles")))
         principals[token] = Principal(
             subject=subject,
+            tenant_id=tenant_id,
             roles=roles or frozenset({"consumer"}),
             clearance=_parse_clearance(
                 config.get("clearance"),
@@ -143,12 +152,17 @@ def authenticate_token(token: str, settings: Settings) -> Principal:
     if secrets.compare_digest(token, settings.api_token):
         return Principal(
             subject="local-api-token",
+            tenant_id=settings.default_tenant_id,
             roles=frozenset(
                 {
                     "consumer",
                     "submitter",
                     "reviewer",
                     "publisher",
+                    "domain_pack_admin",
+                    "source_admin",
+                    "index_admin",
+                    "auditor",
                     "governance_admin",
                 }
             ),
@@ -182,7 +196,18 @@ def require_principal(
     if not settings.require_auth:
         return Principal(
             subject="anonymous",
-            roles=frozenset({"consumer", "submitter", "reviewer", "publisher"}),
+            tenant_id=settings.default_tenant_id,
+            roles=frozenset(
+                {
+                    "consumer",
+                    "submitter",
+                    "reviewer",
+                    "publisher",
+                    "domain_pack_admin",
+                    "source_admin",
+                    "index_admin",
+                }
+            ),
             clearance=_parse_clearance(None, settings.default_user_clearance),
             auth_method="disabled",
         )
@@ -198,7 +223,7 @@ def require_principal(
 
 
 # Compatibility alias for older adapters/tests. New code should depend on
-# require_principal and use the authenticated subject and roles.
+# require_principal and use the authenticated subject, tenant and roles.
 def require_api_token(
     authorization: str | None = Header(default=None),
     x_api_token: str | None = Header(default=None),
@@ -218,11 +243,14 @@ def require_roles(principal: Principal, allowed: set[str]) -> Principal:
 def warn_on_insecure_configuration(settings: Settings) -> list[str]:
     warnings: list[str] = []
     if not settings.require_auth:
-        warnings.append("Authentication is disabled. Do not run this way with real data.")
+        warnings.append(
+            "Authentication is disabled; unauthenticated access is enabled. "
+            "Do not run this way with real data."
+        )
     elif settings.api_token_is_default and not settings.oidc_enabled:
         warnings.append(
-            "UKB_API_TOKEN is still the development default and OIDC is disabled. "
-            "Set per-user tokens or OIDC before exposing the API beyond localhost."
+            "UKB_API_TOKEN is still the shipped development default and OIDC is disabled. "
+            "Set per-user, tenant-bound tokens or OIDC before exposing the API beyond localhost."
         )
     if settings.oidc_enabled and (
         not settings.oidc_issuer
