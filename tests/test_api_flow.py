@@ -10,14 +10,16 @@ AUTH = {"Authorization": f"Bearer {DEV_TOKEN}"}
 
 @pytest.fixture
 def client():
-    store.sources.clear()
-    store.review_items.clear()
-    store.knowledge_objects.clear()
-    store.audit_events.clear()
+    store.clear()
     return TestClient(app)
 
 
-def _submit(client, title: str, content: str, sensitivity: str = "internal") -> str:
+def _submit(
+    client: TestClient,
+    title: str,
+    content: str,
+    sensitivity: str = "internal",
+) -> str:
     response = client.post(
         "/ingestion/submissions",
         headers=AUTH,
@@ -34,7 +36,30 @@ def _submit(client, title: str, content: str, sensitivity: str = "internal") -> 
     return response.json()["id"]
 
 
-def test_submit_approve_and_compose_context_pack(client):
+def _approve_and_publish(client: TestClient, review_item_id: str) -> dict:
+    approved = client.post(
+        f"/review/items/{review_item_id}/approve",
+        headers=AUTH,
+        json={"comment": "Definition and evidence approved."},
+    )
+    assert approved.status_code == 200, approved.text
+    approved_payload = approved.json()
+    assert approved_payload["status"] == "approved"
+
+    published = client.post(
+        f"/review/items/{review_item_id}/publish",
+        headers=AUTH,
+        json={
+            "comment": "Published for governed retrieval.",
+            "expected_revision": approved_payload["revision"],
+        },
+    )
+    assert published.status_code == 200, published.text
+    assert published.json()["status"] == "published"
+    return published.json()
+
+
+def test_submit_approve_publish_and_compose_context_pack(client):
     review_item_id = _submit(
         client,
         "Incident Resolution Time Definition",
@@ -46,15 +71,9 @@ def test_submit_approve_and_compose_context_pack(client):
     queue = client.get("/review/queue", headers=AUTH).json()
     assert any(item["id"] == review_item_id for item in queue)
 
-    approved = client.post(
-        f"/review/items/{review_item_id}/approve",
-        headers=AUTH,
-        json={"reviewed_by": "domain.reviewer", "comment": "Approved."},
-    )
-    assert approved.status_code == 200
-    assert approved.json()["status"] == "approved"
+    _approve_and_publish(client, review_item_id)
 
-    pack = client.post(
+    pack_response = client.post(
         "/brain/context-pack",
         headers=AUTH,
         json={
@@ -63,14 +82,24 @@ def test_submit_approve_and_compose_context_pack(client):
             "domains": ["support"],
             "mode": "metric_definition",
         },
-    ).json()
+    )
+    assert pack_response.status_code == 200, pack_response.text
+    pack = pack_response.json()
 
     assert pack["access_decision"] == "allowed"
     assert pack["knowledge_objects"]
     assert pack["evidence"]
 
-    audit_types = {event["event_type"] for event in client.get("/governance/audit", headers=AUTH).json()}
-    assert {"submission_created", "review_approved", "context_pack_requested"} <= audit_types
+    audit_types = {
+        event["event_type"]
+        for event in client.get("/governance/audit", headers=AUTH).json()
+    }
+    assert {
+        "submission_created",
+        "review_approved",
+        "knowledge_published",
+        "context_pack_requested",
+    } <= audit_types
 
 
 def test_restricted_object_is_denied_to_default_clearance(client):
@@ -80,13 +109,9 @@ def test_restricted_object_is_denied_to_default_clearance(client):
         "Incident Resolution Time detail is a restricted metric owned by Support Operations.",
         sensitivity="restricted",
     )
-    client.post(
-        f"/review/items/{review_item_id}/approve",
-        headers=AUTH,
-        json={"reviewed_by": "domain.reviewer"},
-    )
+    _approve_and_publish(client, review_item_id)
 
-    pack = client.post(
+    pack_response = client.post(
         "/brain/context-pack",
         headers=AUTH,
         json={
@@ -95,7 +120,9 @@ def test_restricted_object_is_denied_to_default_clearance(client):
             "domains": ["support"],
             "mode": "metric_definition",
         },
-    ).json()
+    )
+    assert pack_response.status_code == 200, pack_response.text
+    pack = pack_response.json()
 
     assert pack["access_decision"] == "denied"
     assert pack["knowledge_objects"] == []
@@ -116,12 +143,8 @@ def test_restricted_object_is_not_addressable_by_id(client):
         "Incident Resolution Time detail is a restricted metric owned by Support Operations.",
         sensitivity="restricted",
     )
-    approved = client.post(
-        f"/review/items/{review_item_id}/approve",
-        headers=AUTH,
-        json={"reviewed_by": "domain.reviewer"},
-    ).json()
-    object_id = approved["candidate_object"]["id"]
+    published = _approve_and_publish(client, review_item_id)
+    object_id = published["candidate_object"]["id"]
 
     response = client.get(f"/brain/objects/{object_id}", headers=AUTH)
     assert response.status_code == 404
