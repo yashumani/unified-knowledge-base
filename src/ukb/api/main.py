@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import cast
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, Response
@@ -9,7 +10,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from ukb.api.ingestion_routes import router as ingestion_router
 from ukb.api.search_routes import router as search_router
-from ukb.api.security import Principal, require_principal, require_roles, warn_on_insecure_configuration
+from ukb.api.security import (
+    Principal,
+    require_principal,
+    require_roles,
+    warn_on_insecure_configuration,
+)
 from ukb.models import (
     AIEnrichmentResult,
     AIProviderHealth,
@@ -64,7 +70,7 @@ app.add_middleware(
 async def request_identity(request: Request, call_next) -> Response:
     request_id = request.headers.get("X-Request-ID") or f"req_{uuid4().hex[:16]}"
     request.state.request_id = request_id
-    response = await call_next(request)
+    response = cast(Response, await call_next(request))
     response.headers["X-Request-ID"] = request_id
     return response
 
@@ -113,7 +119,10 @@ def readiness() -> dict[str, object]:
 def get_ai_provider_status(
     principal: Principal = Depends(require_principal),
 ) -> AIProviderStatus:
-    require_roles(principal, {"consumer", "submitter", "reviewer", "publisher", "governance_admin"})
+    require_roles(
+        principal,
+        {"consumer", "submitter", "reviewer", "publisher", "governance_admin"},
+    )
     return application.ai.status()
 
 
@@ -186,8 +195,13 @@ def get_review_item(
 ) -> ReviewItem:
     require_roles(principal, {"reviewer", "publisher", "governance_admin"})
     item = application.store.review_items.get(review_item_id)
-    if item is None or not application.access_policy.can_access(principal, item.candidate_object):
-        raise HTTPException(status_code=404, detail=f"Review item not found: {review_item_id}")
+    if item is None or not application.access_policy.can_access(
+        principal, item.candidate_object
+    ):
+        raise HTTPException(
+            status_code=404,
+            detail=f"Review item not found: {review_item_id}",
+        )
     return item
 
 
@@ -213,7 +227,10 @@ def get_review_item_ai_enrichment(
 ) -> AIEnrichmentResult:
     item = get_review_item(review_item_id, principal)
     if item.ai_enrichment is None:
-        raise HTTPException(status_code=404, detail="The review item has no AI enrichment.")
+        raise HTTPException(
+            status_code=404,
+            detail="The review item has no AI enrichment.",
+        )
     return item.ai_enrichment
 
 
@@ -238,7 +255,11 @@ def publish_review_item(
 ) -> ReviewItem:
     require_roles(principal, settings.publisher_role_set)
     try:
-        return application.publish_review(review_item_id, decision, principal=principal).item
+        return application.publish_review(
+            review_item_id,
+            decision,
+            principal=principal,
+        ).item
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -256,7 +277,10 @@ def reject_review_item(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@protected_router.post("/review/items/{review_item_id}/request-changes", response_model=ReviewItem)
+@protected_router.post(
+    "/review/items/{review_item_id}/request-changes",
+    response_model=ReviewItem,
+)
 def request_review_changes(
     review_item_id: str,
     decision: ReviewDecision,
@@ -264,7 +288,11 @@ def request_review_changes(
 ) -> ReviewItem:
     require_roles(principal, settings.reviewer_role_set)
     try:
-        return application.request_changes(review_item_id, decision, principal=principal)
+        return application.request_changes(
+            review_item_id,
+            decision,
+            principal=principal,
+        )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -301,7 +329,10 @@ def get_brain_object(
 ) -> KnowledgeObject:
     obj = application.store.knowledge_objects.get(object_id)
     if obj is None or not application.access_policy.can_access(principal, obj):
-        raise HTTPException(status_code=404, detail=f"Knowledge object not found: {object_id}")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Knowledge object not found: {object_id}",
+        )
     return obj
 
 
@@ -332,7 +363,10 @@ def get_context_pack(
 ) -> ContextPack:
     pack = application.store.context_packs.get(context_pack_id)
     if pack is None:
-        raise HTTPException(status_code=404, detail=f"Context pack not found: {context_pack_id}")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Context pack not found: {context_pack_id}",
+        )
     return pack
 
 
