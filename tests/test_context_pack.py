@@ -1,11 +1,16 @@
-from ukb.models import ContextPackRequest, IngestionSubmission, ReviewDecision
+from ukb.models import (
+    ContextPackRequest,
+    IngestionSubmission,
+    PublishDecision,
+    ReviewDecision,
+)
 from ukb.services.compiler import BrainCompiler
 from ukb.services.context_pack import ContextPackService
 from ukb.services.governance import GovernanceService
 from ukb.store import BrainStore
 
 
-def test_approved_submission_appears_in_context_pack():
+def test_published_submission_appears_in_context_pack():
     store = BrainStore()
     compiler = BrainCompiler()
     governance = GovernanceService(store)
@@ -27,7 +32,20 @@ def test_approved_submission_appears_in_context_pack():
     store.add_source(source)
     store.add_review_item(review_item)
 
-    governance.approve(review_item.id, ReviewDecision(reviewed_by="reviewer"))
+    approved = governance.approve(
+        review_item.id,
+        ReviewDecision(
+            reviewed_by="reviewer",
+            expected_revision=review_item.revision,
+        ),
+    )
+    governance.publish(
+        review_item.id,
+        PublishDecision(
+            published_by="publisher",
+            expected_revision=approved.revision,
+        ),
+    )
 
     pack = context_service.build(
         ContextPackRequest(
