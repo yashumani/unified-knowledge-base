@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   apply:
@@ -25,20 +26,20 @@ jobs:
           set -euo pipefail
           cat .agent/slideshow-patch.part-* | base64 --decode | gzip --decompress > /tmp/slideshow.patch
           echo "3d8c91b65a6ca8dc887d9ac7914bd5f42fca5cb2479742db675a72f37bee852d  /tmp/slideshow.patch" | sha256sum --check
-          git apply --check /tmp/slideshow.patch
+          git apply --check --exclude=.github/workflows/ui-check.yml /tmp/slideshow.patch
 
-      - name: Apply production redesign
+      - name: Apply production application files
         shell: bash
         run: |
           set -euo pipefail
-          git apply /tmp/slideshow.patch
+          git apply --exclude=.github/workflows/ui-check.yml /tmp/slideshow.patch
           git rm -f .agent/slideshow-patch.part-*
-          git rm -f .github/workflows/apply-slideshow-redesign.yml
-          git rm -f .github/workflows/export-slideshow-source.yml
+          git rm -f .agent/apply-trigger
           git add -A
           git diff --cached --check
 
-      - name: Commit and push production files
+      - name: Commit and push application files
+        id: publish
         shell: bash
         run: |
           set -euo pipefail
@@ -46,3 +47,14 @@ jobs:
           git config user.email "51677943+yashumani@users.noreply.github.com"
           git commit -m "Add cinematic slideshow and focused studio"
           git push origin HEAD:agent/slideshow-studio-redesign
+
+      - name: Report failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh issue create \
+            --repo "${{ github.repository }}" \
+            --title "Slideshow patch application failed in run ${{ github.run_id }}" \
+            --body "The temporary patch workflow failed. Inspect run ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} for the exact failing step."
