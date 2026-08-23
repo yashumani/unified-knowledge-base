@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import AdvancedApp from "./App";
-import { GuidedDemo } from "./components/GuidedDemo";
+import AdvancedApp from "./AdvancedApp";
+import { BrandReveal } from "./components/BrandReveal";
+import { GuidedDemoV2 } from "./components/GuidedDemoV2";
 import { WorkspaceApp } from "./components/workspace/WorkspaceApp";
 
 export type Experience = "workspace" | "guided" | "advanced";
@@ -25,11 +26,8 @@ export default function RootApp() {
   function navigate(next: Experience) {
     const url = new URL(window.location.href);
     url.searchParams.delete("page");
-    if (next === "advanced" || next === "guided") {
-      url.searchParams.set("view", next);
-    } else {
-      url.searchParams.delete("view");
-    }
+    if (next === "advanced" || next === "guided") url.searchParams.set("view", next);
+    else url.searchParams.delete("view");
     url.hash = "";
     window.history.pushState({}, "", url);
     setExperience(next);
@@ -40,13 +38,7 @@ export default function RootApp() {
     return (
       <div className="advanced-experience-shell">
         <AdvancedApp />
-        <button
-          type="button"
-          className="experience-switcher"
-          onClick={() => navigate("workspace")}
-        >
-          ← Dashboard
-        </button>
+        <button type="button" className="experience-switcher" onClick={() => navigate("workspace")}>← Dashboard</button>
       </div>
     );
   }
@@ -54,22 +46,16 @@ export default function RootApp() {
   if (experience === "guided") {
     return (
       <div className="guided-experience-shell">
-        <GuidedDemo onOpenAdvanced={() => navigate("advanced")} />
-        <button
-          type="button"
-          className="experience-switcher"
-          onClick={() => navigate("workspace")}
-        >
-          ← Dashboard
-        </button>
+        <GuidedDemoV2 onOpenAdvanced={() => navigate("advanced")} />
+        <button type="button" className="experience-switcher" onClick={() => navigate("workspace")}>← Dashboard</button>
       </div>
     );
   }
 
   return (
-    <WorkspaceApp
-      onOpenAdvanced={() => navigate("advanced")}
-      onOpenGuided={() => navigate("guided")}
-    />
+    <>
+      <BrandReveal />
+      <WorkspaceApp onOpenAdvanced={() => navigate("advanced")} onOpenGuided={() => navigate("guided")} />
+    </>
   );
 }
