@@ -26,20 +26,39 @@ jobs:
           set -euo pipefail
           cat .agent/slideshow-patch.part-* | base64 --decode | gzip --decompress > /tmp/slideshow.patch
           echo "3d8c91b65a6ca8dc887d9ac7914bd5f42fca5cb2479742db675a72f37bee852d  /tmp/slideshow.patch" | sha256sum --check
-          git apply --check --exclude=.github/workflows/ui-check.yml /tmp/slideshow.patch
 
-      - name: Apply production application files
+      - name: Build final files from clean main
         shell: bash
         run: |
           set -euo pipefail
-          git apply --exclude=.github/workflows/ui-check.yml /tmp/slideshow.patch
+          git worktree add --detach /tmp/slideshow-base origin/main
+          git -C /tmp/slideshow-base apply --check --exclude=.github/workflows/ui-check.yml /tmp/slideshow.patch
+          git -C /tmp/slideshow-base apply --exclude=.github/workflows/ui-check.yml /tmp/slideshow.patch
+
+          files=(
+            apps/web/index.html
+            apps/web/public/ai-brain-mark.svg
+            apps/web/src/RootApp.tsx
+            apps/web/src/main.tsx
+            apps/web/src/components/BrandReveal.tsx
+            apps/web/src/components/workspace/WorkspaceApp.tsx
+            apps/web/src/components/workspace/DashboardHome.tsx
+            apps/web/src/components/workspace/IngestionStudio.tsx
+            apps/web/src/styles/brand-reveal.css
+            apps/web/src/styles/workspace.css
+          )
+
+          for file in "${files[@]}"; do
+            mkdir -p "$(dirname "$file")"
+            cp "/tmp/slideshow-base/$file" "$file"
+          done
+
           git rm -f .agent/slideshow-patch.part-*
           git rm -f .agent/apply-trigger
           git add -A
           git diff --cached --check
 
       - name: Commit and push application files
-        id: publish
         shell: bash
         run: |
           set -euo pipefail
