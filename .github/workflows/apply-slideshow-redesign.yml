@@ -1,0 +1,48 @@
+name: Apply slideshow redesign
+
+on:
+  push:
+    branches:
+      - agent/slideshow-studio-redesign
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out redesign branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/slideshow-studio-redesign
+          fetch-depth: 0
+
+      - name: Reconstruct and verify patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .agent/slideshow-patch.part-* | base64 --decode | gzip --decompress > /tmp/slideshow.patch
+          echo "3d8c91b65a6ca8dc887d9ac7914bd5f42fca5cb2479742db675a72f37bee852d  /tmp/slideshow.patch" | sha256sum --check
+          git apply --check /tmp/slideshow.patch
+
+      - name: Apply production redesign
+        shell: bash
+        run: |
+          set -euo pipefail
+          git apply /tmp/slideshow.patch
+          git rm -f .agent/slideshow-patch.part-*
+          git rm -f .github/workflows/apply-slideshow-redesign.yml
+          git rm -f .github/workflows/export-slideshow-source.yml
+          git add -A
+          git diff --cached --check
+
+      - name: Commit and push production files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "AI Brain Design Agent"
+          git config user.email "51677943+yashumani@users.noreply.github.com"
+          git commit -m "Add cinematic slideshow and focused studio"
+          git push origin HEAD:agent/slideshow-studio-redesign
