@@ -110,7 +110,7 @@ Actions
 Inputs:
 
 ```text
-image_tag          v0.3.0 or an immutable commit SHA
+image_tag          v0.4.0 or an immutable commit SHA
 deploy_path        /opt/unified-knowledge-base-staging
 expected_ui_origin https://yashumani.github.io
 bootstrap_models   pull configured Ollama models
