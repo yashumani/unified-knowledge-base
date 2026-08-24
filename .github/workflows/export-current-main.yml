@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   export:
@@ -23,3 +24,10 @@ jobs:
           name: ukb-current-main-source
           path: /tmp/ukb-current-main.tar.gz
           retention-days: 1
+      - name: Report artifact run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create --repo "${{ github.repository }}" \
+            --title "Current main export ready in run ${{ github.run_id }}" \
+            --body "Download artifact **ukb-current-main-source** from run ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}."
