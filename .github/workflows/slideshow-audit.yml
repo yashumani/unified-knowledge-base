@@ -10,6 +10,8 @@ on:
 
 permissions:
   contents: read
+  issues: write
+  pull-requests: write
 
 jobs:
   audit:
@@ -50,68 +52,139 @@ jobs:
           cat /tmp/ukb-preview.log
           exit 1
 
-      - name: Capture workspace screenshots and geometry
+      - name: Exercise intro, slideshow, and focused studio
         run: |
           mkdir -p slideshow-audit
           node <<'NODE'
           const fs = require('fs');
           const { chromium } = require('playwright');
           const base = 'http://127.0.0.1:4173/unified-knowledge-base/';
+          const introKey = 'ai-brain-brand-reveal-v1';
           const pages = ['home','ingest','enrich','review','publish','compose','memory','activity','help'];
           const viewports = [
             ['desktop', { width: 1440, height: 1000 }],
-            ['laptop', { width: 1280, height: 720 }],
-            ['mobile', { width: 390, height: 844 }]
+            ['laptop', { width: 1366, height: 768 }],
+            ['tablet', { width: 820, height: 1180 }],
+            ['mobile', { width: 390, height: 844 }],
+            ['mobile-small', { width: 320, height: 568 }]
           ];
+
+          async function prepare(page, label, skipIntro = true) {
+            const errors = [];
+            page.on('pageerror', error => errors.push(`${label}: ${error.message}`));
+            if (skipIntro) {
+              await page.addInitScript(key => sessionStorage.setItem(key, 'seen'), introKey);
+            }
+            await page.route('http://localhost:8000/**', route => route.abort());
+            await page.route('http://127.0.0.1:8000/**', route => route.abort());
+            return errors;
+          }
+
+          async function inspect(page, label, expectedPage) {
+            const result = await page.evaluate(expected => {
+              const shell = document.querySelector('.workspace-shell');
+              const activeScenes = [...document.querySelectorAll('.workspace-scene')]
+                .filter(element => {
+                  const rect = element.getBoundingClientRect();
+                  const style = getComputedStyle(element);
+                  return style.display !== 'none' && rect.width > 0 && rect.height > 0;
+                });
+              return {
+                viewport: { width: innerWidth, height: innerHeight },
+                document: {
+                  width: document.documentElement.scrollWidth,
+                  height: document.documentElement.scrollHeight
+                },
+                body: {
+                  width: document.body.scrollWidth,
+                  height: document.body.scrollHeight,
+                  overflow: getComputedStyle(document.body).overflow
+                },
+                scrollY,
+                shellPosition: shell ? getComputedStyle(shell).position : null,
+                currentPage: activeScenes[0]?.getAttribute('data-workspace-page') ?? null,
+                activeScenes: activeScenes.length,
+                workflowButtons: document.querySelectorAll('[aria-label="AI brain workflow"] button').length,
+                pageButtons: document.querySelectorAll('[aria-label="Workspace pages"] button').length,
+                expected
+              };
+            }, expectedPage);
+
+            const failures = [];
+            if (result.shellPosition !== 'fixed') failures.push('workspace shell is not fixed');
+            if (result.scrollY !== 0) failures.push(`window scrolled to ${result.scrollY}`);
+            if (result.document.height > result.viewport.height + 2) failures.push('document is taller than viewport');
+            if (result.body.height > result.viewport.height + 2) failures.push('body is taller than viewport');
+            if (result.document.width > result.viewport.width + 2) failures.push('horizontal document overflow');
+            if (result.body.width > result.viewport.width + 2) failures.push('horizontal body overflow');
+            if (result.activeScenes !== 1) failures.push(`expected one active scene, found ${result.activeScenes}`);
+            if (result.currentPage !== expectedPage) failures.push(`expected page ${expectedPage}, found ${result.currentPage}`);
+            if (result.workflowButtons !== 5) failures.push(`expected five workflow buttons, found ${result.workflowButtons}`);
+            if (result.pageButtons !== 9) failures.push(`expected nine page buttons, found ${result.pageButtons}`);
+            if (failures.length) throw new Error(`${label}: ${failures.join('; ')}\n${JSON.stringify(result, null, 2)}`);
+            return result;
+          }
 
           (async () => {
             const browser = await chromium.launch({ headless: true });
             const report = [];
+
+            const intro = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+            const introErrors = await prepare(intro, 'brand-reveal', false);
+            await intro.goto(base, { waitUntil: 'domcontentloaded' });
+            const skip = intro.getByRole('button', { name: /Skip intro/i });
+            await skip.waitFor();
+            await intro.waitForTimeout(950);
+            await intro.screenshot({ path: 'slideshow-audit/brand-reveal.png', fullPage: false });
+            await skip.click();
+            await intro.getByRole('heading', { name: /Build, govern and recall AI memory/i }).waitFor();
+            if (introErrors.length) throw new Error(introErrors.join('\n'));
+            await intro.close();
+
             for (const [label, viewport] of viewports) {
               for (const pageName of pages) {
                 const page = await browser.newPage({ viewport });
-                const errors = [];
-                page.on('pageerror', error => errors.push(error.message));
-                await page.route('http://localhost:8000/**', route => route.abort());
-                await page.route('http://127.0.0.1:8000/**', route => route.abort());
+                const errors = await prepare(page, `${label}-${pageName}`);
                 const url = pageName === 'home' ? base : `${base}?page=${pageName}`;
                 await page.goto(url, { waitUntil: 'domcontentloaded' });
-                await page.waitForTimeout(1800);
-                const geometry = await page.evaluate(() => {
-                  const shell = document.querySelector('.workspace-shell');
-                  const main = document.querySelector('.workspace-main');
-                  const body = document.querySelector('.workspace-slide-body');
-                  const studio = document.querySelector('.ingestion-studio');
-                  const panels = [...document.querySelectorAll('.ingestion-methods,.ingestion-config,.ingestion-preview')];
-                  const rect = element => element ? (() => {
-                    const r = element.getBoundingClientRect();
-                    return { x: Math.round(r.x), y: Math.round(r.y), width: Math.round(r.width), height: Math.round(r.height), scrollHeight: element.scrollHeight, clientHeight: element.clientHeight };
-                  })() : null;
-                  return {
-                    viewport: { width: innerWidth, height: innerHeight },
-                    document: { width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight },
-                    bodyScroll: { height: document.body.scrollHeight, clientHeight: document.body.clientHeight, overflow: getComputedStyle(document.body).overflow },
-                    shell: rect(shell),
-                    main: rect(main),
-                    slideBody: rect(body),
-                    studio: rect(studio),
-                    studioPanels: panels.map(rect),
-                    visibleButtons: [...document.querySelectorAll('button')].filter(el => {
-                      const r = el.getBoundingClientRect();
-                      return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < innerHeight;
-                    }).length
-                  };
-                });
-                report.push({ label, page: pageName, url, errors, geometry });
+                await page.waitForTimeout(850);
+                const geometry = await inspect(page, `${label}-${pageName}`, pageName);
+                if (errors.length) throw new Error(errors.join('\n'));
+                report.push({ label, page: pageName, geometry });
                 await page.screenshot({ path: `slideshow-audit/${label}-${pageName}.png`, fullPage: false });
-                if (pageName === 'ingest') {
-                  await page.screenshot({ path: `slideshow-audit/${label}-${pageName}-full.png`, fullPage: true });
-                }
                 await page.close();
               }
             }
-            await browser.close();
+
+            const keyboard = await browser.newPage({ viewport: { width: 1366, height: 768 } });
+            await prepare(keyboard, 'keyboard');
+            await keyboard.goto(base, { waitUntil: 'domcontentloaded' });
+            await keyboard.waitForTimeout(600);
+            await keyboard.keyboard.press('ArrowRight');
+            await keyboard.locator('[data-workspace-page="ingest"]').waitFor();
+            await keyboard.keyboard.press('ArrowLeft');
+            await keyboard.locator('[data-workspace-page="home"]').waitFor();
+            await keyboard.close();
+
+            const studio = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+            await prepare(studio, 'studio-e2e');
+            await studio.goto(`${base}?page=ingest`, { waitUntil: 'domcontentloaded' });
+            await studio.waitForTimeout(650);
+            await studio.getByRole('button', { name: /Paste context/i }).click();
+            await studio.getByRole('button', { name: 'Continue to governance →' }).click();
+            await studio.getByRole('heading', { name: 'Governance', exact: true }).waitFor();
+            await studio.getByRole('button', { name: 'Preview and validate source' }).click();
+            await studio.getByText('Source manifest', { exact: true }).waitFor();
+            await studio.getByRole('button', { name: 'Continue to create →' }).click();
+            await studio.getByRole('heading', { name: 'Create', exact: true }).waitFor();
+            await studio.getByRole('button', { name: 'Create governed review batch' }).click();
+            await studio.getByText('Batch sent to human review', { exact: true }).waitFor();
+            await studio.screenshot({ path: 'slideshow-audit/studio-complete.png', fullPage: false });
+            await inspect(studio, 'studio-e2e', 'ingest');
+            await studio.close();
+
             fs.writeFileSync('slideshow-audit/geometry.json', JSON.stringify(report, null, 2));
+            await browser.close();
           })().catch(error => {
             console.error(error);
             process.exit(1);
@@ -119,6 +192,7 @@ jobs:
           NODE
 
       - name: Upload audit artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ukb-slideshow-audit
@@ -127,3 +201,16 @@ jobs:
             slideshow-audit
           if-no-files-found: error
           retention-days: 7
+
+      - name: Report audit result on pull request
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULT: ${{ job.status }}
+        shell: bash
+        run: |
+          if [ "$RESULT" = "success" ]; then
+            gh pr comment 21 --repo "${{ github.repository }}" --body "✅ Slideshow audit passed for commit \`${{ github.sha }}\`. The production build rendered all nine scenes at desktop, laptop, tablet, 390px, and 320px widths; the document remained viewport-locked; keyboard navigation and the Source → Governance → Validate → Create studio flow completed successfully. Audit artifact: **ukb-slideshow-audit**."
+          else
+            gh pr comment 21 --repo "${{ github.repository }}" --body "❌ Slideshow audit failed for commit \`${{ github.sha }}\`. Inspect workflow run ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} and the **ukb-slideshow-audit** artifact."
+          fi
