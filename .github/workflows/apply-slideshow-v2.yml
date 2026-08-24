@@ -1,0 +1,59 @@
+name: Apply current-main slideshow redesign
+
+on:
+  push:
+    branches:
+      - agent/slideshow-studio-redesign-v2
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out current-main redesign branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/slideshow-studio-redesign-v2
+          fetch-depth: 0
+
+      - name: Reconstruct and verify production patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .agent/slideshow-v2-part-* | base64 --decode | gzip --decompress > /tmp/slideshow-v2.patch
+          echo "10c29d8e5dc1a1fd41d33517103dfb4a0b422aa68ca2e215f3b13531dc986060  /tmp/slideshow-v2.patch" | sha256sum --check
+          git apply --check /tmp/slideshow-v2.patch
+
+      - name: Apply slideshow and studio redesign
+        shell: bash
+        run: |
+          set -euo pipefail
+          git apply /tmp/slideshow-v2.patch
+          git rm -f .agent/slideshow-v2-part-*
+          git rm -f .agent/apply-v2-trigger || true
+          git add -A
+          git diff --cached --check
+
+      - name: Commit and push production files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "AI Brain Design Agent"
+          git config user.email "51677943+yashumani@users.noreply.github.com"
+          git commit -m "Add cinematic slideshow and focused studio"
+          git push origin HEAD:agent/slideshow-studio-redesign-v2
+
+      - name: Report application failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh issue create \
+            --repo "${{ github.repository }}" \
+            --title "Current-main slideshow application failed in run ${{ github.run_id }}" \
+            --body "Inspect ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} for the exact failing step."
