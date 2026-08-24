@@ -1,0 +1,25 @@
+name: Export current main source
+
+on:
+  push:
+    branches:
+      - agent/slideshow-main-export
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current main snapshot
+        uses: actions/checkout@v4
+      - name: Create source archive
+        run: tar --exclude=.git --exclude=node_modules -czf /tmp/ukb-current-main.tar.gz .
+      - name: Upload current main source
+        uses: actions/upload-artifact@v4
+        with:
+          name: ukb-current-main-source
+          path: /tmp/ukb-current-main.tar.gz
+          retention-days: 1
