@@ -10,6 +10,7 @@ import "./styles/editorial.css";
 import "./styles/editorial-fixes.css";
 import "./styles/guided-demo.css";
 import "./styles/workspace.css";
+import "./styles/brand-reveal.css";
 import "./styles/architecture-hardening.css";
 
 createRoot(document.getElementById("root") as HTMLElement).render(
