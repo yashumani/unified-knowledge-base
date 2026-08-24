@@ -1,6 +1,6 @@
 # Documentation Index
 
-This repository is being shaped as a reusable platform for building governed AI Brains. The documentation is organized around seven jobs: understand the architecture, run the demo, configure local Ollama enrichment, host with GitHub as the control plane, keep examples workplace-safe, extend the platform, and prepare for enterprise deployment.
+This repository is a reusable platform for building governed AI Brains. The documentation is organized around architecture, local AI, deployment, governance, Talk2Data integration, demonstrations, and production operations.
 
 ## Start here
 
@@ -8,25 +8,39 @@ This repository is being shaped as a reusable platform for building governed AI 
 |---|---|
 | `README.md` | Repository overview, quick start, and maturity boundary. |
 | `docs/ARCHITECTURE.md` | System architecture from sources to context packs. |
+| `docs/AI_BRAIN_ARCHITECTURE_V2.md` | Durable evidence, governance, retrieval, identity, jobs, and recovery architecture. |
 | `docs/BRAIN_STARTER_KIT.md` | How users create their own domain brain packages. |
-| `docs/PLUGIN_ARCHITECTURE.md` | How connectors, parsers, extractors, validators, retrievers, policy plugins, and exporters fit together. |
-| `docs/OFFLINE_FIRST_AI.md` | How the platform works with no hosted AI, local AI, hosted AI, or hybrid AI. |
-| `docs/API_VS_MCP.md` | Why the REST API is the platform backend and MCP is the LLM/agent adapter. |
+| `docs/PLUGIN_ARCHITECTURE.md` | How connectors, parsers, extractors, validators, retrievers, policies, and exporters fit together. |
+| `docs/OFFLINE_FIRST_AI.md` | Deterministic, local-AI, hosted-AI, and hybrid operation. |
+| `docs/API_VS_MCP.md` | Why REST is the platform backend and MCP is an adapter. |
+
+## Talk2Data governed memory
+
+| Document | Purpose |
+|---|---|
+| `docs/TALK2DATA_INTEGRATION.md` | Consumer integration flow, domain classification, authorized memory, and Context Coverage Receipts. |
+| `docs/TALK2DATA_DOMAIN_PACK.md` | Versioned Tenant Domain Pack and telecommunications example. |
+| `docs/TALK2DATA_MEMORY_CONTRACT.md` | Typed temporal memory, canonical episodes, provenance, and supersession. |
+| `docs/TALK2DATA_GRAPHITI_ADAPTER.md` | Replaceable Graphiti boundary and canonical-storage rules. |
+| `docs/TALK2DATA_OBSIDIAN.md` | Obsidian frontmatter validation and governed promotion. |
+| `docs/openapi-talk2data.json` | Focused typed API contract used by Talk2Data consumers. |
 
 ## AI enrichment
 
 | Document | Purpose |
 |---|---|
-| `docs/OLLAMA_LOCAL_LLM.md` | Local Ollama setup, Docker Compose instructions, model pulls, provider config, and testing commands for UKB. |
-| `docs/LLM_FEATURE_ARCHITECTURE.md` | Architecture, provider modes, API endpoints, UI behavior, and governance boundaries for LLM-powered enrichment. |
+| `docs/OLLAMA_LOCAL_LLM.md` | Local Ollama setup, Docker Compose instructions, model pulls, and testing. |
+| `docs/LLM_FEATURE_ARCHITECTURE.md` | Provider modes, APIs, UI behavior, and governance boundaries. |
 
 ## GitHub hosting and deployment
 
 | Document | Purpose |
 |---|---|
-| `docs/GITHUB_HOSTING_MODEL.md` | GitHub Pages, GHCR, GitHub Actions, self-hosted runner, production Compose, and runtime-boundary model. |
+| `docs/GITHUB_HOSTING_MODEL.md` | GitHub Pages, GHCR, Actions, self-hosted runners, and runtime boundaries. |
 | `docs/GITHUB_PAGES_DEPLOYMENT.md` | Static React UI deployment on GitHub Pages. |
+| `docs/PRIVATE_RUNTIME_PILOT.md` | Fail-closed staging configuration, self-hosted deployment, acceptance probes, recovery tests, and go/no-go criteria. |
 | `docs/GITLAB_DEPLOYMENT.md` | GitLab/Linux/Docker deployment model for private enterprise environments. |
+| `deploy/staging.env.example` | Secret-free private-pilot environment template. |
 
 ## Workplace-safe examples
 
@@ -34,62 +48,66 @@ This repository is being shaped as a reusable platform for building governed AI 
 |---|---|
 | `docs/WORKPLACE_SAFE_EXAMPLES.md` | Public-repo policy for synthetic examples and forbidden workplace-derived context. |
 | `docs/EXAMPLE_DOMAIN.md` | Approved neutral support-operations demo domain. |
+| `examples/talk2data-telecom/` | Synthetic telecommunications Domain Pack and governed-memory examples. |
 
 ## Demo materials
 
 | Asset | Purpose |
 |---|---|
 | `docs/DEMO_GUIDE.md` | Live demo script, commands, and fallback flow. |
-| `docs/UI_CONSOLE_END_TO_END.md` | Click-by-click advanced-console walkthrough from context submission through approved context pack. |
-| `docs/UI_GUIDED_EXPERIENCE.md` | UX assessment and the default three-step Source → Approve → Ask experience. |
-| `docs/ARCHITECTURE_STORYBOARD.md` | Narrative map for explaining the platform in a meeting. |
-| `docs/demo/demo-slides.html` | Offline browser-based slide deck for repository use. |
+| `docs/UI_CONSOLE_END_TO_END.md` | Advanced-console walkthrough from source submission through context pack. |
+| `docs/UI_GUIDED_EXPERIENCE.md` | Guided Source → Approve → Ask experience. |
+| `docs/ARCHITECTURE_STORYBOARD.md` | Narrative map for explaining the platform. |
+| `docs/demo/demo-slides.html` | Offline browser-based slide deck. |
 | `docs/demo/slides-outline.md` | Slide-by-slide speaker guide. |
-| `docs/demo/animated-diagrams.html` | Offline animated diagrams for browser-based walkthroughs. |
+| `docs/demo/animated-diagrams.html` | Offline animated diagrams. |
 | `docs/demo/README.md` | How to use the demo assets. |
-
-A PowerPoint presenter export can be generated outside the repository when needed. The committed, reviewable slide deck is the offline HTML deck so the repository remains text-first and Git-friendly.
 
 ## Diagrams
 
 | Diagram | Purpose |
 |---|---|
-| `docs/diagrams/brain-runtime.mmd` | Mermaid diagram for the runtime architecture. |
-| `docs/diagrams/plugin-lifecycle.mmd` | Mermaid diagram for plugin-to-review lifecycle. |
-| `docs/diagrams/offline-first-modes.mmd` | Mermaid diagram for deterministic, local AI, hosted AI, and hybrid operation. |
+| `docs/diagrams/brain-runtime.mmd` | Runtime architecture. |
+| `docs/diagrams/plugin-lifecycle.mmd` | Plugin-to-review lifecycle. |
+| `docs/diagrams/offline-first-modes.mmd` | Deterministic, local-AI, hosted-AI, and hybrid modes. |
 
 ## UI and frontend
 
 | Document | Purpose |
 |---|---|
-| `docs/REACT_UI.md` | React console architecture, graph view boundary, local run commands, and next UI iterations. |
-| `docs/UI_GUIDED_EXPERIENCE.md` | Guided-versus-advanced information architecture, measured UX findings, routes, and validation contract. |
-| `docs/UI_EDITORIAL_REDESIGN.md` | Depo-inspired editorial one-page design system, originality boundary, preserved accessibility, and validation plan. |
-| `docs/UI_FRAMER_REDESIGN.md` | Earlier Framer-inspired dashboard direction and the patterns it introduced. |
-| `docs/UI_CONSOLE_END_TO_END.md` | Full advanced workflow for submit, review, approve, graph inspection, and context-pack generation. |
+| `docs/REACT_UI.md` | React console architecture, routes, and graph-view boundary. |
+| `docs/UI_GUIDED_EXPERIENCE.md` | Guided-versus-advanced information architecture. |
+| `docs/UI_EDITORIAL_REDESIGN.md` | Editorial design system and originality boundary. |
+| `docs/UI_CONSOLE_END_TO_END.md` | Full advanced workflow. |
 
 ## Governance and security
 
 | Document | Purpose |
 |---|---|
-| `docs/GOVERNANCE_WORKFLOW.md` | Human review lifecycle and review states. |
-| `docs/SECURITY_MODEL.md` | Access control and retrieval-time security principles. |
-| `SECURITY.md` | Public repository safety boundary and production hardening expectations. |
+| `docs/GOVERNANCE_WORKFLOW.md` | Review, approval, publication, revision, and audit lifecycle. |
+| `docs/SECURITY_MODEL.md` | Identity, tenant isolation, authorization, and retrieval-time filtering. |
+| `SECURITY.md` | Public-repository safety boundary and production hardening expectations. |
 
 ## Product direction
 
 | Document | Purpose |
 |---|---|
-| `docs/PRODUCT_REQUIREMENTS.md` | MVP product requirements. |
-| `docs/ROADMAP.md` | Phased roadmap. |
-| `docs/CONTEXT_PACK.md` | Context pack contract. |
+| `docs/PRODUCT_REQUIREMENTS.md` | Product requirements and acceptance boundary. |
+| `docs/ROADMAP.md` | Current release state and remaining milestones. |
+| `docs/CONTEXT_PACK.md` | Context-pack contract. |
 
 ## Documentation principle
 
-Documentation should preserve the product boundary:
+Documentation must preserve the product boundary:
 
 ```text
-Source context -> candidate knowledge -> human review -> approved brain -> context pack
+Source evidence
+→ candidate knowledge
+→ advisory AI enrichment
+→ human approval
+→ explicit publication
+→ authorized retrieval
+→ governed context pack
 ```
 
-Do not describe AI-generated candidates as official knowledge until the human review step has approved and published them.
+AI-generated candidates are not official knowledge until the governed human publication transition succeeds.
