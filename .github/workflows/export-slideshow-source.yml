@@ -20,6 +20,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Create source archive
         run: |
+          # Export the exact branch head used by the slideshow release.
           tar --exclude=.git --exclude=node_modules --exclude='*.tar.gz' -czf /tmp/ukb-slideshow-source.tar.gz .
       - name: Upload source archive
         uses: actions/upload-artifact@v4
