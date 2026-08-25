@@ -12,6 +12,7 @@ import "./styles/guided-demo.css";
 import "./styles/workspace.css";
 import "./styles/brand-reveal.css";
 import "./styles/architecture-hardening.css";
+import "./styles/knowledge-operations.css";
 
 createRoot(document.getElementById("root") as HTMLElement).render(
   <StrictMode><RootApp /></StrictMode>
