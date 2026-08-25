@@ -21,48 +21,43 @@ jobs:
           ref: agent/slideshow-studio-live
           fetch-depth: 0
 
-      - name: Fetch the completed slideshow design branch
+      - name: Fetch the validated slideshow design branch
         run: git fetch origin agent/slideshow-studio-redesign:refs/remotes/origin/agent/slideshow-studio-redesign
 
-      - name: Reconcile slideshow UI with the latest production runtime
+      - name: Apply the validated UI layer
         shell: bash
         env:
-          MERGE_BASE_SHA: 41c51b16a624ea712824db1cf3aade61b3a02314
           DESIGN_REF: origin/agent/slideshow-studio-redesign
         run: |
           set -euo pipefail
+          files=(
+            apps/web/index.html
+            apps/web/src/RootApp.tsx
+            apps/web/src/main.tsx
+            apps/web/src/components/workspace/WorkspaceApp.tsx
+            apps/web/src/components/workspace/DashboardHome.tsx
+            apps/web/src/components/workspace/IngestionStudio.tsx
+            apps/web/src/styles/workspace.css
+            apps/web/public/ai-brain-mark.svg
+            apps/web/src/components/BrandReveal.tsx
+            apps/web/src/styles/brand-reveal.css
+          )
 
-          merge_file() {
-            local path="$1"
-            local workdir
-            workdir="$(mktemp -d)"
-            git show "HEAD:${path}" > "${workdir}/current"
-            git show "${MERGE_BASE_SHA}:${path}" > "${workdir}/base"
-            git show "${DESIGN_REF}:${path}" > "${workdir}/design"
-            if ! git merge-file -p "${workdir}/current" "${workdir}/base" "${workdir}/design" > "${path}"; then
-              echo "Three-way merge conflict in ${path}" >&2
-              exit 1
-            fi
-            rm -rf "${workdir}"
-          }
-
-          merge_file apps/web/index.html
-          merge_file apps/web/src/RootApp.tsx
-          merge_file apps/web/src/main.tsx
-          merge_file apps/web/src/components/workspace/WorkspaceApp.tsx
-          merge_file apps/web/src/components/workspace/DashboardHome.tsx
-          merge_file apps/web/src/components/workspace/IngestionStudio.tsx
-          merge_file apps/web/src/styles/workspace.css
-
-          mkdir -p apps/web/public apps/web/src/components apps/web/src/styles
-          git show "${DESIGN_REF}:apps/web/public/ai-brain-mark.svg" > apps/web/public/ai-brain-mark.svg
-          git show "${DESIGN_REF}:apps/web/src/components/BrandReveal.tsx" > apps/web/src/components/BrandReveal.tsx
-          git show "${DESIGN_REF}:apps/web/src/styles/brand-reveal.css" > apps/web/src/styles/brand-reveal.css
+          for path in "${files[@]}"; do
+            mkdir -p "$(dirname "${path}")"
+            git show "${DESIGN_REF}:${path}" > "${path}"
+          done
 
           if grep -R -n -E '^(<<<<<<<|=======|>>>>>>>)' apps/web; then
             echo "Merge markers remain in the UI source." >&2
             exit 1
           fi
+
+          grep -q 'approvedItems={brain.approvedItems}' apps/web/src/components/workspace/WorkspaceApp.tsx
+          grep -q 'onPublish={brain.publishReview}' apps/web/src/components/workspace/WorkspaceApp.tsx
+          grep -q 'onRevise={brain.reviseReview}' apps/web/src/components/workspace/WorkspaceApp.tsx
+          grep -q 'getIngestionCapabilities' apps/web/src/components/workspace/IngestionStudio.tsx
+          grep -q 'BrandReveal' apps/web/src/RootApp.tsx
 
       - name: Set up Node
         uses: actions/setup-node@v4
