@@ -2,15 +2,17 @@ import { useEffect, useState } from "react";
 import AdvancedApp from "./AdvancedApp";
 import { BrandReveal } from "./components/BrandReveal";
 import { GuidedDemoV2 } from "./components/GuidedDemoV2";
+import { KnowledgeOperations } from "./components/KnowledgeOperations";
 import { WorkspaceApp } from "./components/workspace/WorkspaceApp";
 
-export type Experience = "workspace" | "guided" | "advanced";
+export type Experience = "workspace" | "guided" | "advanced" | "operations";
 
 function experienceFromLocation(): Experience {
   if (typeof window === "undefined") return "workspace";
   const view = new URLSearchParams(window.location.search).get("view");
   if (view === "advanced") return "advanced";
   if (view === "guided") return "guided";
+  if (view === "operations") return "operations";
   return "workspace";
 }
 
@@ -26,8 +28,11 @@ export default function RootApp() {
   function navigate(next: Experience) {
     const url = new URL(window.location.href);
     url.searchParams.delete("page");
-    if (next === "advanced" || next === "guided") url.searchParams.set("view", next);
-    else url.searchParams.delete("view");
+    if (next === "advanced" || next === "guided" || next === "operations") {
+      url.searchParams.set("view", next);
+    } else {
+      url.searchParams.delete("view");
+    }
     url.hash = "";
     window.history.pushState({}, "", url);
     setExperience(next);
@@ -50,6 +55,10 @@ export default function RootApp() {
         <button type="button" className="experience-switcher" onClick={() => navigate("workspace")}>← Dashboard</button>
       </div>
     );
+  }
+
+  if (experience === "operations") {
+    return <KnowledgeOperations onBack={() => navigate("workspace")} />;
   }
 
   return (
