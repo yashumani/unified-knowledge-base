@@ -102,25 +102,31 @@ class MemorySearchIndex:
         token_counts = Counter(content_tokens)
         reasons: list[str] = []
         score = 0.0
+        matched = False
 
         if normalized_query in {document.object_id.casefold(), document.id.casefold()}:
             score += 120.0
             reasons.append("exact_object_id")
+            matched = True
         if normalized_query == title:
             score += 90.0
             reasons.append("exact_title")
+            matched = True
         if normalized_query in aliases:
             score += 80.0
             reasons.append("exact_alias")
+            matched = True
         if normalized_query and normalized_query in title:
             score += 15.0
             reasons.append("title_phrase")
+            matched = True
 
         document_length = max(len(content_tokens), 1)
         for token in query_tokens:
             frequency = token_counts[token]
             if not frequency:
                 continue
+            matched = True
             document_frequency = document_frequencies[token]
             inverse_document_frequency = math.log(
                 1 + (corpus_size - document_frequency + 0.5) / (document_frequency + 0.5)
@@ -131,6 +137,9 @@ class MemorySearchIndex:
                 score += 3.5
                 reasons.append(f"title_term:{token}")
 
+        if not matched:
+            return 0.0, []
+        reasons.append("lexical_match")
         if document.document_kind == "knowledge_object":
             score += 0.25
             reasons.append("object_summary")
@@ -138,8 +147,6 @@ class MemorySearchIndex:
             score += 0.1
             reasons.append("evidence_chunk")
         score += max(0, 6 - document.authority_tier) * 0.2
-        if score > 0 and not reasons:
-            reasons.append("lexical_match")
         return score, sorted(set(reasons))
 
     @staticmethod
