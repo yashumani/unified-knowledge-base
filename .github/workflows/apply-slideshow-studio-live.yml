@@ -1,0 +1,89 @@
+name: Apply reconciled slideshow studio
+
+on:
+  push:
+    branches:
+      - agent/slideshow-studio-live
+    paths:
+      - ".github/workflows/apply-slideshow-studio-live.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out current production branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/slideshow-studio-live
+          fetch-depth: 0
+
+      - name: Fetch the completed slideshow design branch
+        run: git fetch origin agent/slideshow-studio-redesign:refs/remotes/origin/agent/slideshow-studio-redesign
+
+      - name: Reconcile slideshow UI with the latest production runtime
+        shell: bash
+        env:
+          MERGE_BASE_SHA: 41c51b16a624ea712824db1cf3aade61b3a02314
+          DESIGN_REF: origin/agent/slideshow-studio-redesign
+        run: |
+          set -euo pipefail
+
+          merge_file() {
+            local path="$1"
+            local workdir
+            workdir="$(mktemp -d)"
+            git show "HEAD:${path}" > "${workdir}/current"
+            git show "${MERGE_BASE_SHA}:${path}" > "${workdir}/base"
+            git show "${DESIGN_REF}:${path}" > "${workdir}/design"
+            if ! git merge-file -p "${workdir}/current" "${workdir}/base" "${workdir}/design" > "${path}"; then
+              echo "Three-way merge conflict in ${path}" >&2
+              exit 1
+            fi
+            rm -rf "${workdir}"
+          }
+
+          merge_file apps/web/index.html
+          merge_file apps/web/src/RootApp.tsx
+          merge_file apps/web/src/main.tsx
+          merge_file apps/web/src/components/workspace/WorkspaceApp.tsx
+          merge_file apps/web/src/components/workspace/DashboardHome.tsx
+          merge_file apps/web/src/components/workspace/IngestionStudio.tsx
+          merge_file apps/web/src/styles/workspace.css
+
+          mkdir -p apps/web/public apps/web/src/components apps/web/src/styles
+          git show "${DESIGN_REF}:apps/web/public/ai-brain-mark.svg" > apps/web/public/ai-brain-mark.svg
+          git show "${DESIGN_REF}:apps/web/src/components/BrandReveal.tsx" > apps/web/src/components/BrandReveal.tsx
+          git show "${DESIGN_REF}:apps/web/src/styles/brand-reveal.css" > apps/web/src/styles/brand-reveal.css
+
+          if grep -R -n -E '^(<<<<<<<|=======|>>>>>>>)' apps/web; then
+            echo "Merge markers remain in the UI source." >&2
+            exit 1
+          fi
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install web dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build the production React application
+        env:
+          GITHUB_PAGES: "true"
+        run: npm run web:build
+
+      - name: Commit the reconciled release
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/apply-slideshow-studio-live.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Deploy fixed slideshow studio and AI Brain reveal"
+          git push origin HEAD:agent/slideshow-studio-live
