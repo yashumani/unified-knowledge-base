@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "unified-knowledge-base"
-version = "0.4.0"
-description = "Governed AI Brain runtime with durable evidence, local Ollama enrichment, Zvec retrieval, MCP, and tenant-aware Talk2Data memory contracts."
+version = "0.5.0"
+description = "Governed AI Brain runtime with quality controls, reviewer operations, continuous source refresh, local Ollama enrichment, Zvec retrieval, MCP, and tenant-aware Talk2Data memory contracts."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

@@ -8,9 +8,12 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
+from ukb import __version__
 from ukb.api.ingestion_routes import router as ingestion_router
 from ukb.api.search_routes import router as search_router
 from ukb.api.security import Principal, require_principal, require_roles, warn_on_insecure_configuration
+from ukb.knowledge_ops.routes import router as knowledge_operations_router
+from ukb.knowledge_ops.runtime import service as knowledge_operations_service
 from ukb.models import (
     AIEnrichmentResult,
     AIProviderHealth,
@@ -40,17 +43,18 @@ from ukb.talk2data.runtime import service as talk2data_service
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     warn_on_insecure_configuration(settings)
     yield
+    knowledge_operations_service.close()
     talk2data_service.close()
     application.close()
 
 
 app = FastAPI(
     title=settings.app_name,
-    version="0.3.0",
+    version=__version__,
     description=(
         "Governed AI Brain runtime with durable evidence, tenant Domain Packs, typed temporal "
         "memory, advisory local Ollama enrichment, human publication, permission-aware retrieval, "
-        "and Context Coverage Receipts."
+        "knowledge-quality operations, and Context Coverage Receipts."
     ),
     lifespan=lifespan,
 )
@@ -114,6 +118,7 @@ def readiness() -> dict[str, object]:
         "ai_provider": application.ai.status().provider.value,
         "talk2data_graph_backend": talk2data_graph.backend,
         "talk2data_graph_available": talk2data_graph.available,
+        "knowledge_operations": True,
     }
 
 
@@ -357,3 +362,4 @@ app.include_router(protected_router)
 app.include_router(ingestion_router)
 app.include_router(search_router)
 app.include_router(talk2data_router)
+app.include_router(knowledge_operations_router)
