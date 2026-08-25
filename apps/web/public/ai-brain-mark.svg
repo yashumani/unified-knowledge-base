@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 480" role="img" aria-labelledby="title desc">
+  <title id="title">AI Brain mark</title>
+  <desc id="desc">A split organic and connected brain surrounded by memory orbits.</desc>
+  <defs>
+    <linearGradient id="brain" x1="92" y1="82" x2="270" y2="378" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7188aa"/>
+      <stop offset="0.42" stop-color="#263b5e"/>
+      <stop offset="1" stop-color="#07111f"/>
+    </linearGradient>
+    <linearGradient id="network" x1="224" y1="92" x2="394" y2="370" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0b2443"/>
+      <stop offset="1" stop-color="#020813"/>
+    </linearGradient>
+    <radialGradient id="node" cx="0" cy="0" r="1" gradientTransform="translate(0.35 0.3) rotate(48) scale(0.9)">
+      <stop stop-color="#effbff"/>
+      <stop offset="0.22" stop-color="#73d8ff"/>
+      <stop offset="0.55" stop-color="#1788ff"/>
+      <stop offset="1" stop-color="#0842a5"/>
+    </radialGradient>
+    <linearGradient id="electric" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#6de7ff"/>
+      <stop offset="0.48" stop-color="#1b9bff"/>
+      <stop offset="1" stop-color="#3158ff"/>
+    </linearGradient>
+    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.06 0 0 0 0 0.47 0 0 0 0 1 0 0 0 0.85 0" result="blue"/>
+      <feMerge><feMergeNode in="blue"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="rightHalf"><rect x="238" y="58" width="200" height="364"/></clipPath>
+  </defs>
+
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="242" cy="240" rx="204" ry="92" stroke="#168fff" stroke-width="7" opacity="0.78" transform="rotate(-18 242 240)" filter="url(#glow)"/>
+    <ellipse cx="242" cy="240" rx="202" ry="76" stroke="#78d9ff" stroke-width="3" opacity="0.58" transform="rotate(44 242 240)"/>
+    <ellipse cx="242" cy="240" rx="166" ry="216" stroke="#216dff" stroke-width="3" opacity="0.4" transform="rotate(80 242 240)"/>
+  </g>
+
+  <path d="M244 67c-35-30-87-24-109 12-35-3-68 20-74 55-30 16-42 55-25 84-21 27-18 68 8 91-4 37 21 71 58 78 18 32 60 45 93 27 18 11 35 13 49 7V67Z" fill="url(#brain)" stroke="#8dc9ff" stroke-width="5"/>
+  <path d="M240 68c35-30 87-24 109 12 35-3 68 20 74 55 30 16 42 55 25 84 21 27 18 68-8 91 4 37-21 71-58 78-18 32-60 45-93 27-18 11-35 13-49 7V68Z" fill="url(#network)" stroke="#1d98ff" stroke-width="5"/>
+
+  <g fill="none" stroke="url(#electric)" stroke-width="7" opacity="0.92" filter="url(#glow)">
+    <path d="M165 95c-25 2-43 24-39 49-28 0-47 28-35 54-25 16-29 52-7 73-15 28 2 62 32 67-2 25 24 45 48 35"/>
+    <path d="M203 88c-24 20-24 55-2 76-30 10-39 48-18 71-25 17-25 55-2 72-17 25-6 58 24 69"/>
+    <path d="M123 164c18 11 39 8 52-8M92 256c22-12 48-5 61 15M129 338c17-20 45-22 65-7"/>
+  </g>
+
+  <g clip-path="url(#rightHalf)" stroke="#77cfff" stroke-width="3" opacity="0.82">
+    <path d="M252 96 306 132 356 105M252 96 276 184 306 132M306 132 334 196 390 160M276 184 334 196 296 251M334 196 385 244 352 302M296 251 352 302 272 354M352 302 404 344M276 184 250 286 296 251M250 286 272 354" fill="none"/>
+  </g>
+
+  <g filter="url(#glow)">
+    <circle cx="252" cy="96" r="11" fill="url(#node)"/>
+    <circle cx="306" cy="132" r="16" fill="url(#node)"/>
+    <circle cx="356" cy="105" r="9" fill="#d6e5f6"/>
+    <circle cx="276" cy="184" r="10" fill="#d6e5f6"/>
+    <circle cx="334" cy="196" r="21" fill="url(#node)"/>
+    <circle cx="390" cy="160" r="12" fill="url(#node)"/>
+    <circle cx="296" cy="251" r="13" fill="url(#node)"/>
+    <circle cx="385" cy="244" r="9" fill="#d6e5f6"/>
+    <circle cx="352" cy="302" r="18" fill="url(#node)"/>
+    <circle cx="250" cy="286" r="8" fill="#d6e5f6"/>
+    <circle cx="272" cy="354" r="12" fill="url(#node)"/>
+    <circle cx="404" cy="344" r="9" fill="url(#node)"/>
+  </g>
+
+  <circle cx="78" cy="315" r="12" fill="url(#node)" filter="url(#glow)"/>
+  <circle cx="414" cy="95" r="9" fill="url(#node)" filter="url(#glow)"/>
+  <circle cx="432" cy="282" r="13" fill="url(#node)" filter="url(#glow)"/>
+</svg>
