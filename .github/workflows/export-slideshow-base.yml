@@ -1,0 +1,29 @@
+name: Export slideshow merge base
+
+on:
+  push:
+    branches:
+      - agent/export-slideshow-base
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+      - name: Create source archive
+        run: |
+          tar --exclude=.git --exclude=node_modules --exclude='*.tar.gz' -czf /tmp/ukb-slideshow-base.tar.gz .
+      - name: Upload source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: ukb-slideshow-base-source
+          path: /tmp/ukb-slideshow-base.tar.gz
+          retention-days: 1
