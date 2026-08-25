@@ -195,8 +195,10 @@ jobs:
               .getByRole('button', { name: /Submit/ }).click();
             await workspace.getByRole('heading', { name: 'Build a clean ingestion batch.' }).waitFor();
             await workspace.getByRole('button', { name: /Paste context/ }).click();
+            await workspace.getByRole('button', { name: 'Continue to governance →' }).click();
             await workspace.getByRole('button', { name: 'Preview and validate source' }).click();
             await workspace.getByText('Source manifest', { exact: true }).waitFor();
+            await workspace.getByRole('button', { name: 'Continue to create →' }).click();
             await workspace.getByRole('button', { name: 'Create governed review batch' }).click();
             await workspace.getByText('Batch sent to human review', { exact: true }).waitFor();
             await workspace.getByRole('button', { name: 'Continue to enrichment →' }).click();
@@ -211,6 +213,7 @@ jobs:
             await crawl.goto(`${baseUrl}?page=ingest`, { waitUntil: 'domcontentloaded' });
             await crawl.waitForTimeout(2500);
             await crawl.getByRole('button', { name: /Crawl4AI/ }).click();
+            await crawl.getByRole('button', { name: 'Continue to governance →' }).click();
             await crawl.getByRole('button', { name: 'Preview and validate source' }).click();
             await crawl.getByText('Crawl4AI output preview', { exact: false }).waitFor();
             await assertNoOverflow(crawl, 'crawl4ai-preview');
