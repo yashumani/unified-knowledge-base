@@ -1,0 +1,36 @@
+name: Clean slideshow release artifacts
+
+on:
+  push:
+    branches:
+      - agent/slideshow-studio-live
+    paths:
+      - ".github/workflows/cleanup-slideshow-release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out release branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/slideshow-studio-live
+          fetch-depth: 0
+
+      - name: Remove build-only repository changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main:refs/remotes/origin/main
+          rm -f package-lock.json
+          git checkout origin/main -- packages/create-ukb-brain/bin/create-ukb-brain.mjs
+          rm .github/workflows/cleanup-slideshow-release.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Remove build-only slideshow artifacts"
+          git push origin HEAD:agent/slideshow-studio-live
