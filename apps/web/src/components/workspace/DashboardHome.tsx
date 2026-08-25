@@ -32,23 +32,34 @@ export function DashboardHome({
   demoMode: boolean;
   onNavigate: (page: WorkspacePage) => void;
 }) {
+  const brandMarkUrl = `${import.meta.env.BASE_URL}ai-brain-mark.svg`;
+
   return (
     <section className="dashboard-home" aria-labelledby="dashboard-title">
       <header className="dashboard-heading">
         <div>
           <p>Unified Knowledge Base</p>
-          <h1 id="dashboard-title">Build, govern and recall AI memory.</h1>
+          <h1 id="dashboard-title" tabIndex={-1}>Build, govern and recall AI memory.</h1>
           <span>
             Choose a page instead of scrolling through a long console. Your workflow status stays
             visible across every page.
           </span>
         </div>
         <div className="dashboard-status-card">
-          <span className={demoMode ? "connection-dot is-demo" : "connection-dot"} />
-          <div>
-            <strong>{demoMode ? "Safe browser demo" : "Connected workspace"}</strong>
-            <small>{demoMode ? "Everything works; nothing persists" : "Actions are stored and audited"}</small>
+          <div className="dashboard-brain-visual" aria-hidden="true">
+            <span className="dashboard-orbit orbit-one" />
+            <span className="dashboard-orbit orbit-two" />
+            <span className="dashboard-orbit orbit-three" />
+            <img src={brandMarkUrl} alt="" />
           </div>
+          <div className="dashboard-runtime-copy">
+            <span className={demoMode ? "connection-dot is-demo" : "connection-dot"} />
+            <div>
+              <strong>{demoMode ? "Safe browser demo" : "Connected workspace"}</strong>
+              <small>{demoMode ? "Everything works; nothing persists" : "Actions are stored and audited"}</small>
+            </div>
+          </div>
+          <div className="dashboard-pulse-bars" aria-hidden="true"><i /><i /><i /><i /><i /></div>
         </div>
       </header>
 

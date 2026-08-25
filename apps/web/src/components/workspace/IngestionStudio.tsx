@@ -41,6 +41,15 @@ const TEXT_EXTENSIONS = new Set([
 const SAMPLE_CONTEXT =
   "Support Handoff Time is the elapsed time between a support case being reassigned from first-line support to specialist support. It is owned by Support Operations and appears in the Service Quality Review. Cases waiting for a customer response are excluded. Recently reassigned cases may take 12 hours to reconcile before the metric is final.";
 
+type StudioStep = "source" | "governance" | "validate" | "create";
+
+const STUDIO_STEPS: Array<{ id: StudioStep; number: string; label: string; hint: string }> = [
+  { id: "source", number: "01", label: "Source", hint: "Choose the entry point" },
+  { id: "governance", number: "02", label: "Governance", hint: "Set ownership and policy" },
+  { id: "validate", number: "03", label: "Validate", hint: "Inspect evidence quality" },
+  { id: "create", number: "04", label: "Create", hint: "Send candidates to review" }
+];
+
 interface LocalFileItem {
   file: File;
   path: string;
@@ -69,6 +78,7 @@ export function IngestionStudio({
   onSubmitContext: (payload: IngestionPayload) => Promise<void>;
   onCompleted: () => void;
 }) {
+  const [studioStep, setStudioStep] = useState<StudioStep>("source");
   const [method, setMethod] = useState<IngestionSourceMode>("files");
   const [title, setTitle] = useState("Support Operations Knowledge Batch");
   const [domain, setDomain] = useState("support");
@@ -108,6 +118,7 @@ export function IngestionStudio({
   );
 
   function resetOutput(nextMethod: IngestionSourceMode) {
+    setStudioStep("source");
     setMethod(nextMethod);
     setPreview(null);
     setResult(null);
@@ -316,8 +327,12 @@ export function IngestionStudio({
       else if (method === "git" || method === "object_store") next = await brainClient.previewConnector(connectorRequest());
       else next = await createDemoPreview();
       setPreview(next);
+      setStudioStep("validate");
+      return true;
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The source preview could not be created.");
+      setStudioStep("validate");
+      return false;
     } finally {
       setBusy(null);
     }
@@ -371,182 +386,299 @@ export function IngestionStudio({
   }
 
   const sourceNeedsFiles = method === "files" || method === "folder" || method === "zip";
-  const previewDisabled =
-    busy !== null ||
-    (method === "text" && !context.trim()) ||
-    (sourceNeedsFiles && files.length === 0) ||
-    (method === "google_drive" && !driveUrl.trim()) ||
-    (method === "crawl4ai" && !crawlUrl.trim()) ||
-    ((method === "git" || method === "object_store") && !connectorUri.trim());
+  const sourceReady =
+    (method === "text" && Boolean(context.trim())) ||
+    (sourceNeedsFiles && files.length > 0) ||
+    (method === "google_drive" && Boolean(driveUrl.trim())) ||
+    (method === "crawl4ai" && Boolean(crawlUrl.trim())) ||
+    ((method === "git" || method === "object_store") && Boolean(connectorUri.trim()));
+  const governanceReady = Boolean(title.trim() && domain.trim());
+  const previewDisabled = busy !== null || !sourceReady || !governanceReady;
+  const stepIndex = STUDIO_STEPS.findIndex((item) => item.id === studioStep);
+  const maxUnlockedStep = result ? 3 : preview?.ready ? 3 : preview || busy === "preview" ? 2 : sourceReady ? 1 : 0;
+  const sourceSummary = sourceNeedsFiles
+    ? `${files.length} ${files.length === 1 ? "item" : "items"} selected`
+    : method === "text"
+      ? `${context.trim().length.toLocaleString()} characters`
+      : method === "google_drive"
+        ? driveUrl
+        : method === "crawl4ai"
+          ? crawlUrl
+          : connectorUri;
+
+  function moveBack() {
+    const destination = STUDIO_STEPS[Math.max(0, stepIndex - 1)]?.id;
+    if (destination) setStudioStep(destination);
+  }
+
+  async function moveToValidation() {
+    setStudioStep("validate");
+    await previewSource();
+  }
 
   return (
-    <div className="ingestion-studio">
-      <aside className="ingestion-methods" aria-label="Ingestion source methods">
-        <header>
-          <span>1A</span>
-          <div><strong>Choose a source</strong><small>Eight governed entry points</small></div>
-        </header>
-        <div className="ingestion-method-grid">
-          {SOURCE_METHODS.map((item) => (
+    <div className="ingestion-studio" data-studio-step={studioStep}>
+      <nav className="studio-stepper" aria-label="Ingestion studio progress">
+        {STUDIO_STEPS.map((item, index) => {
+          const current = item.id === studioStep;
+          const complete = index < stepIndex || (item.id === "validate" && Boolean(preview)) || (item.id === "create" && Boolean(result));
+          const unlocked = index <= maxUnlockedStep;
+          return (
             <button
               type="button"
               key={item.id}
-              className={method === item.id ? "is-selected" : ""}
-              onClick={() => resetOutput(item.id)}
-              aria-pressed={method === item.id}
+              className={`${current ? "is-current" : ""}${complete ? " is-complete" : ""}`}
+              disabled={!unlocked}
+              onClick={() => unlocked && setStudioStep(item.id)}
+              aria-current={current ? "step" : undefined}
             >
-              <span>{item.badge}</span>
-              <strong>{item.label}</strong>
-              <small>{item.detail}</small>
-              {(() => {
-                const capability = capabilities?.capabilities.find((candidate) => candidate.id === item.id);
-                if (demoMode) return <b>{item.ready ? "Demo ready" : "Profile required"}</b>;
-                if (!capability) return <b>Checking runtime</b>;
-                return (
-                  <b title={capability.message}>
-                    {capability.configured ? "Connected" : capability.enabled ? "Setup required" : "Profile required"}
-                  </b>
-                );
-              })()}
+              <span>{complete && !current ? "✓" : item.number}</span>
+              <div><strong>{item.label}</strong><small>{item.hint}</small></div>
             </button>
-          ))}
-        </div>
-        <div className="ingestion-format-list">
-          <strong>Expanded parser catalog</strong>
-          <div>{SUPPORTED_FORMATS.map((format) => <span key={format}>{format}</span>)}</div>
-        </div>
-      </aside>
+          );
+        })}
+      </nav>
 
-      <form className="ingestion-config" onSubmit={previewSource}>
-        <header className="ingestion-panel-heading">
-          <span>1B</span>
-          <div><strong>Configure {selectedMethod.label}</strong><small>Metadata follows every extracted object</small></div>
-        </header>
-
-        <div className="ingestion-source-control">
-          {method === "text" && (
-            <label>Source context<textarea rows={9} value={context} onChange={(event) => setContext(event.target.value)} required /></label>
-          )}
-          {method === "files" && (
-            <label className="ingestion-dropzone">Select many files<input type="file" multiple onChange={(event) => selectFiles(event)} /></label>
-          )}
-          {method === "folder" && (
-            <>
-              <label className="ingestion-dropzone">Select a folder
-                <input
-                  ref={folderInputRef}
-                  type="file"
-                  multiple
-                  onChange={(event) => selectFiles(event, true)}
-                  {...({ webkitdirectory: "", directory: "" } as Record<string, string>)}
-                />
-              </label>
-              <small>Nested relative paths are retained in the batch manifest.</small>
-            </>
-          )}
-          {method === "zip" && (
-            <label className="ingestion-dropzone">Select a ZIP archive<input type="file" accept=".zip,application/zip" onChange={(event) => selectFiles(event)} /></label>
-          )}
-          {method === "google_drive" && (
-            <label>Google Drive folder link<input type="url" value={driveUrl} onChange={(event) => setDriveUrl(event.target.value)} required /></label>
-          )}
-          {method === "crawl4ai" && (
-            <div className="ingestion-crawl-options">
-              <label>Authorized website URL<input type="url" value={crawlUrl} onChange={(event) => setCrawlUrl(event.target.value)} required /></label>
-              <div>
-                <label>Page limit<input type="number" min={1} max={25} value={maxPages} onChange={(event) => setMaxPages(Number(event.target.value))} /></label>
-                <label>Link depth<input type="number" min={0} max={3} value={crawlDepth} onChange={(event) => setCrawlDepth(Number(event.target.value))} /></label>
-              </div>
-              <label className="ingestion-check"><input type="checkbox" checked={renderJavaScript} onChange={(event) => setRenderJavaScript(event.target.checked)} /> Render JavaScript and dynamic content</label>
-              <label className="ingestion-check"><input type="checkbox" checked={respectRobots} onChange={(event) => setRespectRobots(event.target.checked)} /> Respect robots.txt</label>
-            </div>
-          )}
-          {(method === "git" || method === "object_store") && (
-            <label>{method === "git" ? "Repository URL" : "Container URI"}<input value={connectorUri} onChange={(event) => setConnectorUri(event.target.value)} required /></label>
-          )}
-
-          {sourceNeedsFiles && files.length > 0 && (
-            <ul className="selected-file-list">
-              {files.slice(0, 8).map(({ file, path }) => <li key={`${path}-${file.size}`}><span>{path}</span><strong>{formatBytes(file.size)}</strong></li>)}
-              {files.length > 8 && <li><span>+ {files.length - 8} more files</span></li>}
-            </ul>
-          )}
-        </div>
-
-        <details className="ingestion-advanced" open>
-          <summary>Governance and parsing options</summary>
-          <div className="ingestion-form-grid">
-            <label>Batch title<input value={title} onChange={(event) => setTitle(event.target.value)} required /></label>
-            <label>Domain<input value={domain} onChange={(event) => setDomain(event.target.value)} required /></label>
-            <label>Owner<input value={owner} onChange={(event) => setOwner(event.target.value)} placeholder="Responsible team or person" /></label>
-            <label>Sensitivity<select value={sensitivity} onChange={(event) => setSensitivity(event.target.value as Sensitivity)}><option value="public">Public</option><option value="internal">Internal</option><option value="confidential">Confidential</option><option value="restricted">Restricted</option></select></label>
-            <label>Tags<input value={tags} onChange={(event) => setTags(event.target.value)} /></label>
-            <label>Effective date<input type="date" value={effectiveDate} onChange={(event) => setEffectiveDate(event.target.value)} /></label>
-            <label>Parser<select value={parserMode} onChange={(event) => setParserMode(event.target.value)}><option value="layout-aware">Layout-aware</option><option value="fast-text">Fast text</option><option value="table-first">Table-first</option><option value="ocr-fallback">OCR fallback</option></select></label>
-            <label>Chunking<select value={chunking} onChange={(event) => setChunking(event.target.value)}><option value="heading-and-table">Heading + table</option><option value="semantic-sections">Semantic sections</option><option value="page-boundaries">Page boundaries</option><option value="no-chunking">No chunking</option></select></label>
-            <label>Duplicates<select value={duplicatePolicy} onChange={(event) => setDuplicatePolicy(event.target.value)}><option value="new-version">Create new version</option><option value="skip-exact">Skip exact duplicates</option><option value="flag-similar">Flag similar documents</option></select></label>
-            <label>Quality gate<select value={qualityMode} onChange={(event) => setQualityMode(event.target.value)}><option value="flag-sensitive">Flag secrets and sensitive data</option><option value="strict">Block on any high-risk finding</option><option value="manifest-only">Manifest validation only</option></select></label>
+      <section className="studio-workspace" aria-live="polite">
+        <header className="studio-stage-heading">
+          <div>
+            <span>Decision {stepIndex + 1} of {STUDIO_STEPS.length}</span>
+            <h2>{STUDIO_STEPS[stepIndex].label}</h2>
+            <p>{STUDIO_STEPS[stepIndex].hint}. Only the controls needed for this decision are shown.</p>
           </div>
-        </details>
-
-        <button type="submit" className="ingestion-preview-button" disabled={previewDisabled}>
-          {busy === "preview" ? "Building source preview…" : "Preview and validate source"}
-        </button>
-      </form>
-
-      <section className="ingestion-preview" aria-live="polite">
-        <header className="ingestion-panel-heading">
-          <span>1C</span>
-          <div><strong>Inspect before ingestion</strong><small>Garbage is stopped here—not after publication</small></div>
+          <strong>{selectedMethod.label}</strong>
         </header>
 
-        {!preview && <div className="ingestion-empty">Choose a source and build a preview. The manifest, parser output and quality warnings will appear here.</div>}
-        {error && <div className="ingestion-error" role="alert">{error}</div>}
-        {preview && (
-          <>
-            <div className="ingestion-quality-summary">
-              <div><span>Ready items</span><strong>{preview.items.filter((item) => item.status === "ready").length}</strong></div>
-              <div><span>Warnings</span><strong>{preview.warnings.length}</strong></div>
-              <div><span>Rejected</span><strong>{preview.rejected_items.length}</strong></div>
-              <div><span>Extracted</span><strong>{preview.extracted_chars.toLocaleString()} chars</strong></div>
-            </div>
-
-            <div className="ingestion-manifest">
-              <header><strong>Source manifest</strong><span>{preview.connector}</span></header>
-              <div className="ingestion-manifest-list">
-                {preview.items.slice(0, 10).map((item) => (
-                  <div key={item.item_id}>
-                    <span className={`manifest-status is-${item.status}`} />
-                    <div><strong>{item.name}</strong><small>{item.path}</small></div>
-                    <span>{formatBytes(item.size_bytes)}</span>
-                    <b>{item.status}</b>
-                  </div>
+        <div className="studio-stage-canvas">
+          {studioStep === "source" && (
+            <div className="studio-source-stage">
+              <div className="ingestion-method-grid">
+                {SOURCE_METHODS.map((item) => (
+                  <button
+                    type="button"
+                    key={item.id}
+                    className={method === item.id ? "is-selected" : ""}
+                    onClick={() => resetOutput(item.id)}
+                    aria-pressed={method === item.id}
+                  >
+                    <span>{item.badge}</span>
+                    <strong>{item.label}</strong>
+                    <small>{item.detail}</small>
+                    {(() => {
+                      const capability = capabilities?.capabilities.find((candidate) => candidate.id === item.id);
+                      if (demoMode) return <b>{item.ready ? "Demo ready" : "Profile required"}</b>;
+                      if (!capability) return <b>Checking runtime</b>;
+                      return (
+                        <b title={capability.message}>
+                          {capability.configured ? "Connected" : capability.enabled ? "Setup required" : "Profile required"}
+                        </b>
+                      );
+                    })()}
+                  </button>
                 ))}
               </div>
-            </div>
 
-            {preview.warnings.length > 0 && (
-              <div className="ingestion-warning-list"><strong>Quality findings</strong><ul>{preview.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></div>
-            )}
+              <div className="studio-source-control">
+                <header><strong>Connect {selectedMethod.label}</strong><span>{selectedMethod.detail}</span></header>
+                {method === "text" && (
+                  <label>Source context<textarea rows={8} value={context} onChange={(event) => { setContext(event.target.value); setPreview(null); setResult(null); }} required /></label>
+                )}
+                {method === "files" && (
+                  <label className="ingestion-dropzone">Select many files<input type="file" multiple onChange={(event) => selectFiles(event)} /></label>
+                )}
+                {method === "folder" && (
+                  <>
+                    <label className="ingestion-dropzone">Select a folder
+                      <input
+                        ref={folderInputRef}
+                        type="file"
+                        multiple
+                        onChange={(event) => selectFiles(event, true)}
+                        {...({ webkitdirectory: "", directory: "" } as Record<string, string>)}
+                      />
+                    </label>
+                    <small>Nested relative paths are retained in the batch manifest.</small>
+                  </>
+                )}
+                {method === "zip" && (
+                  <label className="ingestion-dropzone">Select a ZIP archive<input type="file" accept=".zip,application/zip" onChange={(event) => selectFiles(event)} /></label>
+                )}
+                {method === "google_drive" && (
+                  <label>Google Drive folder link<input type="url" value={driveUrl} onChange={(event) => { setDriveUrl(event.target.value); setPreview(null); setResult(null); }} required /></label>
+                )}
+                {method === "crawl4ai" && (
+                  <div className="ingestion-crawl-options">
+                    <label>Authorized website URL<input type="url" value={crawlUrl} onChange={(event) => { setCrawlUrl(event.target.value); setPreview(null); setResult(null); }} required /></label>
+                    <div>
+                      <label>Page limit<input type="number" min={1} max={25} value={maxPages} onChange={(event) => setMaxPages(Number(event.target.value))} /></label>
+                      <label>Link depth<input type="number" min={0} max={3} value={crawlDepth} onChange={(event) => setCrawlDepth(Number(event.target.value))} /></label>
+                    </div>
+                    <label className="ingestion-check"><input type="checkbox" checked={renderJavaScript} onChange={(event) => setRenderJavaScript(event.target.checked)} /> Render JavaScript and dynamic content</label>
+                    <label className="ingestion-check"><input type="checkbox" checked={respectRobots} onChange={(event) => setRespectRobots(event.target.checked)} /> Respect robots.txt</label>
+                  </div>
+                )}
+                {(method === "git" || method === "object_store") && (
+                  <label>{method === "git" ? "Repository URL" : "Container URI"}<input value={connectorUri} onChange={(event) => { setConnectorUri(event.target.value); setPreview(null); setResult(null); }} required /></label>
+                )}
 
-            <div className="ingestion-output-preview">
-              <header><strong>Normalized output preview</strong><span>Markdown / extracted text</span></header>
-              <pre>{preview.preview_markdown.slice(0, 6000)}</pre>
-            </div>
-
-            {!result ? (
-              <button type="button" className="ingestion-submit-button" disabled={!preview.ready || busy !== null} onClick={submitBatch}>
-                {busy === "submit" ? "Creating review candidates…" : "Create governed review batch"}
-              </button>
-            ) : (
-              <div className="ingestion-success">
-                <div><strong>Batch sent to human review</strong><span>{result.message}</span></div>
-                <button type="button" onClick={onCompleted}>Continue to enrichment →</button>
+                {sourceNeedsFiles && files.length > 0 && (
+                  <ul className="selected-file-list">
+                    {files.slice(0, 8).map(({ file, path }) => <li key={`${path}-${file.size}`}><span>{path}</span><strong>{formatBytes(file.size)}</strong></li>)}
+                    {files.length > 8 && <li><span>+ {files.length - 8} more files</span></li>}
+                  </ul>
+                )}
               </div>
-            )}
-          </>
-        )}
+
+              <div className="ingestion-format-list">
+                <strong>Parser catalog</strong>
+                <div>{SUPPORTED_FORMATS.map((format) => <span key={format}>{format}</span>)}</div>
+              </div>
+            </div>
+          )}
+
+          {studioStep === "governance" && (
+            <form className="studio-governance-stage" onSubmit={(event) => { event.preventDefault(); void moveToValidation(); }}>
+              <div className="studio-governance-intro">
+                <strong>Define who owns this knowledge and how it may be used.</strong>
+                <p>These values travel with every source version, evidence chunk and candidate object.</p>
+              </div>
+              <div className="ingestion-form-grid">
+                <label>Batch title<input value={title} onChange={(event) => setTitle(event.target.value)} required /></label>
+                <label>Domain<input value={domain} onChange={(event) => setDomain(event.target.value)} required /></label>
+                <label>Owner<input value={owner} onChange={(event) => setOwner(event.target.value)} placeholder="Responsible team or person" /></label>
+                <label>Sensitivity<select value={sensitivity} onChange={(event) => setSensitivity(event.target.value as Sensitivity)}><option value="public">Public</option><option value="internal">Internal</option><option value="confidential">Confidential</option><option value="restricted">Restricted</option></select></label>
+                <label>Tags<input value={tags} onChange={(event) => setTags(event.target.value)} /></label>
+                <label>Effective date<input type="date" value={effectiveDate} onChange={(event) => setEffectiveDate(event.target.value)} /></label>
+                <label>Parser<select value={parserMode} onChange={(event) => setParserMode(event.target.value)}><option value="layout-aware">Layout-aware</option><option value="fast-text">Fast text</option><option value="table-first">Table-first</option><option value="ocr-fallback">OCR fallback</option></select></label>
+                <label>Chunking<select value={chunking} onChange={(event) => setChunking(event.target.value)}><option value="heading-and-table">Heading + table</option><option value="semantic-sections">Semantic sections</option><option value="page-boundaries">Page boundaries</option><option value="no-chunking">No chunking</option></select></label>
+                <label>Duplicates<select value={duplicatePolicy} onChange={(event) => setDuplicatePolicy(event.target.value)}><option value="new-version">Create new version</option><option value="skip-exact">Skip exact duplicates</option><option value="flag-similar">Flag similar documents</option></select></label>
+                <label>Quality gate<select value={qualityMode} onChange={(event) => setQualityMode(event.target.value)}><option value="flag-sensitive">Flag secrets and sensitive data</option><option value="strict">Block on any high-risk finding</option><option value="manifest-only">Manifest validation only</option></select></label>
+              </div>
+              <button type="submit" className="visually-hidden" tabIndex={-1}>Continue</button>
+            </form>
+          )}
+
+          {studioStep === "validate" && (
+            <div className="studio-validation-stage">
+              {error && <div className="ingestion-error" role="alert">{error}</div>}
+              {busy === "preview" && !preview && <div className="ingestion-empty"><strong>Building the source manifest…</strong><span>Parsing, normalizing and running deterministic quality gates.</span></div>}
+              {!preview && busy !== "preview" && (
+                <div className="ingestion-empty">
+                  <strong>Validation has not run yet.</strong>
+                  <span>Run the preview to inspect accepted, warned and rejected evidence before candidate creation.</span>
+                  <button type="button" className="ingestion-preview-button" disabled={previewDisabled} onClick={() => void previewSource()}>
+                    Preview and validate source
+                  </button>
+                </div>
+              )}
+              {preview && (
+                <>
+                  <div className="ingestion-quality-summary">
+                    <div><span>Ready items</span><strong>{preview.items.filter((item) => item.status === "ready").length}</strong></div>
+                    <div><span>Warnings</span><strong>{preview.warnings.length}</strong></div>
+                    <div><span>Rejected</span><strong>{preview.rejected_items.length}</strong></div>
+                    <div><span>Extracted</span><strong>{preview.extracted_chars.toLocaleString()} chars</strong></div>
+                  </div>
+                  <div className="studio-validation-grid">
+                    <div className="ingestion-manifest">
+                      <header><strong>Source manifest</strong><span>{preview.connector}</span></header>
+                      <div className="ingestion-manifest-list">
+                        {preview.items.slice(0, 20).map((item) => (
+                          <div key={item.item_id}>
+                            <span className={`manifest-status is-${item.status}`} />
+                            <div><strong>{item.name}</strong><small>{item.path}</small></div>
+                            <span>{formatBytes(item.size_bytes)}</span>
+                            <b>{item.status}</b>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="ingestion-output-preview">
+                      <header><strong>Normalized evidence preview</strong><span>Markdown / extracted text</span></header>
+                      <pre>{preview.preview_markdown.slice(0, 6000)}</pre>
+                    </div>
+                  </div>
+                  {preview.warnings.length > 0 && (
+                    <div className="ingestion-warning-list"><strong>Quality findings</strong><ul>{preview.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></div>
+                  )}
+                  <button type="button" className="studio-rerun-button" disabled={busy !== null} onClick={() => void previewSource()}>
+                    {busy === "preview" ? "Rebuilding preview…" : "Run validation again"}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
+          {studioStep === "create" && (
+            <div className="studio-create-stage">
+              <div className="studio-release-card">
+                <span>Governance boundary</span>
+                <h3>Create candidates—not official memory.</h3>
+                <p>The batch creates source versions, evidence chunks and review candidates. Local AI remains advisory; a human must approve and a publisher must release the final version.</p>
+                <dl>
+                  <div><dt>Source</dt><dd>{selectedMethod.label}</dd></div>
+                  <div><dt>Domain</dt><dd>{domain}</dd></div>
+                  <div><dt>Owner</dt><dd>{owner || "Unassigned"}</dd></div>
+                  <div><dt>Sensitivity</dt><dd>{sensitivity}</dd></div>
+                  <div><dt>Evidence items</dt><dd>{preview?.items.length ?? 0}</dd></div>
+                  <div><dt>Quality findings</dt><dd>{preview?.warnings.length ?? 0}</dd></div>
+                </dl>
+              </div>
+
+              {error && <div className="ingestion-error" role="alert">{error}</div>}
+              {!result ? (
+                <div className="studio-create-ready">
+                  <strong>Ready to create the governed review batch.</strong>
+                  <span>Use the primary action below. No knowledge is published by this step.</span>
+                </div>
+              ) : (
+                <div className="ingestion-success">
+                  <div><strong>Batch sent to human review</strong><span>{result.message}</span></div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <footer className="studio-stage-actions">
+          <button type="button" onClick={moveBack} disabled={stepIndex === 0}>← Back</button>
+          <span>{STUDIO_STEPS[stepIndex].number} / 04</span>
+          {studioStep === "source" && <button type="button" className="studio-primary" disabled={!sourceReady} onClick={() => setStudioStep("governance")}>Continue to governance →</button>}
+          {studioStep === "governance" && <button type="button" className="studio-primary" disabled={previewDisabled} onClick={() => void moveToValidation()}>{busy === "preview" ? "Building preview…" : "Preview and validate source"}</button>}
+          {studioStep === "validate" && <button type="button" className="studio-primary" disabled={!preview?.ready} onClick={() => setStudioStep("create")}>Continue to create →</button>}
+          {studioStep === "create" && !result && <button type="button" className="studio-primary" disabled={!preview?.ready || busy !== null} onClick={submitBatch}>{busy === "submit" ? "Creating review candidates…" : "Create governed review batch"}</button>}
+          {studioStep === "create" && result && <button type="button" className="studio-primary" onClick={onCompleted}>Continue to enrichment →</button>}
+        </footer>
       </section>
+
+      <aside className="studio-live-brief" aria-label="Current ingestion brief">
+        <header>
+          <span>Live brief</span>
+          <strong>{title || "Untitled batch"}</strong>
+          <small>Updates as decisions are made</small>
+        </header>
+        <div className="studio-brief-visual" aria-hidden="true">
+          <span className={`studio-source-glyph source-${method}`}>{selectedMethod.badge.slice(0, 1)}</span>
+          <i /><i /><i />
+        </div>
+        <dl>
+          <div><dt>Entry point</dt><dd>{selectedMethod.label}</dd></div>
+          <div><dt>Source</dt><dd title={sourceSummary}>{sourceSummary || "Not connected"}</dd></div>
+          <div><dt>Domain</dt><dd>{domain || "Not set"}</dd></div>
+          <div><dt>Owner</dt><dd>{owner || "Unassigned"}</dd></div>
+          <div><dt>Sensitivity</dt><dd>{sensitivity}</dd></div>
+          <div><dt>Parser</dt><dd>{parserMode}</dd></div>
+          <div><dt>Duplicates</dt><dd>{duplicatePolicy}</dd></div>
+        </dl>
+        <div className="studio-brief-status">
+          <span className={preview?.ready ? "is-ready" : preview ? "is-warning" : ""} />
+          <div>
+            <strong>{result ? "Review batch created" : preview?.ready ? "Validation passed" : preview ? "Review findings" : "Awaiting validation"}</strong>
+            <small>{preview ? `${preview.items.length} evidence items · ${preview.warnings.length} findings` : "Complete Source and Governance first"}</small>
+          </div>
+        </div>
+        <p>Nothing becomes official memory until human review and the separate publication gate are complete.</p>
+      </aside>
     </div>
   );
 }
