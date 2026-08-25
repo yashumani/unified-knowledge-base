@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import AdvancedApp from "./AdvancedApp";
+import { BrandReveal } from "./components/BrandReveal";
 import { GuidedDemoV2 } from "./components/GuidedDemoV2";
 import { WorkspaceApp } from "./components/workspace/WorkspaceApp";
 
@@ -51,5 +52,10 @@ export default function RootApp() {
     );
   }
 
-  return <WorkspaceApp onOpenAdvanced={() => navigate("advanced")} onOpenGuided={() => navigate("guided")} />;
+  return (
+    <>
+      <BrandReveal />
+      <WorkspaceApp onOpenAdvanced={() => navigate("advanced")} onOpenGuided={() => navigate("guided")} />
+    </>
+  );
 }
