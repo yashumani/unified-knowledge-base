@@ -15,6 +15,7 @@ import "./styles/openwebui-shell.css";
 import "./styles/openwebui-chat.css";
 import "./styles/openwebui-context.css";
 import "./styles/openwebui-surfaces.css";
+import "./styles/mobile-openwebui-fixes.css";
 
 createRoot(document.getElementById("root") as HTMLElement).render(
   <StrictMode><RootApp /></StrictMode>
