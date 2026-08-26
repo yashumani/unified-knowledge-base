@@ -27,12 +27,29 @@ jobs:
           service = Path('src/ukb/governed_runtime/service.py')
           text = service.read_text(encoding='utf-8')
           text = text.replace('\nimport hashlib\n', '\n', 1)
+          text = text.replace('from typing import Any\n', 'from typing import Any, cast\n', 1)
           text = text.replace(
               'from ukb.governed_runtime.cache import CacheCoordinator, canonical_json, digest_payload',
               'from ukb.governed_runtime.cache import CacheCoordinator, digest_payload',
               1,
           )
+          text = text.replace(
+              '            return value.values()\n',
+              '            return cast(Iterable[Any], value.values())\n',
+              1,
+          )
           service.write_text(text, encoding='utf-8')
+
+          conversations = Path('src/ukb/governed_runtime/conversations.py')
+          text = conversations.read_text(encoding='utf-8')
+          if 'import builtins\n' not in text:
+              text = text.replace(
+                  'from __future__ import annotations\n\n',
+                  'from __future__ import annotations\n\nimport builtins\n',
+                  1,
+              )
+          text = text.replace('list[', 'builtins.list[')
+          conversations.write_text(text, encoding='utf-8')
 
           pyproject = Path('pyproject.toml')
           text = pyproject.read_text(encoding='utf-8')
@@ -78,5 +95,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "Finalize governed runtime v0.7 metadata and lint"
+          git commit -m "Finalize governed runtime v0.7 metadata and types"
           git push origin HEAD:${{ github.head_ref }}
