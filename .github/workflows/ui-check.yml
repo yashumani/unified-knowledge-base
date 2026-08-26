@@ -148,7 +148,7 @@ jobs:
             await prepare(ingest, 'governed-ingestion-e2e');
             await ingest.goto(baseUrl, { waitUntil: 'domcontentloaded' });
             await ingest.waitForTimeout(2200);
-            await ingest.getByRole('button', { name: 'Sources', exact: true }).click();
+            await ingest.getByRole('button', { name: /^Sources/ }).click();
             await ingest.getByRole('heading', { name: 'Bring trusted context into the brain.' }).waitFor();
             await ingest.getByRole('button', { name: /Paste context/ }).click();
             await ingest.getByRole('button', { name: 'Continue to governance →' }).click();
@@ -172,7 +172,7 @@ jobs:
               const box = await mobile.locator('.owui-sidebar').boundingBox();
               if (!box || box.x < -2) throw new Error('Mobile sidebar did not open.');
             }
-            await mobile.getByRole('button', { name: 'Sources', exact: true }).click();
+            await mobile.getByRole('button', { name: /^Sources/ }).click();
             await mobile.getByRole('heading', { name: 'Bring trusted context into the brain.' }).waitFor();
             await assertNoOverflow(mobile, 'mobile-drawers');
             await mobile.screenshot({ path: 'ui-screenshots/mobile-sources.png', fullPage: false });
