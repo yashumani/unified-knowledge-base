@@ -237,7 +237,9 @@ export function OpenWebUIBrainApp({
   const [theme, setTheme] = useState<ThemeMode>(initialTheme);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [contextOpen, setContextOpen] = useState(true);
+  const [contextOpen, setContextOpen] = useState(() =>
+    typeof window === "undefined" ? true : window.innerWidth > 1020
+  );
   const [contextTab, setContextTab] = useState<ContextTab>("context");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sidebarSearch, setSidebarSearch] = useState("");
