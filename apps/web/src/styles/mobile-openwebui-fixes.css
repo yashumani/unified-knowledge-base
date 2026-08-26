@@ -145,6 +145,10 @@
     padding-bottom: 4px;
   }
 
+  .owui-composer-tools button span {
+    display: inline;
+  }
+
   .owui-composer {
     padding: 6px;
   }
