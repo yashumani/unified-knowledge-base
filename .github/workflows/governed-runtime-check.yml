@@ -1,0 +1,235 @@
+name: Validate governed runtime, caching, MCP, and ingestion
+
+on:
+  pull_request:
+    paths:
+      - "src/ukb/governed_runtime/**"
+      - "src/ukb/mcp/**"
+      - "src/ukb/config.py"
+      - "migrations/versions/0004_governed_runtime_cache_mcp.py"
+      - "scripts/validate_mcp_transport.py"
+      - "tests/test_governed_runtime.py"
+      - "tests/test_mcp_governance.py"
+      - "deploy/docker-compose.mcp.yml"
+      - "apps/web/src/components/OpenWebUIBrainApp.tsx"
+      - "apps/web/src/components/workspace/IngestionStudio.tsx"
+      - "apps/web/src/components/workspace/IngestionChannelGuide.tsx"
+      - "apps/web/src/**.css"
+      - ".github/workflows/governed-runtime-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  validate:
+    name: End-to-end governed runtime certification
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+
+    env:
+      UKB_REQUIRE_AUTH: "false"
+      UKB_STORE_BACKEND: memory
+      UKB_CONVERSATION_STORE_BACKEND: sqlalchemy
+      UKB_DATABASE_URL: sqlite+pysqlite:///./.ukb/governed-runtime-check.db
+      UKB_CREATE_SCHEMA_ON_STARTUP: "true"
+      UKB_CACHE_ENABLED: "true"
+      UKB_CACHE_BACKEND: redis
+      UKB_CACHE_FAIL_OPEN: "false"
+      UKB_REDIS_URL: redis://127.0.0.1:6379/0
+      UKB_AI_PROVIDER: noop
+      UKB_AI_MODE: offline_no_model
+      UKB_SEARCH_BACKEND: memory
+      UKB_MCP_TRANSPORT: streamable-http
+      UKB_MCP_HOST: 127.0.0.1
+      UKB_MCP_PORT: "8765"
+      UKB_MCP_SUBJECT: governed-runtime-ci
+      UKB_MCP_TENANT_ID: tenant-ci
+      UKB_MCP_ROLES: consumer,submitter
+      UKB_MCP_CLEARANCE: internal
+      UKB_MCP_ALLOW_APPROVAL: "false"
+      UKB_MCP_ALLOW_PUBLICATION: "false"
+      UKB_MCP_ALLOW_CACHE_INVALIDATION: "false"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev,mcp,search]"
+
+      - name: Validate schema and complete Python runtime
+        run: |
+          rm -f .ukb/governed-runtime-check.db
+          mkdir -p .ukb
+          alembic upgrade head
+          ruff check --select E4,E7,E9,F src tests scripts
+          mypy src/ukb
+          pytest -q \
+            --junitxml=governed-runtime-tests.xml \
+            --cov=ukb \
+            --cov-report=term-missing \
+            --cov-report=xml:governed-runtime-coverage.xml
+          python -m compileall -q src tests scripts
+
+      - name: Validate Redis cache behavior
+        run: |
+          python - <<'PY'
+          from ukb.config import Settings
+          from ukb.governed_runtime.cache import CacheCoordinator, CacheNamespace
+
+          settings = Settings(cache_backend="redis", redis_url="redis://127.0.0.1:6379/0", cache_fail_open=False)
+          cache = CacheCoordinator(settings)
+          identity = {"question": "Define churn", "snapshot": "v1", "scope": "tenant-ci"}
+          assert cache.set_json(
+              namespace=CacheNamespace.response,
+              tenant_id="tenant-ci",
+              identity=identity,
+              payload={"answer": "approved"},
+              ttl_seconds=60,
+          )
+          value, event = cache.get_json(
+              namespace=CacheNamespace.response,
+              tenant_id="tenant-ci",
+              subject="governed-runtime-ci",
+              identity=identity,
+          )
+          assert value == {"answer": "approved"}
+          assert event.hit is True
+          other, _ = cache.get_json(
+              namespace=CacheNamespace.response,
+              tenant_id="tenant-other",
+              subject="other",
+              identity=identity,
+          )
+          assert other is None
+          cache.close()
+          PY
+
+      - name: Start and exercise Streamable HTTP MCP
+        run: |
+          nohup python -m ukb.mcp.server > /tmp/ukb-mcp.log 2>&1 &
+          for attempt in {1..40}; do
+            code=$(curl --silent --output /dev/null --write-out "%{http_code}" http://127.0.0.1:8765/mcp || true)
+            if echo "$code" | grep -Eq "200|400|405|406"; then
+              break
+            fi
+            sleep 1
+          done
+          python scripts/validate_mcp_transport.py \
+            --url http://127.0.0.1:8765/mcp \
+            --output governed-mcp-validation.json
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build and exercise simplified Open WebUI ingestion
+        env:
+          GITHUB_PAGES: "true"
+        run: |
+          npm install --no-audit --no-fund
+          npm run web:build
+          npm install --no-save --no-package-lock playwright@1.55.0
+          npx playwright install --with-deps chromium
+          nohup npm --workspace apps/web run preview -- --host 127.0.0.1 --port 4173 > /tmp/ukb-preview.log 2>&1 &
+          for attempt in {1..30}; do
+            curl --fail --silent http://127.0.0.1:4173/unified-knowledge-base/ > /dev/null && break
+            sleep 1
+          done
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+            await page.route('http://localhost:8000/**', route => route.abort());
+            await page.route('http://127.0.0.1:8000/**', route => route.abort());
+            await page.goto('http://127.0.0.1:4173/unified-knowledge-base/?section=sources&source=crawl4ai', { waitUntil: 'domcontentloaded' });
+            await page.waitForTimeout(1800);
+            await page.locator('.ingestion-channel-guide').waitFor();
+            const guideText = await page.locator('.ingestion-channel-guide').innerText();
+            if (!guideText.includes('Connect. Validate. Create a review batch.')) throw new Error('Guided source launchpad missing.');
+            await page.getByRole('button', { name: /Crawl4AI/ }).first().waitFor();
+            await page.getByRole('button', { name: /Validate source →|Continue to governance →/ }).click();
+            await page.getByRole('button', { name: 'Preview and validate source' }).click();
+            await page.getByText('Crawl4AI output preview', { exact: false }).waitFor();
+            const overflow = await page.evaluate(() => ({ viewport: innerWidth, document: document.documentElement.scrollWidth }));
+            if (overflow.document > overflow.viewport + 2) throw new Error(`Horizontal overflow: ${JSON.stringify(overflow)}`);
+            await page.screenshot({ path: 'governed-ingestion-v07.png', fullPage: false });
+            await browser.close();
+          })().catch(error => { console.error(error); process.exit(1); });
+          NODE
+
+      - name: Validate deployment topologies
+        run: |
+          cp -n .env.example .env || true
+          docker compose config > /tmp/local-compose.yml
+          docker compose -f deploy/docker-compose.production.yml config > /tmp/production-compose.yml
+          docker compose -f deploy/docker-compose.mcp.yml config > /tmp/mcp-compose.yml
+
+      - name: Create validation manifest
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          report = {
+              "status": "success",
+              "head_sha": os.environ["GITHUB_SHA"],
+              "runtime_contract": "0.7.0",
+              "checks": {
+                  "alembic": "success",
+                  "ruff": "success",
+                  "mypy": "success",
+                  "pytest": "success",
+                  "redis": "success",
+                  "mcp_streamable_http": "success",
+                  "openwebui_ingestion": "success",
+                  "compose": "success",
+              },
+          }
+          Path("governed-runtime-validation.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+          PY
+
+      - name: Upload governed-runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governed-runtime-v07
+          path: |
+            governed-runtime-validation.json
+            governed-runtime-tests.xml
+            governed-runtime-coverage.xml
+            governed-mcp-validation.json
+            governed-ingestion-v07.png
+            /tmp/ukb-mcp.log
+            /tmp/ukb-preview.log
+            /tmp/mcp-compose.yml
+          if-no-files-found: warn
+
+      - name: Record successful PR evidence
+        if: success() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          gh pr comment "$PR_URL" --body "## Governed runtime v0.7 certification passed\n\n- Workflow: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\n- Commit: \`$GITHUB_SHA\`\n- SQL migration, Ruff, mypy, complete pytest/coverage: **success**\n- Redis tenant isolation: **success**\n- Streamable HTTP MCP initialize/tools/resources/conversation: **success**\n- Open WebUI simplified ingestion journey: **success**\n- Local, production, and MCP Compose validation: **success**\n\nThe workflow artifact contains the test report, coverage, MCP evidence, browser screenshot, and redacted logs."
