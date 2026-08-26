@@ -1,8 +1,8 @@
 name: Apply OpenWebUI branch patch
 
 on:
-  push:
-    branches: ["agent/openwebui-adapted-interface-v0.6"]
+  pull_request:
+    branches: ["main"]
     paths: [".github/workflows/patch-openwebui-branch.yml"]
 
 permissions:
@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   patch:
+    if: github.head_ref == 'agent/openwebui-adapted-interface-v0.6'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
