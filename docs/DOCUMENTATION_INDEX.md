@@ -75,6 +75,7 @@ This repository is a reusable platform for building governed AI Brains. The docu
 
 | Document | Purpose |
 |---|---|
+| `docs/OPENWEBUI_DESIGN_ADAPTATION.md` | Chat-first OpenWebUI-inspired information architecture, route map, responsive behavior, and originality boundary. |
 | `docs/REACT_UI.md` | React console architecture, routes, and graph-view boundary. |
 | `docs/UI_GUIDED_EXPERIENCE.md` | Guided-versus-advanced information architecture. |
 | `docs/UI_EDITORIAL_REDESIGN.md` | Editorial design system and originality boundary. |

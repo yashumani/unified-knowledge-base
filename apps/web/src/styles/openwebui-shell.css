@@ -1,0 +1,239 @@
+/*
+ * Unified Knowledge Base — OpenWebUI-inspired application shell
+ *
+ * This is an original React/CSS implementation that adapts interaction
+ * patterns common to self-hosted AI consoles: persistent navigation,
+ * chat-first work, model/runtime controls, a bottom composer, and a contextual
+ * side panel. It does not copy OpenWebUI branding, assets, or source code.
+ */
+
+body.owui-active {
+  margin: 0;
+  overflow: hidden;
+  background: #0f0f0f;
+  overscroll-behavior: none;
+}
+
+body.owui-active #root {
+  min-height: 100dvh;
+}
+
+.owui-shell {
+  --ow-sidebar-width: 272px;
+  --ow-context-width: 344px;
+  --ow-bg: #f7f7f8;
+  --ow-main: #ffffff;
+  --ow-sidebar: #f1f1f3;
+  --ow-elevated: #ffffff;
+  --ow-soft: #f4f4f5;
+  --ow-soft-strong: #e9e9ec;
+  --ow-border: #dddddf;
+  --ow-border-strong: #c9c9cd;
+  --ow-text: #171717;
+  --ow-text-soft: #3f3f46;
+  --ow-muted: #71717a;
+  --ow-faint: #a1a1aa;
+  --ow-accent: #111827;
+  --ow-accent-contrast: #ffffff;
+  --ow-blue: #2563eb;
+  --ow-blue-soft: #eff6ff;
+  --ow-green: #16a34a;
+  --ow-green-soft: #f0fdf4;
+  --ow-amber: #d97706;
+  --ow-amber-soft: #fffbeb;
+  --ow-violet: #7c3aed;
+  --ow-violet-soft: #f5f3ff;
+  --ow-rose: #e11d48;
+  --ow-rose-soft: #fff1f2;
+  --ow-shadow: 0 18px 48px rgba(15, 23, 42, 0.11);
+  --ow-shadow-soft: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --ow-radius-xs: 7px;
+  --ow-radius-sm: 10px;
+  --ow-radius-md: 14px;
+  --ow-radius-lg: 18px;
+  --ow-radius-xl: 24px;
+  --ow-font: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --paper: var(--ow-bg);
+  --paper-bright: var(--ow-elevated);
+  --paper-deep: var(--ow-soft);
+  --black: var(--ow-text);
+  --black-soft: var(--ow-text-soft);
+  --lime: #a3e635;
+  --coral: #fb7185;
+  --lavender: #a78bfa;
+  --cobalt: var(--ow-blue);
+  --sky-bright: #38bdf8;
+  --sun: #fbbf24;
+  --white: #ffffff;
+  --panel: var(--ow-elevated);
+  --panel-strong: var(--ow-text);
+  --line: var(--ow-border);
+  --line-strong: var(--ow-border-strong);
+  --shadow: var(--ow-shadow-soft);
+  --shadow-card: var(--ow-shadow-soft);
+  --text: var(--ow-text);
+  --muted: var(--ow-muted);
+  --soft: var(--ow-text-soft);
+  --text-2: var(--ow-text-soft);
+  --text-3: var(--ow-text-soft);
+  --text-4: var(--ow-muted);
+
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--ow-sidebar-width) minmax(0, 1fr) var(--ow-context-width);
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--ow-bg);
+  color: var(--ow-text);
+  font-family: var(--ow-font);
+  font-size: 14px;
+  line-height: 1.45;
+  transition: grid-template-columns 180ms ease;
+}
+
+.owui-shell[data-theme="dark"] {
+  --ow-bg: #0f0f0f;
+  --ow-main: #121212;
+  --ow-sidebar: #171717;
+  --ow-elevated: #1c1c1c;
+  --ow-soft: #202020;
+  --ow-soft-strong: #292929;
+  --ow-border: #303030;
+  --ow-border-strong: #3d3d3d;
+  --ow-text: #f4f4f5;
+  --ow-text-soft: #d4d4d8;
+  --ow-muted: #a1a1aa;
+  --ow-faint: #71717a;
+  --ow-accent: #f4f4f5;
+  --ow-accent-contrast: #111111;
+  --ow-blue: #60a5fa;
+  --ow-blue-soft: #172554;
+  --ow-green: #4ade80;
+  --ow-green-soft: #052e16;
+  --ow-amber: #fbbf24;
+  --ow-amber-soft: #422006;
+  --ow-violet: #c4b5fd;
+  --ow-violet-soft: #2e1065;
+  --ow-rose: #fb7185;
+  --ow-rose-soft: #4c0519;
+  --ow-shadow: 0 20px 60px rgba(0, 0, 0, 0.38);
+  --ow-shadow-soft: 0 10px 28px rgba(0, 0, 0, 0.28);
+  --paper: var(--ow-main);
+  --paper-bright: var(--ow-elevated);
+  --paper-deep: var(--ow-soft);
+  --black: var(--ow-text);
+  --black-soft: var(--ow-text-soft);
+  color-scheme: dark;
+}
+
+.owui-shell.is-sidebar-collapsed { --ow-sidebar-width: 72px; }
+.owui-shell:not(.is-context-open) { --ow-context-width: 0px; }
+.owui-shell *, .owui-shell *::before, .owui-shell *::after { box-sizing: border-box; }
+.owui-shell button, .owui-shell input, .owui-shell textarea, .owui-shell select { font: inherit; }
+.owui-shell button { color: inherit; }
+.owui-shell svg { width: 20px; height: 20px; flex: 0 0 auto; }
+
+.owui-skip-link {
+  position: fixed;
+  left: 16px;
+  top: 16px;
+  z-index: 200;
+  transform: translateY(-180%);
+  padding: 10px 14px;
+  border-radius: var(--ow-radius-sm);
+  background: var(--ow-accent);
+  color: var(--ow-accent-contrast);
+  text-decoration: none;
+  font-weight: 700;
+  transition: transform 150ms ease;
+}
+.owui-skip-link:focus { transform: translateY(0); }
+
+.owui-sidebar {
+  position: relative;
+  z-index: 40;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  overflow: hidden;
+  border-right: 1px solid var(--ow-border);
+  background: var(--ow-sidebar);
+  transition: width 180ms ease, transform 180ms ease;
+}
+.owui-sidebar-top { display: flex; align-items: center; justify-content: space-between; min-height: 48px; gap: 8px; }
+.owui-brand { display: flex; align-items: center; min-width: 0; gap: 10px; padding: 5px; border: 0; background: transparent; cursor: pointer; text-align: left; }
+.owui-brand-mark { display: grid; width: 36px; height: 36px; place-items: center; flex: 0 0 auto; overflow: hidden; border: 1px solid var(--ow-border); border-radius: 11px; background: #0b1220; box-shadow: inset 0 0 0 1px rgba(255,255,255,.04); }
+.owui-brand-mark img { width: 31px; height: 31px; object-fit: contain; }
+.owui-brand-copy, .owui-model-selector > span:nth-child(2), .owui-profile > span:nth-child(2) { display: flex; min-width: 0; flex-direction: column; }
+.owui-brand-copy strong { overflow: hidden; font-size: 14px; font-weight: 700; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
+.owui-brand-copy small { overflow: hidden; color: var(--ow-muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+
+.owui-icon-button { display: inline-grid; width: 36px; height: 36px; place-items: center; flex: 0 0 auto; border: 0; border-radius: 10px; background: transparent; color: var(--ow-muted); cursor: pointer; transition: background 120ms ease, color 120ms ease; }
+.owui-icon-button:hover, .owui-icon-button.is-active { background: var(--ow-soft-strong); color: var(--ow-text); }
+.owui-icon-button:focus-visible, .owui-sidebar button:focus-visible, .owui-composer button:focus-visible, .owui-shell input:focus-visible, .owui-shell textarea:focus-visible, .owui-shell select:focus-visible { outline: 2px solid var(--ow-blue); outline-offset: 2px; }
+
+.owui-new-chat { display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; min-height: 42px; padding: 9px 12px; border: 1px solid var(--ow-border-strong); border-radius: 12px; background: var(--ow-elevated); box-shadow: 0 1px 1px rgba(0,0,0,.03); cursor: pointer; font-weight: 650; transition: border-color 120ms ease, background 120ms ease, transform 120ms ease; }
+.owui-new-chat:hover { border-color: var(--ow-faint); background: var(--ow-soft); }
+.owui-new-chat:active { transform: scale(.99); }
+.owui-new-chat svg { width: 18px; height: 18px; }
+
+.owui-sidebar-search { display: flex; min-height: 38px; align-items: center; gap: 8px; padding: 0 10px; border-radius: 10px; color: var(--ow-muted); transition: background 120ms ease; }
+.owui-sidebar-search:focus-within { background: var(--ow-soft-strong); }
+.owui-sidebar-search svg { width: 17px; height: 17px; }
+.owui-sidebar-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ow-text); font-size: 13px; }
+.owui-sidebar-search input::placeholder { color: var(--ow-faint); }
+
+.owui-primary-nav, .owui-secondary-nav { display: flex; flex-direction: column; gap: 2px; }
+.owui-primary-nav > p { margin: 10px 9px 5px; color: var(--ow-faint); font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.owui-primary-nav > button, .owui-secondary-nav > button { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; min-height: 38px; padding: 7px 9px; border: 0; border-radius: 10px; background: transparent; color: var(--ow-text-soft); cursor: pointer; text-align: left; transition: background 110ms ease, color 110ms ease; }
+.owui-primary-nav > button:hover, .owui-secondary-nav > button:hover { background: var(--ow-soft-strong); color: var(--ow-text); }
+.owui-primary-nav > button.is-active, .owui-secondary-nav > button.is-active { background: var(--ow-soft-strong); color: var(--ow-text); font-weight: 650; }
+.owui-primary-nav > button svg, .owui-secondary-nav > button svg { width: 18px; height: 18px; }
+.owui-primary-nav > button span, .owui-secondary-nav > button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.owui-primary-nav > button small { display: grid; min-width: 22px; height: 20px; place-items: center; padding: 0 5px; border-radius: 999px; background: var(--ow-elevated); color: var(--ow-muted); font-size: 10px; font-weight: 650; }
+
+.owui-recent-list { min-height: 0; flex: 1; overflow: auto; padding-top: 8px; scrollbar-width: thin; scrollbar-color: var(--ow-border-strong) transparent; }
+.owui-sidebar-group-heading { display: flex; align-items: center; justify-content: space-between; padding: 0 9px 5px; color: var(--ow-faint); font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.owui-sidebar-group-heading button { border: 0; background: transparent; color: var(--ow-faint); cursor: pointer; }
+.owui-recent-list > button { display: flex; width: 100%; flex-direction: column; gap: 1px; padding: 8px 9px; border: 0; border-radius: 9px; background: transparent; cursor: pointer; text-align: left; }
+.owui-recent-list > button:hover { background: var(--ow-soft-strong); }
+.owui-recent-list > button span, .owui-recent-list > button small { width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.owui-recent-list > button span { color: var(--ow-text-soft); font-size: 12.5px; }
+.owui-recent-list > button small { color: var(--ow-faint); font-size: 10.5px; }
+
+.owui-secondary-nav { padding-top: 8px; border-top: 1px solid var(--ow-border); }
+.owui-sidebar-footer { padding-top: 6px; }
+.owui-profile { display: grid; grid-template-columns: 34px minmax(0, 1fr) 20px; align-items: center; gap: 9px; width: 100%; min-height: 46px; padding: 6px; border: 0; border-radius: 11px; background: transparent; cursor: pointer; text-align: left; }
+.owui-profile:hover { background: var(--ow-soft-strong); }
+.owui-avatar { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 50%; background: linear-gradient(145deg, var(--ow-blue), var(--ow-violet)); color: white; }
+.owui-avatar svg { width: 17px; height: 17px; }
+.owui-profile strong, .owui-profile small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.owui-profile strong { font-size: 12px; }
+.owui-profile small { color: var(--ow-muted); font-size: 10.5px; }
+.owui-profile > svg { width: 16px; height: 16px; color: var(--ow-faint); }
+
+.owui-shell.is-sidebar-collapsed .owui-brand-copy,
+.owui-shell.is-sidebar-collapsed .owui-new-chat span,
+.owui-shell.is-sidebar-collapsed .owui-sidebar-search input,
+.owui-shell.is-sidebar-collapsed .owui-primary-nav > p,
+.owui-shell.is-sidebar-collapsed .owui-primary-nav button span,
+.owui-shell.is-sidebar-collapsed .owui-primary-nav button small,
+.owui-shell.is-sidebar-collapsed .owui-recent-list,
+.owui-shell.is-sidebar-collapsed .owui-secondary-nav button span,
+.owui-shell.is-sidebar-collapsed .owui-profile > span:nth-child(2),
+.owui-shell.is-sidebar-collapsed .owui-profile > svg { display: none; }
+.owui-shell.is-sidebar-collapsed .owui-sidebar-top,
+.owui-shell.is-sidebar-collapsed .owui-brand,
+.owui-shell.is-sidebar-collapsed .owui-new-chat,
+.owui-shell.is-sidebar-collapsed .owui-sidebar-search,
+.owui-shell.is-sidebar-collapsed .owui-primary-nav > button,
+.owui-shell.is-sidebar-collapsed .owui-secondary-nav > button,
+.owui-shell.is-sidebar-collapsed .owui-profile { justify-content: center; }
+.owui-shell.is-sidebar-collapsed .owui-sidebar-top { flex-direction: column; }
+.owui-shell.is-sidebar-collapsed .owui-primary-nav > button,
+.owui-shell.is-sidebar-collapsed .owui-secondary-nav > button { display: flex; width: 42px; margin-inline: auto; padding-inline: 12px; }
+.owui-shell.is-sidebar-collapsed .owui-sidebar-search { width: 42px; margin-inline: auto; }
+.owui-shell.is-sidebar-collapsed .owui-profile { display: flex; }
