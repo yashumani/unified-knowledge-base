@@ -120,6 +120,7 @@ The UI changes navigation and presentation. It does not allow the model to appro
 ### Phone
 
 - Sidebar becomes a modal drawer
+- Brain Chat opens unobstructed, with the context inspector closed until requested
 - Context inspector becomes a right drawer
 - Composer stays above the safe-area inset
 - Secondary mode and domain controls collapse to reduce clutter
