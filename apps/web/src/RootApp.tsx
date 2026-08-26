@@ -1,18 +1,15 @@
 import { useEffect, useState } from "react";
 import AdvancedApp from "./AdvancedApp";
-import { BrandReveal } from "./components/BrandReveal";
 import { GuidedDemoV2 } from "./components/GuidedDemoV2";
-import { KnowledgeOperations } from "./components/KnowledgeOperations";
-import { WorkspaceApp } from "./components/workspace/WorkspaceApp";
+import { OpenWebUIBrainApp } from "./components/OpenWebUIBrainApp";
 
-export type Experience = "workspace" | "guided" | "advanced" | "operations";
+export type Experience = "workspace" | "guided" | "advanced";
 
 function experienceFromLocation(): Experience {
   if (typeof window === "undefined") return "workspace";
   const view = new URLSearchParams(window.location.search).get("view");
   if (view === "advanced") return "advanced";
   if (view === "guided") return "guided";
-  if (view === "operations") return "operations";
   return "workspace";
 }
 
@@ -28,11 +25,9 @@ export default function RootApp() {
   function navigate(next: Experience) {
     const url = new URL(window.location.href);
     url.searchParams.delete("page");
-    if (next === "advanced" || next === "guided" || next === "operations") {
-      url.searchParams.set("view", next);
-    } else {
-      url.searchParams.delete("view");
-    }
+    url.searchParams.delete("section");
+    if (next === "advanced" || next === "guided") url.searchParams.set("view", next);
+    else url.searchParams.delete("view");
     url.hash = "";
     window.history.pushState({}, "", url);
     setExperience(next);
@@ -43,7 +38,7 @@ export default function RootApp() {
     return (
       <div className="advanced-experience-shell">
         <AdvancedApp />
-        <button type="button" className="experience-switcher" onClick={() => navigate("workspace")}>← Dashboard</button>
+        <button type="button" className="experience-switcher" onClick={() => navigate("workspace")}>← AI Brain</button>
       </div>
     );
   }
@@ -52,19 +47,15 @@ export default function RootApp() {
     return (
       <div className="guided-experience-shell">
         <GuidedDemoV2 onOpenAdvanced={() => navigate("advanced")} />
-        <button type="button" className="experience-switcher" onClick={() => navigate("workspace")}>← Dashboard</button>
+        <button type="button" className="experience-switcher" onClick={() => navigate("workspace")}>← AI Brain</button>
       </div>
     );
   }
 
-  if (experience === "operations") {
-    return <KnowledgeOperations onBack={() => navigate("workspace")} />;
-  }
-
   return (
-    <>
-      <BrandReveal />
-      <WorkspaceApp onOpenAdvanced={() => navigate("advanced")} onOpenGuided={() => navigate("guided")} />
-    </>
+    <OpenWebUIBrainApp
+      onOpenAdvanced={() => navigate("advanced")}
+      onOpenGuided={() => navigate("guided")}
+    />
   );
 }

@@ -10,9 +10,11 @@ import "./styles/editorial.css";
 import "./styles/editorial-fixes.css";
 import "./styles/guided-demo.css";
 import "./styles/workspace.css";
-import "./styles/brand-reveal.css";
 import "./styles/architecture-hardening.css";
-import "./styles/knowledge-operations.css";
+import "./styles/openwebui-shell.css";
+import "./styles/openwebui-chat.css";
+import "./styles/openwebui-context.css";
+import "./styles/openwebui-surfaces.css";
 
 createRoot(document.getElementById("root") as HTMLElement).render(
   <StrictMode><RootApp /></StrictMode>
