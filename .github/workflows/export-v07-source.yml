@@ -1,0 +1,25 @@
+name: Export v0.7 source
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/export-v07-source.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Package repository source
+        run: tar --exclude=.git -czf ukb-v07-source.tar.gz .
+      - name: Upload source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: ukb-v07-source
+          path: ukb-v07-source.tar.gz
+          if-no-files-found: error
