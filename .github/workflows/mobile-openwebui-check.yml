@@ -1,0 +1,163 @@
+name: Validate OpenWebUI mobile layout
+
+on:
+  pull_request:
+    paths:
+      - "apps/web/src/components/OpenWebUIBrainApp.tsx"
+      - "apps/web/src/main.tsx"
+      - "apps/web/src/styles/openwebui-*.css"
+      - "apps/web/src/styles/mobile-openwebui-fixes.css"
+      - ".github/workflows/mobile-openwebui-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-openwebui-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mobile:
+    name: Keep every mobile Brain Chat action reachable
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build GitHub Pages bundle
+        env:
+          GITHUB_PAGES: "true"
+        run: npm run web:build
+
+      - name: Install Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Start preview
+        env:
+          GITHUB_PAGES: "true"
+        run: |
+          nohup npm --workspace apps/web run preview -- --host 127.0.0.1 --port 4173 > /tmp/ukb-mobile-preview.log 2>&1 &
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4173/unified-knowledge-base/ > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/ukb-mobile-preview.log
+          exit 1
+
+      - name: Validate short and standard phone viewports
+        run: |
+          mkdir -p mobile-ui-screenshots
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          const baseUrl = 'http://127.0.0.1:4173/unified-knowledge-base/';
+
+          async function validateViewport(browser, viewport, name) {
+            const page = await browser.newPage({ viewport });
+            const pageErrors = [];
+            page.on('pageerror', error => pageErrors.push(error.message));
+            await page.route('http://localhost:8000/**', route => route.abort());
+            await page.route('http://127.0.0.1:8000/**', route => route.abort());
+            await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+            await page.waitForTimeout(2200);
+
+            const options = page.locator('.owui-suggestion-grid > button');
+            if (await options.count() !== 4) {
+              throw new Error(`${name}: expected four starter actions`);
+            }
+
+            const hidden = await options.evaluateAll(elements => elements
+              .map(element => {
+                const style = getComputedStyle(element);
+                const rect = element.getBoundingClientRect();
+                return {
+                  text: (element.textContent || '').trim().replace(/\s+/g, ' '),
+                  display: style.display,
+                  visibility: style.visibility,
+                  width: rect.width,
+                  height: rect.height
+                };
+              })
+              .filter(item => item.display === 'none' || item.visibility === 'hidden' || item.width < 1 || item.height < 1));
+            if (hidden.length) {
+              throw new Error(`${name}: hidden starter actions\n${JSON.stringify(hidden, null, 2)}`);
+            }
+
+            const geometry = await page.evaluate(() => {
+              const main = document.querySelector('.owui-main');
+              const composer = document.querySelector('.owui-composer-wrap');
+              const chat = document.querySelector('.owui-chat-empty');
+              if (!(main instanceof HTMLElement) || !(composer instanceof HTMLElement) || !(chat instanceof HTMLElement)) {
+                throw new Error('Required mobile layout elements are missing');
+              }
+              const mainRect = main.getBoundingClientRect();
+              const composerRect = composer.getBoundingClientRect();
+              chat.scrollTop = chat.scrollHeight;
+              return {
+                viewportHeight: window.innerHeight,
+                viewportWidth: window.innerWidth,
+                documentWidth: document.documentElement.scrollWidth,
+                mainBottom: mainRect.bottom,
+                composerTop: composerRect.top,
+                composerBottom: composerRect.bottom,
+                scrollTop: chat.scrollTop,
+                scrollHeight: chat.scrollHeight,
+                clientHeight: chat.clientHeight
+              };
+            });
+
+            if (geometry.documentWidth > geometry.viewportWidth + 2) {
+              throw new Error(`${name}: horizontal overflow\n${JSON.stringify(geometry, null, 2)}`);
+            }
+            if (geometry.mainBottom > geometry.composerTop + 2) {
+              throw new Error(`${name}: composer overlaps the chat viewport\n${JSON.stringify(geometry, null, 2)}`);
+            }
+            if (geometry.composerBottom > geometry.viewportHeight + 2) {
+              throw new Error(`${name}: composer is below the visual viewport\n${JSON.stringify(geometry, null, 2)}`);
+            }
+
+            await page.waitForTimeout(100);
+            const lastOption = await options.last().boundingBox();
+            const chatViewport = await page.locator('.owui-chat-empty').boundingBox();
+            if (!lastOption || !chatViewport || lastOption.y + lastOption.height > chatViewport.y + chatViewport.height + 2) {
+              throw new Error(`${name}: final starter action is not reachable above the composer`);
+            }
+            if (pageErrors.length) {
+              throw new Error(`${name}: page errors\n${pageErrors.join('\n')}`);
+            }
+
+            await page.screenshot({ path: `mobile-ui-screenshots/${name}.png`, fullPage: false });
+            await page.close();
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            await validateViewport(browser, { width: 414, height: 720 }, 'short-phone-actions');
+            await validateViewport(browser, { width: 390, height: 844 }, 'standard-phone-actions');
+            await browser.close();
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Upload mobile screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openwebui-mobile-layout
+          path: mobile-ui-screenshots
+          if-no-files-found: warn
