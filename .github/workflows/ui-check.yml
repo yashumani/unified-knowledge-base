@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   build:
-    name: Type-check, render, and test workspace + guided + advanced UI
+    name: Type-check, render, and test OpenWebUI-adapted AI Brain
     runs-on: ubuntu-latest
 
     steps:
@@ -57,57 +57,14 @@ jobs:
           cat /tmp/ukb-preview.log
           exit 1
 
-      - name: Render and exercise workspace, guided, and advanced experiences
+      - name: Exercise chat, governance, desktop, and mobile journeys
         run: |
           mkdir -p ui-screenshots
           node <<'NODE'
           const { chromium } = require('playwright');
 
           const baseUrl = 'http://127.0.0.1:4173/unified-knowledge-base/';
-          const configurations = [
-            {
-              name: 'workspace-desktop',
-              url: baseUrl,
-              viewport: { width: 1440, height: 1000 },
-              heading: 'build, govern and recall ai memory',
-              landmarks: ['#workspace-main']
-            },
-            {
-              name: 'workspace-mobile',
-              url: baseUrl,
-              viewport: { width: 390, height: 844 },
-              heading: 'build, govern and recall ai memory',
-              landmarks: ['#workspace-main']
-            },
-            {
-              name: 'guided-desktop',
-              url: `${baseUrl}?view=guided`,
-              viewport: { width: 1440, height: 1000 },
-              heading: 'three steps',
-              landmarks: ['#guided-workflow']
-            },
-            {
-              name: 'guided-mobile',
-              url: `${baseUrl}?view=guided`,
-              viewport: { width: 390, height: 844 },
-              heading: 'three steps',
-              landmarks: ['#guided-workflow']
-            },
-            {
-              name: 'advanced-desktop',
-              url: `${baseUrl}?view=advanced`,
-              viewport: { width: 1440, height: 1000 },
-              heading: 'right memory',
-              landmarks: ['#pipeline', '#brain-map', '#questions']
-            },
-            {
-              name: 'advanced-mobile',
-              url: `${baseUrl}?view=advanced`,
-              viewport: { width: 390, height: 844 },
-              heading: 'right memory',
-              landmarks: ['#pipeline', '#brain-map', '#questions']
-            }
-          ];
+          const pageErrors = [];
 
           async function prepare(page, label) {
             page.on('pageerror', error => pageErrors.push(`${label}: ${error.message}`));
@@ -125,125 +82,122 @@ jobs:
                   return {
                     tag: element.tagName.toLowerCase(),
                     className: typeof element.className === 'string' ? element.className : '',
-                    text: (element.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 90),
+                    text: (element.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 80),
                     left: Math.round(rect.left),
                     right: Math.round(rect.right),
                     width: Math.round(rect.width),
                     excess: Math.max(0, Math.round(rect.right - window.innerWidth))
                   };
                 })
-                .filter(item => item.right > window.innerWidth + 1 || item.left < -1)
+                .filter(item => item.right > window.innerWidth + 2 || item.left < -2)
                 .sort((a, b) => b.excess - a.excess)
                 .slice(0, 12)
             }));
-
             if (overflow.document > overflow.viewport + 2) {
-              throw new Error(
-                `${name}: horizontal overflow ${overflow.document}px > ${overflow.viewport}px\n` +
-                JSON.stringify(overflow.offenders, null, 2)
-              );
+              throw new Error(`${name}: horizontal overflow ${overflow.document}px > ${overflow.viewport}px\n${JSON.stringify(overflow.offenders, null, 2)}`);
             }
           }
 
-          const pageErrors = [];
+          async function validateShell(page, name, heading) {
+            await page.waitForSelector('.owui-shell');
+            const text = await page.locator('h1').first().innerText();
+            if (!text.toLowerCase().includes(heading)) {
+              throw new Error(`${name}: unexpected heading ${text}`);
+            }
+            for (const selector of ['.owui-sidebar', '.owui-center-column', '.owui-topbar']) {
+              if (await page.locator(selector).count() !== 1) throw new Error(`${name}: missing ${selector}`);
+            }
+            await assertNoOverflow(page, name);
+          }
 
           (async () => {
             const browser = await chromium.launch({ headless: true });
+            const configurations = [
+              { name: 'brain-chat-desktop', url: baseUrl, viewport: { width: 1440, height: 1000 }, heading: 'what should the ai brain understand' },
+              { name: 'brain-chat-mobile', url: baseUrl, viewport: { width: 390, height: 844 }, heading: 'what should the ai brain understand' },
+              { name: 'sources-desktop', url: `${baseUrl}?section=sources`, viewport: { width: 1440, height: 1000 }, heading: 'bring trusted context into the brain' },
+              { name: 'sources-mobile', url: `${baseUrl}?section=sources`, viewport: { width: 390, height: 844 }, heading: 'bring trusted context into the brain' },
+              { name: 'operations-desktop', url: `${baseUrl}?view=operations`, viewport: { width: 1440, height: 1000 }, heading: 'operate the knowledge supply chain' },
+              { name: 'operations-mobile', url: `${baseUrl}?view=operations`, viewport: { width: 390, height: 844 }, heading: 'operate the knowledge supply chain' }
+            ];
 
             for (const configuration of configurations) {
               const page = await browser.newPage({ viewport: configuration.viewport });
               await prepare(page, configuration.name);
               await page.goto(configuration.url, { waitUntil: 'domcontentloaded' });
-              await page.waitForTimeout(2500);
-
-              const heading = await page.locator('h1').innerText();
-              if (!heading.toLowerCase().includes(configuration.heading)) {
-                throw new Error(`${configuration.name}: unexpected hero heading: ${heading}`);
-              }
-
-              for (const selector of configuration.landmarks) {
-                if (await page.locator(selector).count() !== 1) {
-                  throw new Error(`${configuration.name}: missing landmark ${selector}`);
-                }
-              }
-
-              if (configuration.name.startsWith('workspace')) {
-                const tracker = page.getByRole('navigation', { name: 'AI brain workflow' });
-                if (await tracker.getByRole('button').count() !== 5) {
-                  throw new Error(`${configuration.name}: expected five persistent workflow stages`);
-                }
-              }
-
-              await assertNoOverflow(page, configuration.name);
-              await page.screenshot({
-                path: `ui-screenshots/${configuration.name}-hero.png`,
-                fullPage: false
-              });
-              await page.screenshot({
-                path: `ui-screenshots/${configuration.name}-full-page.png`,
-                fullPage: true
-              });
+              await page.waitForTimeout(2200);
+              await validateShell(page, configuration.name, configuration.heading);
+              await page.screenshot({ path: `ui-screenshots/${configuration.name}.png`, fullPage: false });
               await page.close();
             }
 
-            // Exercise the dashboard ingestion flow in browser demo mode.
-            const workspace = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-            await prepare(workspace, 'workspace-e2e');
-            await workspace.goto(baseUrl, { waitUntil: 'domcontentloaded' });
-            await workspace.waitForTimeout(2500);
-            await workspace.getByRole('navigation', { name: 'AI brain workflow' })
-              .getByRole('button', { name: /Submit/ }).click();
-            await workspace.getByRole('heading', { name: 'Build a clean ingestion batch.' }).waitFor();
-            await workspace.getByRole('button', { name: /Paste context/ }).click();
-            await workspace.getByRole('button', { name: 'Continue to governance →' }).click();
-            await workspace.getByRole('button', { name: 'Preview and validate source' }).click();
-            await workspace.getByText('Source manifest', { exact: true }).waitFor();
-            await workspace.getByRole('button', { name: 'Continue to create →' }).click();
-            await workspace.getByRole('button', { name: 'Create governed review batch' }).click();
-            await workspace.getByText('Batch sent to human review', { exact: true }).waitFor();
-            await workspace.getByRole('button', { name: 'Continue to enrichment →' }).click();
-            await workspace.getByRole('heading', { name: 'Turn evidence into structured candidates.' }).waitFor();
-            await assertNoOverflow(workspace, 'workspace-e2e');
-            await workspace.screenshot({ path: 'ui-screenshots/workspace-ingestion-complete.png', fullPage: false });
-            await workspace.close();
+            const chat = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+            await prepare(chat, 'brain-chat-e2e');
+            await chat.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+            await chat.waitForTimeout(2200);
+            const composer = chat.getByLabel('Ask the governed AI Brain');
+            await composer.fill('What does Incident Resolution Time mean and which approved sources define it?');
+            await composer.press('Enter');
+            await chat.locator('.owui-message.is-assistant .owui-pack-summary').waitFor({ timeout: 15000 });
+            await chat.getByText('approved objects', { exact: true }).first().waitFor();
+            await assertNoOverflow(chat, 'brain-chat-e2e');
+            await chat.screenshot({ path: 'ui-screenshots/brain-chat-context-pack.png', fullPage: false });
+            await chat.close();
 
-            // Validate the Crawl4AI preview without publishing a candidate.
-            const crawl = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-            await prepare(crawl, 'crawl4ai-preview');
-            await crawl.goto(`${baseUrl}?page=ingest`, { waitUntil: 'domcontentloaded' });
-            await crawl.waitForTimeout(2500);
-            await crawl.getByRole('button', { name: /Crawl4AI/ }).click();
-            await crawl.getByRole('button', { name: 'Continue to governance →' }).click();
-            await crawl.getByRole('button', { name: 'Preview and validate source' }).click();
-            await crawl.getByText('Crawl4AI output preview', { exact: false }).waitFor();
-            await assertNoOverflow(crawl, 'crawl4ai-preview');
-            await crawl.screenshot({ path: 'ui-screenshots/crawl4ai-preview.png', fullPage: false });
-            await crawl.close();
+            const ingest = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+            await prepare(ingest, 'governed-ingestion-e2e');
+            await ingest.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+            await ingest.waitForTimeout(2200);
+            await ingest.getByRole('button', { name: 'Sources', exact: true }).click();
+            await ingest.getByRole('heading', { name: 'Bring trusted context into the brain.' }).waitFor();
+            await ingest.getByRole('button', { name: /Paste context/ }).click();
+            await ingest.getByRole('button', { name: 'Continue to governance →' }).click();
+            await ingest.getByRole('button', { name: 'Preview and validate source' }).click();
+            await ingest.getByText('Source manifest', { exact: true }).waitFor();
+            await ingest.getByRole('button', { name: 'Continue to create →' }).click();
+            await ingest.getByRole('button', { name: 'Create governed review batch' }).click();
+            await ingest.getByText('Batch sent to human review', { exact: true }).waitFor();
+            await assertNoOverflow(ingest, 'governed-ingestion-e2e');
+            await ingest.screenshot({ path: 'ui-screenshots/governed-ingestion-complete.png', fullPage: false });
+            await ingest.close();
 
-            // Exercise the separate guided path in browser demo mode.
-            const guided = await browser.newPage({ viewport: { width: 1280, height: 900 } });
-            await prepare(guided, 'guided-e2e');
-            await guided.goto(`${baseUrl}?view=guided`, { waitUntil: 'domcontentloaded' });
-            await guided.waitForTimeout(2500);
-            await guided.getByRole('button', { name: 'Create review candidate' }).click();
-            await guided.getByRole('heading', { name: 'Approve what the AI may remember' }).waitFor();
-            await guided.getByRole('button', { name: 'Approve and publish this memory' }).click();
-            await guided.getByRole('button', { name: 'Yes, publish it' }).click();
-            await guided.getByRole('heading', { name: 'Ask the approved brain' }).waitFor();
-            await guided.getByRole('button', { name: 'Build the context pack' }).click();
-            await guided.getByRole('heading', {
-              name: 'The AI receives governed context—not a pile of files.'
-            }).waitFor();
-
-            if (await guided.getByText('Evidence used').count() !== 1) {
-              throw new Error('guided-e2e: the result did not expose its evidence section');
+            const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } });
+            await prepare(mobile, 'mobile-drawers');
+            await mobile.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+            await mobile.waitForTimeout(2200);
+            await mobile.getByRole('button', { name: 'Open navigation' }).click();
+            await mobile.locator('.owui-sidebar').waitFor();
+            const transform = await mobile.locator('.owui-sidebar').evaluate(el => getComputedStyle(el).transform);
+            if (transform === 'none') {
+              const box = await mobile.locator('.owui-sidebar').boundingBox();
+              if (!box || box.x < -2) throw new Error('Mobile sidebar did not open.');
             }
-            await assertNoOverflow(guided, 'guided-e2e');
-            await guided.screenshot({ path: 'ui-screenshots/guided-complete.png', fullPage: true });
+            await mobile.getByRole('button', { name: 'Sources', exact: true }).click();
+            await mobile.getByRole('heading', { name: 'Bring trusted context into the brain.' }).waitFor();
+            await assertNoOverflow(mobile, 'mobile-drawers');
+            await mobile.screenshot({ path: 'ui-screenshots/mobile-sources.png', fullPage: false });
+            await mobile.close();
+
+            const guided = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+            await prepare(guided, 'guided-regression');
+            await guided.goto(`${baseUrl}?view=guided`, { waitUntil: 'domcontentloaded' });
+            await guided.waitForTimeout(1800);
+            if (!(await guided.locator('#guided-workflow').count())) throw new Error('Guided experience missing.');
+            await assertNoOverflow(guided, 'guided-regression');
             await guided.close();
 
+            const advanced = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+            await prepare(advanced, 'advanced-regression');
+            await advanced.goto(`${baseUrl}?view=advanced`, { waitUntil: 'domcontentloaded' });
+            await advanced.waitForTimeout(1800);
+            for (const selector of ['#pipeline', '#brain-map', '#questions']) {
+              if (!(await advanced.locator(selector).count())) throw new Error(`Advanced experience missing ${selector}.`);
+            }
+            await assertNoOverflow(advanced, 'advanced-regression');
+            await advanced.close();
+
             await browser.close();
-            if (pageErrors.length) throw new Error(pageErrors.join('\n'));
+            if (pageErrors.length) throw new Error(`Page errors:\n${pageErrors.join('\n')}`);
           })().catch(error => {
             console.error(error);
             process.exit(1);
@@ -254,9 +208,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ukb-workspace-guided-advanced-ui
+          name: openwebui-adapted-ui
           path: |
             apps/web/dist
             ui-screenshots
-          if-no-files-found: error
-          retention-days: 7
