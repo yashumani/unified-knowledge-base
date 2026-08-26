@@ -270,14 +270,15 @@ export function OpenWebUIBrainApp({
   }, []);
 
   useEffect(() => {
-    if (!pendingQuestion || !brain.contextPack || brain.contextPack.question !== pendingQuestion) return;
+    const pack = brain.contextPack;
+    if (!pendingQuestion || !pack || pack.question !== pendingQuestion) return;
     setMessages((current) => [
       ...current,
       {
         id: messageId("assistant"),
         role: "assistant",
-        content: brain.contextPack?.answer_guidance ?? "The governed context pack is ready.",
-        pack: brain.contextPack,
+        content: pack.answer_guidance || "The governed context pack is ready.",
+        pack,
         createdAt: new Date().toISOString()
       }
     ]);
