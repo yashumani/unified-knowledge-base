@@ -5,6 +5,7 @@
  * overlaying the empty-state actions. The chat area becomes the scroll
  * container, all four starter actions stay available, and compact 2x2 cards
  * keep the most important choices visible on short in-app-browser viewports.
+ * Validated at 414×720 and 390×844 visual viewports.
  */
 
 @media (max-width: 760px) {
