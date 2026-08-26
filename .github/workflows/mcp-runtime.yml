@@ -1,0 +1,118 @@
+name: Validate governed MCP runtime
+
+on:
+  pull_request:
+    paths:
+      - "src/ukb/governed_runtime/**"
+      - "src/ukb/mcp/**"
+      - "src/ukb/config.py"
+      - "scripts/validate_mcp_transport.py"
+      - "tests/test_governed_runtime.py"
+      - "tests/test_mcp_governance.py"
+      - "deploy/docker-compose.mcp.yml"
+      - "migrations/versions/0004_governed_runtime_cache_mcp.py"
+      - ".github/workflows/mcp-runtime.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  governed-mcp:
+    name: Cache, conversation, and Streamable HTTP MCP validation
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+
+    env:
+      UKB_REQUIRE_AUTH: "false"
+      UKB_STORE_BACKEND: memory
+      UKB_CONVERSATION_STORE_BACKEND: sqlalchemy
+      UKB_DATABASE_URL: sqlite+pysqlite:///./.ukb/mcp-validation.db
+      UKB_CREATE_SCHEMA_ON_STARTUP: "true"
+      UKB_CACHE_ENABLED: "true"
+      UKB_CACHE_BACKEND: redis
+      UKB_CACHE_FAIL_OPEN: "false"
+      UKB_REDIS_URL: redis://127.0.0.1:6379/0
+      UKB_AI_PROVIDER: noop
+      UKB_AI_MODE: offline_no_model
+      UKB_SEARCH_BACKEND: memory
+      UKB_MCP_TRANSPORT: streamable-http
+      UKB_MCP_HOST: 127.0.0.1
+      UKB_MCP_PORT: "8765"
+      UKB_MCP_SUBJECT: mcp-ci
+      UKB_MCP_TENANT_ID: tenant-ci
+      UKB_MCP_ROLES: consumer,submitter
+      UKB_MCP_CLEARANCE: internal
+      UKB_MCP_ALLOW_APPROVAL: "false"
+      UKB_MCP_ALLOW_PUBLICATION: "false"
+      UKB_MCP_ALLOW_CACHE_INVALIDATION: "false"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install governed runtime dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev,mcp,search]"
+          python -m pip install "redis>=5.0"
+
+      - name: Apply SQL migrations
+        run: |
+          mkdir -p .ukb
+          alembic upgrade head
+
+      - name: Run focused cache, conversation, and MCP tests
+        run: |
+          ruff check --select E4,E7,E9,F src/ukb/governed_runtime src/ukb/mcp tests/test_governed_runtime.py tests/test_mcp_governance.py
+          mypy src/ukb/governed_runtime src/ukb/mcp
+          pytest -q tests/test_governed_runtime.py tests/test_mcp_governance.py
+
+      - name: Validate Compose topology
+        run: docker compose -f deploy/docker-compose.mcp.yml config > /tmp/mcp-compose.yml
+
+      - name: Start Streamable HTTP MCP server
+        run: |
+          nohup python -m ukb.mcp.server > /tmp/ukb-mcp.log 2>&1 &
+          echo $! > /tmp/ukb-mcp.pid
+          for attempt in {1..40}; do
+            if curl --silent --output /dev/null --write-out "%{http_code}" http://127.0.0.1:8765/mcp | grep -Eq "200|400|405|406"; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/ukb-mcp.log
+          exit 1
+
+      - name: Exercise MCP initialize, tools, resources, and conversation
+        run: |
+          python scripts/validate_mcp_transport.py \
+            --url http://127.0.0.1:8765/mcp \
+            --output mcp-runtime-validation.json
+
+      - name: Upload MCP validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governed-mcp-runtime
+          path: |
+            mcp-runtime-validation.json
+            /tmp/ukb-mcp.log
+            /tmp/mcp-compose.yml
+          if-no-files-found: warn

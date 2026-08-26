@@ -108,7 +108,36 @@ class Settings(BaseSettings):
     google_drive_access_token: str | None = None
     google_drive_timeout_seconds: int = 30
 
+    # Durable conversation state and disposable cache layers. Conversation
+    # persistence is authoritative; Redis remains an optional optimization.
+    conversation_store_backend: str = "memory"
+    cache_enabled: bool = True
+    cache_backend: str = "memory"
+    cache_fail_open: bool = True
+    redis_url: str = "redis://redis:6379/0"
+    response_cache_ttl_seconds: int = 900
+    tool_cache_ttl_seconds: int = 600
+    retrieval_cache_ttl_seconds: int = 300
+    runtime_prompt_version: str = "governed-brain-prefix-v1"
+    tool_schema_version: str = "mcp-tools-v2"
+    response_schema_version: str = "context-pack-v2"
+    access_policy_version: str = "access-policy-v1"
+    provider_prompt_cache_enabled: bool = True
+    provider_prompt_cache_mode: str = "automatic"
+
+    # MCP is a governed adapter over the shared application/runtime services.
+    # The default principal is a least-privilege service account. Approval and
+    # publication remain disabled unless an explicitly supervised deployment
+    # enables them.
     mcp_server_name: str = "unified-knowledge-base"
+    mcp_transport: str = "stdio"
+    mcp_host: str = "127.0.0.1"
+    mcp_port: int = 8765
+    mcp_subject: str = "mcp-service"
+    mcp_tenant_id: str = "default"
+    mcp_roles: str = "consumer,submitter"
+    mcp_clearance: str = "internal"
+    mcp_allow_cache_invalidation: bool = False
     mcp_allow_approval: bool = False
     mcp_allow_publication: bool = False
 
@@ -139,6 +168,10 @@ class Settings(BaseSettings):
     @property
     def publisher_role_set(self) -> set[str]:
         return {role.strip() for role in self.publisher_roles.split(",") if role.strip()}
+
+    @property
+    def mcp_role_set(self) -> set[str]:
+        return {role.strip() for role in self.mcp_roles.split(",") if role.strip()}
 
 
 @lru_cache

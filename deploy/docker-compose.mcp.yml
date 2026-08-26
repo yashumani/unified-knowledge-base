@@ -1,0 +1,48 @@
+services:
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--save", "60", "1", "--appendonly", "yes"]
+    restart: unless-stopped
+    volumes:
+      - ukb_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - ukb_private
+
+  mcp:
+    image: ${UKB_API_IMAGE:-ghcr.io/yashumani/unified-knowledge-base-api:v0.7.0}
+    command: ["python", "-m", "ukb.mcp.server"]
+    restart: unless-stopped
+    env_file:
+      - ${UKB_ENV_FILE:-../.env}
+    environment:
+      UKB_MCP_TRANSPORT: streamable-http
+      UKB_MCP_HOST: 0.0.0.0
+      UKB_MCP_PORT: 8765
+      UKB_CACHE_ENABLED: "true"
+      UKB_CACHE_BACKEND: redis
+      UKB_REDIS_URL: redis://redis:6379/0
+      UKB_CONVERSATION_STORE_BACKEND: sqlalchemy
+    ports:
+      - "${UKB_MCP_BIND_ADDRESS:-127.0.0.1}:${UKB_MCP_PORT:-8765}:8765"
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ukb_object_store:/app/.ukb/object-store
+      - ukb_zvec:/app/.ukb/zvec
+    networks:
+      - ukb_private
+
+volumes:
+  ukb_redis_data:
+  ukb_object_store:
+  ukb_zvec:
+
+networks:
+  ukb_private:
+    driver: bridge
