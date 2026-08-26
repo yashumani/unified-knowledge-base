@@ -1,0 +1,90 @@
+name: Apply governed runtime v0.7 integration
+
+on:
+  pull_request:
+    paths:
+      - "scripts/finish_v07_patch.py"
+      - ".github/workflows/apply-v07-runtime.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  integrate:
+    if: github.event_name == 'workflow_dispatch' || github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout development branch
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          fetch-depth: 0
+
+      - name: Apply deterministic integration patch
+        run: python scripts/finish_v07_patch.py
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev,mcp,search]"
+
+      - name: Validate migration, lint, types, and tests
+        env:
+          UKB_AI_PROVIDER: noop
+          UKB_AI_MODE: offline_no_model
+          UKB_SEARCH_BACKEND: memory
+          UKB_CACHE_BACKEND: memory
+          UKB_CONVERSATION_STORE_BACKEND: memory
+        run: |
+          mkdir -p .ukb
+          UKB_STORE_BACKEND=sqlalchemy \
+          UKB_DATABASE_URL=sqlite+pysqlite:///./.ukb/v07-migration.db \
+          alembic upgrade head
+          ruff check --select E4,E7,E9,F src tests scripts/validate_mcp_transport.py
+          mypy src/ukb
+          pytest -q --cov=ukb --cov-report=term-missing --cov-report=xml:coverage.xml
+          python -m compileall -q src tests scripts
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build Open WebUI-adapted frontend
+        run: |
+          npm install --no-audit --no-fund
+          npm run web:build
+
+      - name: Validate container definitions
+        run: |
+          cp -n .env.example .env || true
+          docker compose config > /tmp/local-compose.yml
+          docker compose -f deploy/docker-compose.production.yml config > /tmp/production-compose.yml
+          docker compose -f deploy/docker-compose.mcp.yml config > /tmp/mcp-compose.yml
+
+      - name: Remove temporary implementation helpers
+        run: |
+          git rm -f scripts/finish_v07_patch.py
+          git rm -f .github/workflows/apply-v07-runtime.yml
+          git rm -f .github/workflows/export-v07-source.yml || true
+
+      - name: Commit tested v0.7 implementation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No integration changes to commit."
+            exit 0
+          fi
+          git commit -m "Build governed conversation caching and MCP runtime v0.7"
+          git push origin HEAD:${{ github.head_ref || github.ref_name }}
