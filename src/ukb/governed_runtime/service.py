@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Iterable, Mapping
-from typing import Any
+from typing import Any, cast
 
 from ukb.application import BrainApplication
 from ukb.config import Settings
-from ukb.governed_runtime.cache import CacheCoordinator, canonical_json, digest_payload
+from ukb.governed_runtime.cache import CacheCoordinator, digest_payload
 from ukb.governed_runtime.conversations import ConversationRepository
 from ukb.governed_runtime.models import (
     AskBrainRequest,
@@ -395,7 +394,7 @@ class GovernedRuntimeService:
     @staticmethod
     def _mapping_values(value: Any) -> Iterable[Any]:
         if hasattr(value, "values"):
-            return value.values()
+            return cast(Iterable[Any], value.values())
         if isinstance(value, Iterable) and not isinstance(value, (str, bytes, dict)):
             return value
         return []

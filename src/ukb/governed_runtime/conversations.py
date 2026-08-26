@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 import threading
 from collections.abc import Iterable
 from typing import Protocol
@@ -67,15 +68,15 @@ class ConversationRepository(Protocol):
 
     def get(self, conversation_id: str, tenant_id: str, subject: str) -> ConversationRecord | None: ...
 
-    def list(self, tenant_id: str, subject: str, limit: int = 50) -> list[ConversationRecord]: ...
+    def list(self, tenant_id: str, subject: str, limit: int = 50) -> builtins.list[ConversationRecord]: ...
 
     def add_message(self, message: ConversationMessage) -> ConversationMessage: ...
 
-    def messages(self, conversation_id: str, tenant_id: str, subject: str) -> list[ConversationMessage]: ...
+    def messages(self, conversation_id: str, tenant_id: str, subject: str) -> builtins.list[ConversationMessage]: ...
 
     def add_cache_event(self, event: CacheEventRecord) -> CacheEventRecord: ...
 
-    def cache_events(self, tenant_id: str, subject: str, limit: int = 100) -> list[CacheEventRecord]: ...
+    def cache_events(self, tenant_id: str, subject: str, limit: int = 100) -> builtins.list[CacheEventRecord]: ...
 
     def counts(self, tenant_id: str | None = None) -> tuple[int, int]: ...
 
@@ -85,8 +86,8 @@ class ConversationRepository(Protocol):
 class InMemoryConversationRepository:
     def __init__(self) -> None:
         self._conversations: dict[str, ConversationRecord] = {}
-        self._messages: dict[str, list[ConversationMessage]] = {}
-        self._events: list[CacheEventRecord] = []
+        self._messages: dict[str, builtins.list[ConversationMessage]] = {}
+        self._events: builtins.list[CacheEventRecord] = []
         self._lock = threading.RLock()
 
     def create(self, record: ConversationRecord) -> ConversationRecord:
@@ -101,7 +102,7 @@ class InMemoryConversationRepository:
                 return None
             return record.model_copy(deep=True)
 
-    def list(self, tenant_id: str, subject: str, limit: int = 50) -> list[ConversationRecord]:
+    def list(self, tenant_id: str, subject: str, limit: int = 50) -> builtins.list[ConversationRecord]:
         with self._lock:
             values = [
                 record.model_copy(deep=True)
@@ -118,7 +119,7 @@ class InMemoryConversationRepository:
                 record.updated_at = utc_now()
             return message.model_copy(deep=True)
 
-    def messages(self, conversation_id: str, tenant_id: str, subject: str) -> list[ConversationMessage]:
+    def messages(self, conversation_id: str, tenant_id: str, subject: str) -> builtins.list[ConversationMessage]:
         if self.get(conversation_id, tenant_id, subject) is None:
             return []
         with self._lock:
@@ -129,7 +130,7 @@ class InMemoryConversationRepository:
             self._events.append(event.model_copy(deep=True))
         return event.model_copy(deep=True)
 
-    def cache_events(self, tenant_id: str, subject: str, limit: int = 100) -> list[CacheEventRecord]:
+    def cache_events(self, tenant_id: str, subject: str, limit: int = 100) -> builtins.list[CacheEventRecord]:
         with self._lock:
             values = [
                 event.model_copy(deep=True)
@@ -172,7 +173,7 @@ class SQLConversationRepository:
             row = connection.execute(statement).mappings().first()
         return ConversationRecord.model_validate(dict(row)) if row is not None else None
 
-    def list(self, tenant_id: str, subject: str, limit: int = 50) -> list[ConversationRecord]:
+    def list(self, tenant_id: str, subject: str, limit: int = 50) -> builtins.list[ConversationRecord]:
         statement = (
             select(runtime_conversations)
             .where(
@@ -196,7 +197,7 @@ class SQLConversationRepository:
             )
         return message
 
-    def messages(self, conversation_id: str, tenant_id: str, subject: str) -> list[ConversationMessage]:
+    def messages(self, conversation_id: str, tenant_id: str, subject: str) -> builtins.list[ConversationMessage]:
         if self.get(conversation_id, tenant_id, subject) is None:
             return []
         statement = (
@@ -220,7 +221,7 @@ class SQLConversationRepository:
             connection.execute(runtime_cache_events.insert().values(**values))
         return event
 
-    def cache_events(self, tenant_id: str, subject: str, limit: int = 100) -> list[CacheEventRecord]:
+    def cache_events(self, tenant_id: str, subject: str, limit: int = 100) -> builtins.list[CacheEventRecord]:
         statement = (
             select(runtime_cache_events)
             .where(
@@ -232,7 +233,7 @@ class SQLConversationRepository:
         )
         with self.engine.connect() as connection:
             rows = connection.execute(statement).mappings().all()
-        values: list[CacheEventRecord] = []
+        values: builtins.list[CacheEventRecord] = []
         for row in rows:
             payload = dict(row)
             payload["eligible"] = bool(payload["eligible"])
@@ -268,5 +269,5 @@ def build_conversation_repository(settings: Settings) -> ConversationRepository:
     return InMemoryConversationRepository()
 
 
-def export_records(records: Iterable[ConversationRecord]) -> list[dict]:
+def export_records(records: Iterable[ConversationRecord]) -> builtins.list[dict]:
     return [record.model_dump(mode="json") for record in records]
