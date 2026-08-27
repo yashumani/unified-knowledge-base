@@ -1,0 +1,76 @@
+name: Apply CopilotKit governed experience v0.8
+
+on:
+  push:
+    branches:
+      - agent/copilotkit-governed-experience-v0.8
+    paths:
+      - ".github/workflows/apply-copilotkit-v08.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout integration branch
+        uses: actions/checkout@v6
+        with:
+          ref: agent/copilotkit-governed-experience-v0.8
+          fetch-depth: 0
+
+      - name: Materialize CopilotKit implementation
+        run: |
+          cat .copilotkit-v08-payload/part* | base64 --decode > /tmp/copilotkit-v08-payload.tar.gz
+          tar -xzf /tmp/copilotkit-v08-payload.tar.gz
+          rm -rf .copilotkit-v08-payload
+          rm -f .github/workflows/export-copilotkit-base.yml
+          rm -f .github/workflows/apply-copilotkit-v08.yml
+
+      - name: Commit implementation before validation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Build CopilotKit governed AI Brain experience v0.8"
+          git push origin HEAD:agent/copilotkit-governed-experience-v0.8
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build CopilotKit runtime and Open WebUI frontend
+        run: |
+          npm run copilot:build
+          npm run web:build
+
+      - name: Validate private deployment contract
+        run: |
+          docker compose -f deploy/docker-compose.copilotkit.yml config > /tmp/copilotkit-compose.yml
+          docker build -f apps/copilot-runtime/Dockerfile -t ukb-copilotkit-runtime:test .
+
+      - name: Validate runtime health boundary
+        env:
+          OPENAI_API_KEY: ollama-local
+          OPENAI_BASE_URL: http://127.0.0.1:11434/v1
+          COPILOTKIT_MODEL: llama3.1
+          COPILOTKIT_MCP_URL: http://127.0.0.1:8765/mcp
+          COPILOTKIT_REQUIRE_AUTH: "false"
+          COPILOTKIT_PORT: "8200"
+        run: |
+          npm run copilot:start > /tmp/copilotkit-runtime.log 2>&1 &
+          for attempt in {1..40}; do
+            if curl --fail --silent http://127.0.0.1:8200/health > /tmp/copilotkit-health.json; then
+              cat /tmp/copilotkit-health.json
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/copilotkit-runtime.log
+          exit 1
