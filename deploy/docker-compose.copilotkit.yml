@@ -1,0 +1,124 @@
+# Overlay for the private CopilotKit + governed MCP runtime.
+# Run with:
+# docker compose -f deploy/docker-compose.prod.yml -f deploy/docker-compose.copilotkit.yml --env-file deploy/.env up -d
+services:
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1", "--appendonly", "yes"]
+    volumes:
+      - ukb_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [ukb_internal]
+
+  api:
+    environment:
+      UKB_CACHE_ENABLED: "true"
+      UKB_CACHE_BACKEND: redis
+      UKB_REDIS_URL: redis://redis:6379/0
+      UKB_CONVERSATION_STORE_BACKEND: sqlalchemy
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  mcp:
+    image: ${UKB_API_IMAGE:-ghcr.io/yashumani/unified-knowledge-base-api:v0.7.0}
+    restart: unless-stopped
+    command: ["python", "-m", "ukb.mcp.server"]
+    env_file:
+      - .env
+    environment:
+      UKB_ENVIRONMENT: ${UKB_ENVIRONMENT:-prod}
+      UKB_STORE_BACKEND: sqlalchemy
+      UKB_DATABASE_URL: postgresql+psycopg://${UKB_POSTGRES_USER:-ukb}:${UKB_POSTGRES_PASSWORD}@postgres:5432/${UKB_POSTGRES_DB:-ukb}
+      UKB_OBJECT_STORE_URL: file:///app/.ukb/object-store
+      UKB_CREATE_SCHEMA_ON_STARTUP: "false"
+      UKB_SEARCH_BACKEND: ${UKB_SEARCH_BACKEND:-zvec}
+      UKB_ZVEC_PATH: /app/.ukb/zvec/approved-knowledge-v2
+      UKB_AI_PROVIDER: ${UKB_AI_PROVIDER:-ollama}
+      UKB_AI_MODE: ${UKB_AI_MODE:-local_ai}
+      UKB_AI_BASE_URL: http://ollama:11434
+      UKB_AI_CHAT_MODEL: ${UKB_AI_CHAT_MODEL:-llama3.1}
+      UKB_CACHE_ENABLED: "true"
+      UKB_CACHE_BACKEND: redis
+      UKB_REDIS_URL: redis://redis:6379/0
+      UKB_CONVERSATION_STORE_BACKEND: sqlalchemy
+      UKB_MCP_TRANSPORT: streamable-http
+      UKB_MCP_HOST: 0.0.0.0
+      UKB_MCP_PORT: 8765
+      UKB_MCP_SUBJECT: ${UKB_MCP_SUBJECT:-copilotkit-service}
+      UKB_MCP_TENANT_ID: ${UKB_MCP_TENANT_ID:-default}
+      UKB_MCP_ROLES: ${UKB_MCP_ROLES:-consumer}
+      UKB_MCP_CLEARANCE: ${UKB_MCP_CLEARANCE:-internal}
+      UKB_MCP_ALLOW_SUBMISSION: "false"
+      UKB_MCP_ALLOW_REVIEW_QUEUE: "false"
+      UKB_MCP_ALLOW_APPROVAL: "false"
+      UKB_MCP_ALLOW_PUBLICATION: "false"
+      UKB_MCP_ALLOW_CACHE_INVALIDATION: "false"
+    expose:
+      - "8765"
+    ports:
+      - "${UKB_MCP_BIND_ADDRESS:-127.0.0.1}:${UKB_MCP_PORT:-8765}:8765"
+    volumes:
+      - ukb_runtime:/app/.ukb
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('127.0.0.1',8765),3); s.close()"]
+      interval: 20s
+      timeout: 5s
+      start_period: 20s
+      retries: 10
+    networks: [ukb_internal]
+
+  copilot-runtime:
+    build:
+      context: ..
+      dockerfile: apps/copilot-runtime/Dockerfile
+    image: ${UKB_COPILOTKIT_IMAGE:-unified-knowledge-base-copilotkit:v0.8.0}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      COPILOTKIT_HOST: 0.0.0.0
+      COPILOTKIT_PORT: 8200
+      COPILOTKIT_BASE_PATH: /api/copilotkit
+      COPILOTKIT_MODEL: ${COPILOTKIT_MODEL:-llama3.1}
+      COPILOTKIT_MAX_STEPS: ${COPILOTKIT_MAX_STEPS:-8}
+      COPILOTKIT_MAX_OUTPUT_TOKENS: ${COPILOTKIT_MAX_OUTPUT_TOKENS:-1600}
+      COPILOTKIT_MCP_URL: http://mcp:8765/mcp
+      COPILOTKIT_REQUIRE_AUTH: ${COPILOTKIT_REQUIRE_AUTH:-true}
+      COPILOTKIT_RUNTIME_TOKEN: ${COPILOTKIT_RUNTIME_TOKEN:?Set COPILOTKIT_RUNTIME_TOKEN}
+      COPILOTKIT_ALLOWED_ORIGINS: ${COPILOTKIT_ALLOWED_ORIGINS:-https://yashumani.github.io}
+      COPILOTKIT_TELEMETRY_DISABLED: ${COPILOTKIT_TELEMETRY_DISABLED:-true}
+      OPENAI_BASE_URL: http://ollama:11434/v1
+      OPENAI_API_KEY: ${COPILOTKIT_OLLAMA_API_KEY:-ollama-local}
+    ports:
+      - "${COPILOTKIT_BIND_ADDRESS:-127.0.0.1}:${COPILOTKIT_PORT:-8200}:8200"
+    depends_on:
+      mcp:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8200/health"]
+      interval: 20s
+      timeout: 5s
+      start_period: 20s
+      retries: 10
+    networks: [ukb_internal]
+
+volumes:
+  ukb_redis:
+
+networks:
+  ukb_internal:
+    name: ukb_internal

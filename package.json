@@ -3,12 +3,17 @@
   "private": true,
   "workspaces": [
     "apps/web",
+    "apps/copilot-runtime",
     "packages/create-ukb-brain"
   ],
   "scripts": {
     "web:dev": "npm --workspace apps/web run dev",
     "web:build": "npm --workspace apps/web run build",
     "web:preview": "npm --workspace apps/web run preview",
-    "create-brain": "node packages/create-ukb-brain/bin/create-ukb-brain.mjs"
+    "create-brain": "node packages/create-ukb-brain/bin/create-ukb-brain.mjs",
+    "copilot:dev": "npm --workspace apps/copilot-runtime run dev",
+    "copilot:build": "npm --workspace apps/copilot-runtime run build",
+    "copilot:start": "npm --workspace apps/copilot-runtime run start",
+    "build": "npm run copilot:build && npm run web:build"
   }
 }

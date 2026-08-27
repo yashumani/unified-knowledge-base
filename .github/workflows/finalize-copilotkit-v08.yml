@@ -1,0 +1,94 @@
+name: Finalize CopilotKit governed experience v0.8
+
+on:
+  push:
+    branches:
+      - agent/copilotkit-governed-experience-v0.8
+    paths:
+      - ".github/workflows/finalize-copilotkit-v08.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout v0.8 branch
+        uses: actions/checkout@v6
+        with:
+          ref: agent/copilotkit-governed-experience-v0.8
+          fetch-depth: 0
+
+      - name: Use the CopilotKit 1.69 built-in agent export
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          path = Path("apps/copilot-runtime/src/server.ts")
+          text = path.read_text(encoding="utf-8")
+          old = 'import { BuiltInAgent, CopilotRuntime } from "@copilotkit/runtime/v2";'
+          new = (
+              'import { BuiltInAgent } from "@copilotkit/runtime";\n'
+              'import { CopilotRuntime } from "@copilotkit/runtime/v2";'
+          )
+          if old in text:
+              text = text.replace(old, new, 1)
+          elif new not in text:
+              raise SystemExit("Unexpected CopilotKit runtime import contract")
+          path.write_text(text, encoding="utf-8")
+          PY
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build CopilotKit runtime and Open WebUI frontend
+        run: |
+          npm run copilot:build
+          npm run web:build
+
+      - name: Validate private deployment contract
+        run: |
+          docker compose -f deploy/docker-compose.copilotkit.yml config > /tmp/copilotkit-compose.yml
+          docker build -f apps/copilot-runtime/Dockerfile -t ukb-copilotkit-runtime:test .
+
+      - name: Validate runtime health and discovery endpoints
+        env:
+          OPENAI_API_KEY: ollama-local
+          OPENAI_BASE_URL: http://127.0.0.1:11434/v1
+          COPILOTKIT_MODEL: llama3.1
+          COPILOTKIT_MCP_URL: http://127.0.0.1:8765/mcp
+          COPILOTKIT_REQUIRE_AUTH: "false"
+          COPILOTKIT_PORT: "8200"
+        run: |
+          npm run copilot:start > /tmp/copilotkit-runtime.log 2>&1 &
+          runtime_pid=$!
+          trap 'kill ${runtime_pid} >/dev/null 2>&1 || true' EXIT
+          for attempt in {1..40}; do
+            if curl --fail --silent http://127.0.0.1:8200/health > /tmp/copilotkit-health.json; then
+              break
+            fi
+            sleep 1
+          done
+          cat /tmp/copilotkit-health.json
+          curl --fail --silent http://127.0.0.1:8200/api/copilotkit/info > /tmp/copilotkit-info.json
+          test -s /tmp/copilotkit-info.json
+
+      - name: Remove temporary inspection and finalizer workflows
+        run: |
+          rm -f .github/workflows/inspect-copilotkit-runtime.yml
+          rm -f .github/workflows/finalize-copilotkit-v08.yml
+
+      - name: Commit verified CopilotKit integration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Finalize CopilotKit governed experience v0.8"
+          git push origin HEAD:agent/copilotkit-governed-experience-v0.8
