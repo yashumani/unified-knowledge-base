@@ -1,0 +1,34 @@
+name: Inspect CopilotKit runtime exports
+
+on:
+  push:
+    branches:
+      - agent/copilotkit-governed-experience-v0.8
+    paths:
+      - ".github/workflows/inspect-copilotkit-runtime.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install --no-audit --no-fund
+      - name: Print runtime exports and declarations
+        run: |
+          node --input-type=module <<'NODE'
+          const runtime = await import('@copilotkit/runtime/v2');
+          const nodeRuntime = await import('@copilotkit/runtime/v2/node');
+          console.log('RUNTIME_EXPORTS', Object.keys(runtime).sort());
+          console.log('NODE_EXPORTS', Object.keys(nodeRuntime).sort());
+          NODE
+          echo '--- package exports ---'
+          cat node_modules/@copilotkit/runtime/package.json
+          echo '--- agent-like declarations ---'
+          grep -R "class .*Agent\|interface .*Agent\|type .*Agent\|BuiltInAgent\|createCopilotNodeListener" node_modules/@copilotkit/runtime/dist node_modules/@copilotkit/runtime/src 2>/dev/null | head -n 500 || true
