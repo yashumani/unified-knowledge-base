@@ -1,0 +1,27 @@
+name: Export CopilotKit integration source
+
+on:
+  push:
+    branches:
+      - agent/copilotkit-governed-experience-v0.8
+    paths:
+      - ".github/workflows/export-copilotkit-base.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Package source
+        run: tar --exclude=.git -czf /tmp/ukb-copilotkit-base.tar.gz .
+      - name: Upload source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: ukb-copilotkit-base
+          path: /tmp/ukb-copilotkit-base.tar.gz
+          if-no-files-found: error
