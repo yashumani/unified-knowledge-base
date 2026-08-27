@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import AdvancedApp from "./AdvancedApp";
 import { GuidedDemoV2 } from "./components/GuidedDemoV2";
 import { OpenWebUIBrainApp } from "./components/OpenWebUIBrainApp";
+import { CopilotKitGateway } from "./copilotkit/CopilotKitGateway";
 
 export type Experience = "workspace" | "guided" | "advanced";
 
@@ -13,7 +14,7 @@ function experienceFromLocation(): Experience {
   return "workspace";
 }
 
-export default function RootApp() {
+function RootExperience() {
   const [experience, setExperience] = useState<Experience>(experienceFromLocation);
 
   useEffect(() => {
@@ -57,5 +58,13 @@ export default function RootApp() {
       onOpenAdvanced={() => navigate("advanced")}
       onOpenGuided={() => navigate("guided")}
     />
+  );
+}
+
+export default function RootApp() {
+  return (
+    <CopilotKitGateway>
+      <RootExperience />
+    </CopilotKitGateway>
   );
 }
