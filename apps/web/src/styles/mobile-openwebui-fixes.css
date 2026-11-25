@@ -1,0 +1,199 @@
+/*
+ * Mobile viewport hardening for the OpenWebUI-adapted AI Brain.
+ *
+ * The phone layout keeps the composer in its own grid row instead of
+ * overlaying the empty-state actions. The chat area becomes the scroll
+ * container, all four starter actions stay available, and compact 2x2 cards
+ * keep the most important choices visible on short in-app-browser viewports.
+ * Validated at 414×720 and 390×844 visual viewports.
+ */
+
+@media (max-width: 760px) {
+  .owui-center-column {
+    height: 100%;
+    min-height: 0;
+    grid-template-rows: 54px minmax(0, 1fr) auto;
+  }
+
+  .owui-main {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .owui-composer-wrap {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    left: auto;
+    grid-row: 3;
+    padding: 0 8px max(8px, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--ow-border);
+    background: var(--ow-main);
+    box-shadow: 0 -12px 28px color-mix(in srgb, var(--ow-main) 88%, transparent);
+  }
+
+  .owui-composer-tools {
+    padding: 8px 4px 6px;
+  }
+
+  .owui-chat-empty,
+  .owui-chat-thread {
+    height: 100%;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    scroll-padding-block: 16px;
+  }
+
+  .owui-chat-empty {
+    width: 100%;
+    max-width: none;
+    justify-content: flex-start;
+    padding: 28px 12px 28px;
+  }
+
+  .owui-empty-mark,
+  .owui-empty-kicker,
+  .owui-chat-empty h1,
+  .owui-empty-copy,
+  .owui-inline-notice,
+  .owui-suggestion-grid,
+  .owui-empty-status {
+    flex: 0 0 auto;
+  }
+
+  .owui-inline-notice,
+  .owui-suggestion-grid {
+    width: min(100%, 680px);
+  }
+
+  .owui-suggestion-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 20px;
+  }
+
+  .owui-suggestion-grid > button,
+  .owui-suggestion-grid > button:nth-child(n+4) {
+    display: grid;
+  }
+
+  .owui-suggestion-grid > button {
+    min-height: 78px;
+    grid-template-columns: 31px minmax(0, 1fr);
+    align-content: center;
+    gap: 9px;
+    padding: 10px;
+  }
+
+  .owui-suggestion-grid > button > svg,
+  .owui-suggestion-grid small {
+    display: none;
+  }
+
+  .owui-suggestion-grid strong {
+    font-size: 12px;
+    line-height: 1.25;
+    white-space: normal;
+  }
+
+  .owui-chat-thread-inner {
+    padding-bottom: 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  .owui-chat-empty {
+    padding-top: 22px;
+  }
+
+  .owui-empty-mark {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 14px;
+    border-radius: 16px;
+  }
+
+  .owui-empty-mark svg {
+    width: 25px;
+    height: 25px;
+  }
+
+  .owui-empty-kicker {
+    margin-bottom: 6px;
+    font-size: 9.5px;
+  }
+
+  .owui-chat-empty h1 {
+    font-size: clamp(28px, 9vw, 36px);
+  }
+
+  .owui-empty-copy {
+    margin-top: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .owui-inline-notice {
+    margin-top: 14px;
+    padding: 10px 11px;
+  }
+
+  .owui-empty-status {
+    margin-top: 16px;
+    padding-bottom: 4px;
+  }
+
+  .owui-composer-tools button span {
+    display: inline;
+  }
+
+  .owui-composer {
+    padding: 6px;
+  }
+}
+
+@media (max-width: 360px) {
+  .owui-suggestion-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .owui-suggestion-grid > button {
+    min-height: 66px;
+  }
+}
+
+@media (max-width: 760px) and (max-height: 720px) {
+  .owui-chat-empty {
+    padding-top: 14px;
+  }
+
+  .owui-empty-mark {
+    width: 42px;
+    height: 42px;
+    margin-bottom: 10px;
+  }
+
+  .owui-empty-kicker {
+    display: none;
+  }
+
+  .owui-chat-empty h1 {
+    font-size: clamp(26px, 8.4vw, 34px);
+  }
+
+  .owui-empty-copy {
+    margin-top: 8px;
+    line-height: 1.4;
+  }
+
+  .owui-inline-notice {
+    margin-top: 10px;
+  }
+
+  .owui-suggestion-grid {
+    margin-top: 14px;
+  }
+}
